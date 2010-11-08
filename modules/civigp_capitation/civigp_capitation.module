@@ -135,4 +135,12 @@ function civigp_capitation_is_current_member($contact_id){
 }
 	
 function civigp_capitation_lookup_membership_fee($contact_id) {
-	
+	require_once 'api/v2/Membership.php';
+	$params = array( 'contact_id' => $contact_id);
+  	$result = civicrm_membership_contact_get($params);
+	// just get first membership for now, i.e. don't worry about the edge case when someone will have more than one membership
+	$memebership=current(current($result));
+	$params = array ( 'id' => $membership['membership_type_id'] );
+	$membership_type=current(civicrm_membership_types_get($params));
+	return $membership_type['minimum_fee'];
+}
