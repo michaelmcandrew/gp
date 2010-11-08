@@ -321,7 +321,7 @@ class CRM_Report_Form_Contribute_LocalCapitationSummary extends CRM_Report_Form 
             }
         }
 
-        $select[] = "sum(value_capitation_4_civireport.regional_capitation_11) as local_capitation";
+        $select[] = "sum(value_capitation_4_civireport.local_capitation_12) as local_capitation";
         $this->_columnHeaders["local_capitation"]['type']  = MONEY;
         $this->_columnHeaders["local_capitation"]['title'] = 'Local Capitation';
 
