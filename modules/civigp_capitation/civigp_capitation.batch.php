@@ -15,7 +15,7 @@ SELECT cc.id AS id, contact_id, lower(source) AS frequency
 FROM civicrm_contribution AS cc
 JOIN ukgr_crm.civicrm_contribution_type AS cct ON cc.contribution_type_id=cct.id
 JOIN gp_data.is_numbers AS is_numbers ON cct.name= is_numbers.`Item Number`
-WHERE import = 'm'
+WHERE import = 'm' AND id NOT IN (SELECT entity_id FROM `civicrm_value_capitation_4`)
 ";
 
 $result = CRM_Core_DAO::executeQuery( $query );
