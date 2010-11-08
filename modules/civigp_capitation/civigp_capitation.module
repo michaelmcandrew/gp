@@ -95,6 +95,7 @@ function civigp_capitation_capitate($contribution_id, $time_period='annual', $me
 	$result=civicrm_contact_get($params);
 	$party_ids=current($result);
 	
+	//set this based on the contacts current local and regional party
 	$capitation['local_contact_id'] = $party_ids[CIVIGP_CAPITATION_LOCAL_PARTY_CUSTOM_FIELD];
 	$capitation['regional_contact_id'] = $party_ids[CIVIGP_CAPITATION_REGIONAL_PARTY_CUSTOM_FIELD];	
 	
