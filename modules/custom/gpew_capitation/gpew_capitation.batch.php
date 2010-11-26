@@ -5,7 +5,7 @@ require_once 'CRM/Core/Config.php';
 
 $config = CRM_Core_Config::singleton();
 
-require_once('civigp_capitation.module');
+require_once('gpew_capitation.module');
 require_once('CRM/Core/DAO.php');
 
 ini_set('memory_limit', '1000M');
@@ -23,8 +23,8 @@ $result = CRM_Core_DAO::executeQuery( $query );
 echo "Updating area information.\n";
 
 while($result->fetch()){
-	if(civigp_capitation_is_current_member($result->contact_id)){	
-		civigp_capitation_capitate($result->id,$result->frequency);
+	if(gpew_capitation_is_current_member($result->contact_id)){	
+		gpew_capitation_capitate($result->id,$result->frequency);
 		echo '.';
 	}
 }

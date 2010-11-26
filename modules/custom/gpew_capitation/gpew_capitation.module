@@ -1,20 +1,20 @@
 <?php
-define('CIVIGP_CAPITATION_MEMBERSHIP_CONTRIBUTION_TYPE_ID', 2);
-define('CIVIGP_CAPITATION_LOCAL_CAP_PERCENT', 0.08);
-define('CIVIGP_CAPITATION_REGIONAL_CAP_PERCENT', 0.16);
-define('CIVIGP_CAPITATION_LOCAL_PARTY_CUSTOM_FIELD', 'custom_34');
-define('CIVIGP_CAPITATION_REGIONAL_PARTY_CUSTOM_FIELD', 'custom_36');
+define('GPEW_CAPITATION_MEMBERSHIP_CONTRIBUTION_TYPE_ID', 2);
+define('GPEW_CAPITATION_LOCAL_CAP_PERCENT', 0.08);
+define('GPEW_CAPITATION_REGIONAL_CAP_PERCENT', 0.16);
+define('GPEW_CAPITATION_LOCAL_PARTY_CUSTOM_FIELD', 'custom_34');
+define('GPEW_CAPITATION_REGIONAL_PARTY_CUSTOM_FIELD', 'custom_36');
 
-define('CIVIGP_CAPITATION_TABLE', 'civicrm_value_capitation_4');
-define('CIVIGP_CAPITATION_NATIONAL_AMOUNT', 'national_party_5');
-define('CIVIGP_CAPITATION_EXTRA_AMOUNT', 'extra_donation_8');
-define('CIVIGP_CAPITATION_REGIONAL_CONTACT_ID', 'region_9');
-define('CIVIGP_CAPITATION_LOCAL_CONTACT_ID', 'local_party_10');
-define('CIVIGP_CAPITATION_REGIONAL_AMOUNT', 'regional_capitation_11');
-define('CIVIGP_CAPITATION_LOCAL_AMOUNT', 'local_capitation_12');
+define('GPEW_CAPITATION_TABLE', 'civicrm_value_capitation_4');
+define('GPEW_CAPITATION_NATIONAL_AMOUNT', 'national_party_5');
+define('GPEW_CAPITATION_EXTRA_AMOUNT', 'extra_donation_8');
+define('GPEW_CAPITATION_REGIONAL_CONTACT_ID', 'region_9');
+define('GPEW_CAPITATION_LOCAL_CONTACT_ID', 'local_party_10');
+define('GPEW_CAPITATION_REGIONAL_AMOUNT', 'regional_capitation_11');
+define('GPEW_CAPITATION_LOCAL_AMOUNT', 'local_capitation_12');
 
-function civigp_capitation_civicrm_post( $op, $objectName, $objectId, &$objectRef ) {
-	// civigp_capitation_batch_update();
+function gpew_capitation_civicrm_post( $op, $objectName, $objectId, &$objectRef ) {
+	// gpew_capitation_batch_update();
 	// exit;
 	if($op != "edit" && $op != "create"){
 		return;
@@ -22,21 +22,21 @@ function civigp_capitation_civicrm_post( $op, $objectName, $objectId, &$objectRe
 	if($objectName != "Contribution"){
 		return;
 	}
-	if($objectRef->contribution_type_id!=CIVIGP_CAPITATION_MEMBERSHIP_CONTRIBUTION_TYPE_ID){
+	if($objectRef->contribution_type_id!=GPEW_CAPITATION_MEMBERSHIP_CONTRIBUTION_TYPE_ID){
 		return;
 	}
 	
-	if(!civigp_capitation_is_current_member($objectRef->contact_id)){
+	if(!gpew_capitation_is_current_member($objectRef->contact_id)){
 		return;
 	}
 	
 	// if we got this far, we are editing or creating a contribution of type membership_fee for a current member, therefore, we should perform the capitation
-	civigp_capitation_capitate($objectRef->id);
+	gpew_capitation_capitate($objectRef->id);
 }
 
 //rework this function so that it takes contribution id and asks for itself (using the API) the contact id and the total amount
 
-function civigp_capitation_capitate($contribution_id, $time_period='annual', $membership_fee='look_up'){
+function gpew_capitation_capitate($contribution_id, $time_period='annual', $membership_fee='look_up'){
 	
 	require_once 'api/v2/Contribute.php';
 	$params = array('contribution_id'=>$contribution_id);        
@@ -46,7 +46,7 @@ function civigp_capitation_capitate($contribution_id, $time_period='annual', $me
     
 	//check what membership type the member has already been set, or needs to be looked up
 	if(!is_numeric($membership_fee)){
-		$membership_fee=civigp_capitation_lookup_membership_fee($contact_id);
+		$membership_fee=gpew_capitation_lookup_membership_fee($contact_id);
 	}
 	
 	//account for membership fee payments covering less that a year
@@ -81,23 +81,23 @@ function civigp_capitation_capitate($contribution_id, $time_period='annual', $me
 	} else {
 		$capitation['capitatable_amount'] = $capitation['total_amount'];	
 	}
-	$capitation['local_amount'] = round($capitation['capitatable_amount'] * CIVIGP_CAPITATION_LOCAL_CAP_PERCENT, 2);
-	$capitation['regional_amount'] = round($capitation['capitatable_amount'] * CIVIGP_CAPITATION_REGIONAL_CAP_PERCENT, 2);
+	$capitation['local_amount'] = round($capitation['capitatable_amount'] * GPEW_CAPITATION_LOCAL_CAP_PERCENT, 2);
+	$capitation['regional_amount'] = round($capitation['capitatable_amount'] * GPEW_CAPITATION_REGIONAL_CAP_PERCENT, 2);
 	$capitation['national_amount'] = $capitation['capitatable_amount'] - ($capitation['local_amount'] + $capitation['regional_amount']);
 	
 	//assign local and regional party
 	require_once 'api/v2/Contact.php';
 	$params = array(
 		'contact_id' => $contact_id,
-		'return_'.CIVIGP_CAPITATION_LOCAL_PARTY_CUSTOM_FIELD => 1,
-		'return_'.CIVIGP_CAPITATION_REGIONAL_PARTY_CUSTOM_FIELD => 1
+		'return_'.GPEW_CAPITATION_LOCAL_PARTY_CUSTOM_FIELD => 1,
+		'return_'.GPEW_CAPITATION_REGIONAL_PARTY_CUSTOM_FIELD => 1
 		);
 	$result=civicrm_contact_get($params);
 	$party_ids=current($result);
 	
 	//set this based on the contacts current local and regional party
-	$capitation['local_contact_id'] = $party_ids[CIVIGP_CAPITATION_LOCAL_PARTY_CUSTOM_FIELD];
-	$capitation['regional_contact_id'] = $party_ids[CIVIGP_CAPITATION_REGIONAL_PARTY_CUSTOM_FIELD];	
+	$capitation['local_contact_id'] = $party_ids[GPEW_CAPITATION_LOCAL_PARTY_CUSTOM_FIELD];
+	$capitation['regional_contact_id'] = $party_ids[GPEW_CAPITATION_REGIONAL_PARTY_CUSTOM_FIELD];	
 	
 	$labelTranslation = array (
 		'national_amount' => 'national_party_5',
@@ -118,11 +118,11 @@ function civigp_capitation_capitate($contribution_id, $time_period='annual', $me
 		}
 	}
 	$params[$count] = array( $contribution_id, 'Integer');
-	$query = "REPLACE INTO `".CIVIGP_CAPITATION_TABLE."` SET `entity_id`= %{$count}, ".implode(', ',$fieldsToUpdate);
+	$query = "REPLACE INTO `".GPEW_CAPITATION_TABLE."` SET `entity_id`= %{$count}, ".implode(', ',$fieldsToUpdate);
 	$updateResult = CRM_Core_DAO::executeQuery( $query, $params );
 }
 	
-function civigp_capitation_is_current_member($contact_id){
+function gpew_capitation_is_current_member($contact_id){
 	require_once 'api/v2/Membership.php';
 	$params = array( 'contact_id' => $contact_id);
   	$result = civicrm_membership_contact_get($params);
@@ -134,7 +134,7 @@ function civigp_capitation_is_current_member($contact_id){
 	return TRUE;
 }
 	
-function civigp_capitation_lookup_membership_fee($contact_id) {
+function gpew_capitation_lookup_membership_fee($contact_id) {
 	require_once 'api/v2/Membership.php';
 	$params = array( 'contact_id' => $contact_id);
   	$result = civicrm_membership_contact_get($params);
