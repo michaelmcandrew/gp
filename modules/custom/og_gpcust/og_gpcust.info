@@ -1,0 +1,5 @@
+; $Id$
+name = GP OG customisations
+description = Amongst other things, changes the group details block
+package = CiviCRM - Green Party extras
+core = 6.x

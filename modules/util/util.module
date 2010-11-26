@@ -1,0 +1,56 @@
+<?php
+// $Id: util.module,v 1.12.2.2 2009/09/30 05:03:03 nancyw Exp $
+
+/**
+ * @file
+ * Helper Utilities for your Drupal site.
+ */
+
+function util_menu() {
+  $menu['admin/settings/util'] = array(
+    'title'            => 'Utilities',
+    'description'      => "Helper Utilities for your Drupal site.",
+    'page callback'    => 'drupal_get_form',
+    'page arguments'   => array('util_page'),
+    'access arguments' => array('administer site configuration'),
+    'type'             => MENU_NORMAL_ITEM,
+    );
+
+  $menu['admin/settings/util/general'] = array(
+    'title'            => 'Base',
+    'description'      => "Helper Utilities for your Drupal site.",
+    'page callback'    => 'drupal_get_form',
+    'page arguments'   => array('util_page'),
+    'access arguments' => array('administer site configuration'),
+    'type'             => MENU_DEFAULT_LOCAL_TASK,
+    'weight'           => -10,
+    );
+
+  return $menu;
+}
+
+function _util_page() {
+  return drupal_get_form('util_page');
+}
+
+function util_page() {
+  $form = array();
+  // For now output empty page, this is purely to reserve space for future development
+  // and to allow contribs to form_alter onto this page.
+  $form['util'] = array(
+    '#value' => theme('advanced_help_topic', 'util', 'util') . t('The Utility module is a grouping of commonly-needed utilities that are simple to code, everyone wants, but nobody actually codes them.'),
+    );
+
+  $form['clear'] = array(
+    '#value' => '<p>Clicking the "Save" button will rebuild the menus.</p>',
+    '#prefix' => '<div class="clear-block">',
+    '#suffix' => '</div>',
+    );
+  $form['#submit'][] = array('util_page_submit');
+  $form['buttons']['#weight'] = 99;
+  return system_settings_form($form);
+}
+
+function util_page_submit() {
+  menu_rebuild();
+}
