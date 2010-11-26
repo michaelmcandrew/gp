@@ -1,0 +1,5 @@
+; $Id$
+name = Set local and regional party
+description = Amongst other things, changes the group details block
+package = CiviCRM - Green Party extras
+core = 6.x
