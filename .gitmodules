@@ -1,0 +1,3 @@
+[submodule "modules/custom/civimapit"]
+	path = modules/custom/civimapit
+	url = git@github.com:michaelmcandrew/civimapit.git
