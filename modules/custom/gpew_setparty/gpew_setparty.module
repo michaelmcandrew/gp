@@ -28,7 +28,7 @@ function gpew_setparty_civicrm_post( $op, $objectName, $objectId, &$objectRef ) 
 		$params=array();
 		$params[1] = array( $objectId, 'Integer');
 		$params[2] = array( $local_party_contact->id, 'Integer');
-		CRM_Core_DAO::executeQuery( "UPDATE `civicrm_value_gpew_party_information` SET `local_party`= '{$local_party_contact->id}' WHERE `entity_id` = %1", $params );
+		CRM_Core_DAO::executeQuery( "UPDATE `civicrm_value_gpew_party_information` SET `local_party_id`= '{$local_party_contact->id}' WHERE `entity_id` = %1", $params );
 	} else {
 		// if this has been overridden, validate that it is actually a local party or null
 	}
@@ -38,7 +38,7 @@ function gpew_setparty_civicrm_post( $op, $objectName, $objectId, &$objectRef ) 
 	//fetch the local party again (it might have been set above, or might be overridden)
 	$params=array();
 	$params[1] = array( $objectId, 'Integer');
-	$local_party_contact=CRM_Core_DAO::executeQuery( "SELECT `local_party` as `id` FROM `civicrm_value_gpew_party_information` WHERE `entity_id` = %1", $params );
+	$local_party_contact=CRM_Core_DAO::executeQuery( "SELECT `local_party_id` as `id` FROM `civicrm_value_gpew_party_information` WHERE `entity_id` = %1", $params );
 	$local_party_contact->fetch();
 	if(is_numeric($local_party_contact->id)){
 		// look up the regional party ID
@@ -52,12 +52,12 @@ function gpew_setparty_civicrm_post( $op, $objectName, $objectId, &$objectRef ) 
 		$regional_party_contact->fetch();
 		$params=array();
 		$params[1] = array( $objectId, 'Integer');	
-		CRM_Core_DAO::executeQuery( "UPDATE `civicrm_value_gpew_party_information` SET `regional_party`= '{$regional_party_contact->id}' WHERE `entity_id` = %1", $params );
+		CRM_Core_DAO::executeQuery( "UPDATE `civicrm_value_gpew_party_information` SET `regional_party_id`= '{$regional_party_contact->id}' WHERE `entity_id` = %1", $params );
 		
 	} else {
 		$params=array();
 		$params[1] = array( $objectId, 'Integer');	
-		CRM_Core_DAO::executeQuery( "UPDATE `civicrm_value_gpew_party_information` SET `regional_party` = NULL WHERE `entity_id` = %1", $params );
+		CRM_Core_DAO::executeQuery( "UPDATE `civicrm_value_gpew_party_information` SET `regional_party_id` = NULL WHERE `entity_id` = %1", $params );
 	}	
 	
 }
