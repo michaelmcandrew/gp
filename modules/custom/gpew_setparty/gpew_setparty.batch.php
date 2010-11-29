@@ -21,10 +21,10 @@ LEFT JOIN civicrm_value_gpew_party_information AS cvgpi ON cc.id = cvgpi.entity_
 JOIN civicrm_address AS ca ON ca.contact_id=cc.id
 WHERE (postal_code IS NOT NULL AND postal_code!='') AND cvgpi.id IS NULL AND ca.is_primary");
 
-echo "Going to loop through {$ContactsToBeUpdated->N} rows."
+echo "Going to loop through {$ContactsToBeUpdated->N} rows... ";
 
 while($ContactsToBeUpdated->fetch()){
-	print_r($ContactsToBeUpdated->id."\n");
+	print_r($ContactsToBeUpdated->id." ");
 	civimapit_updateContactAreaInfo($ContactsToBeUpdated->id,$ContactsToBeUpdated->postal_code);
 	gpew_setparty_set_party($ContactsToBeUpdated->id);
 	// go easy on the mapit server :)
