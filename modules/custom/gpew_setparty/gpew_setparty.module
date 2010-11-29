@@ -11,6 +11,8 @@ function gpew_setparty_civicrm_post( $op, $objectName, $objectId, &$objectRef ) 
 	// set local party
 	
 	// if there is no override
+	$params=array();
+	$params[1] = array( $objectId, 'Integer');
 	$civicrm_value_gpew_party_information = CRM_Core_DAO::executeQuery( "SELECT * FROM civicrm_value_gpew_party_information WHERE entity_id=%1", $params );
 	$civicrm_value_gpew_party_information->fetch();
 	if($civicrm_value_gpew_party_information->override_local_party!=true){
