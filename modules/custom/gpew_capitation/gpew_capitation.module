@@ -13,6 +13,8 @@ define('GPEW_CAPITATION_LOCAL_CONTACT_ID', 'local_party_10');
 define('GPEW_CAPITATION_REGIONAL_AMOUNT', 'regional_capitation_11');
 define('GPEW_CAPITATION_LOCAL_AMOUNT', 'local_capitation_12');
 
+//TODO: Check if the contact has local party information, or update their local party information regardless each time this hook is fired.  This is needed short term because we aren't sure whether the contact has decent local party information.
+
 function gpew_capitation_civicrm_post( $op, $objectName, $objectId, &$objectRef ) {
 	// gpew_capitation_batch_update();
 	// exit;
