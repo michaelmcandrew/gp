@@ -1,4 +1,5 @@
 <?php
+
 function gpew_setparty_civicrm_post( $op, $objectName, $objectId, &$objectRef ) {
 
 	if($op!='create' AND $op!='edit'){
