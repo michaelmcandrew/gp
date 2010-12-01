@@ -1,12 +1,14 @@
 <?php
 
 function gpew_user_import_import() {
+	
+	// make the translation from civi contacts to drupal nodes
 	$pq=db_query( "SELECT * FROM content_type_group");
 	while($p=db_fetch_object($pq)){
 		$pt[$p->field_civicrmid_value]=$p->nid;
 	}
 	
-	
+	//find all the contacts that you want to create drupal names for (in the test, the should be limited to 1 for safety)
 	$contacts_to_create=db_query( "
 		SELECT cc.id as id, first_name, last_name, ce.email, local_party_id, regional_party_id FROM civicrm_contact AS cc JOIN civicrm_value_gpew_party_information AS pi ON cc.id=pi.entity_id
 		JOIN civicrm_membership AS cm ON cc.id=cm.contact_id
@@ -17,8 +19,9 @@ function gpew_user_import_import() {
 		GROUP BY email LIMIT 1
 		"
 	);
-	$names=array();
 
+	// create unique names for them
+	$names=array();
 	while($contact=db_fetch_object($contacts_to_create)){
 		$name=preg_replace('/[^a-z A-Z]/', ' ', $contact->first_name.' '.$contact->last_name);
 		if(!in_array($name, array_keys($names))){
@@ -32,8 +35,10 @@ function gpew_user_import_import() {
 //		."\n";
 	}
 
+	// add each user
 	foreach($names as $username => $data){
 		
+		//start test
 		$delete_user_uid = db_result(db_query("SELECT uid FROM {users} WHERE name = 'testing_gpew_user_import'", $username));
 		user_delete(null, $delete_user_uid);
 		
@@ -47,6 +52,8 @@ function gpew_user_import_import() {
 			'init' => 'michaelmcandrew@gmail.com', // same as mail
 			'roles' => array('14'=>'member') // this is the member role
 			);
+		// end test - comment out the above and uncomment below to do it for real
+		
 		// $user_data = array(
 		// 	'name' => $username,
 		// 	'pass' => user_password(), // note: do not md5 the password
@@ -69,6 +76,7 @@ function gpew_user_import_import() {
 		$new_user->password=$pass;
 		_user_mail_notify('register_admin_created', $new_user);
 		
+		//also needs to be commented out so the script will actually loop
 		exit;
 	}
 	
