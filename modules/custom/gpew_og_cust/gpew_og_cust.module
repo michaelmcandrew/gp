@@ -1,11 +1,11 @@
 <?php
 
-function gpew_ogcust_og_links_alter(&$links, $group_node) {
+function gpew_og_cust_og_links_alter(&$links, $group_node) {
 	//drupal_set_message('<pre>'. var_export($group_node,TRUE) .'</pre>');
 	//drupal_set_message('<pre>'. var_export($links,TRUE) .'</pre>');	
 	//$links['invite'] = 'Blablabla';  // change the invite anchor text
-	//unset ($links['subscribers']);
-	unset ($links['forums']);  
+	unset ($links['subscribers']);
+	unset ($links['forums']);
 	unset ($links['manager']);  
 	unset ($links['create_forum']);  
 	unset ($links['invite']);  // Remove invite a friend link from group details block.
