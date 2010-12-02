@@ -16,7 +16,7 @@ function gpew_user_import_import() {
 		JOIN temp_import_usernames as tiu ON tiu.contact_id = cc.id
 		LEFT JOIN users ON users.name=uname WHERE is_current_member AND users.name IS NULL
 		GROUP BY email LIMIT 100
-		" );
+			" );
 
 
 	// add each user

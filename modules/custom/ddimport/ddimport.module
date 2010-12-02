@@ -1,0 +1,492 @@
+<?php
+// $Id$
+civicrm_initialize( true );
+
+require_once "api/v2/Contact.php";
+require_once "api/v2/Location.php";
+require_once "api/v2/MembershipContact.php";
+require_once 'api/v2/Contribute.php';
+require_once 'api/v2/MembershipContributionLink.php';
+
+
+function ddimport_node_info() {
+	$ddImportNodeTemplate = array(
+		'module'=>'ddimport',
+		'has_title' => TRUE,
+		'title_label' => t('Title'),
+		'has_body' => TRUE,
+		'body_label' => t('Report')
+	);
+	
+	$nodeTypes['ddmandate']=$ddImportNodeTemplate;
+	$nodeTypes['ddmandate']['name']='DD mandates';
+	$nodeTypes['ddmandate']['help']='Used to upload one or more direct debit <b>mandate</b> CSV reports from Rapidata to CiviCRM.';
+	$nodeTypes['ddmandate']['description']='Used to import direct debit mandates';
+	$nodeTypes['ddpayment']=$ddImportNodeTemplate;
+	$nodeTypes['ddpayment']['name']='DD payments';
+	$nodeTypes['ddpayment']['help']='Used to upload one or more direct debit <b>payment</b> CSV reports from Rapidata to CiviCRM.';
+	$nodeTypes['ddpayment']['description']='Used to import direct debit payments';
+	return $nodeTypes;
+}
+
+function ddimport_perm() {
+	return array('import direct debit payments and mandates');
+}
+
+function ddimport_access($op, $node, $account) {	
+	if ($op == 'update' AND $node->body!='') {
+		return TRUE;
+	}
+	return user_access('import direct debit payments and mandates', $account);
+}
+
+function ddimport_form($node) {
+	//All we want people to be able to do is upload the file, so we don't need to return any form elements :)
+	return;
+}
+
+function ddimport_nodeapi(&$node, $op) {
+}
+
+function ddimport_menu() {
+	
+	$items = array();
+
+	$items['node/%node/process'] = array(
+	    'title' => 'Process',
+	    'page callback' => 'ddimport_process',
+	    'page arguments' => array(1),
+	    'access callback'   => ddimport_check_process_permission,
+		'access arguments' => array(1),
+	    'type' => MENU_LOCAL_TASK
+	);
+	$items['node/%node/test'] = array(
+	    'title' => 'Test',
+	    'page callback' => 'ddimport_process_test',
+	    'page arguments' => array(1),
+	    'access callback'   => ddimport_check_process_permission,
+		'access arguments' => array(1),
+	    'type' => MENU_LOCAL_TASK
+	);
+    return $items;
+}
+
+function ddimport_process_test($node, $test=0) {
+	ddimport_process($node, 1);
+}
+
+function ddimport_process($node, $test=0) {
+	
+	if($node->type == 'ddmandate') {
+	 	$reportHeader = '<h2>Direct debit mandate import report</h2>';
+		foreach ( $node->files as $file) {
+			$reports[$file->filename]=ddimport_process_mandate_csv($file, $test);
+		}
+	}
+	if($node->type == 'ddpayment') {
+	 	$reportHeader = '<h2>Direct debit payment import report</h2>';
+		foreach ( $node->files as $file) {
+			$reports[$file->filename]=ddimport_process_payment_csv($file, $test);
+		}
+	}
+
+	foreach($reports as $fn => $report){
+		$rT[$fn]['Short'] = ddimport_format_report($report, array('warning'));
+		$rT[$fn]['Medium'] = ddimport_format_report($report, array('warning', 'note'));
+		$rT[$fn]['Long'] = ddimport_format_report($report, array('warning', 'note', 'info'));
+	}
+	
+	$reportLengths=array('Short', 'Medium', 'Long');
+	foreach($reportLengths as $length){
+		foreach($node->files as $file){
+			$reportMain .= '<h2>'.$length.' report for '.$file->filename.'</h2>';			
+			$reportMain .= $rT[$file->filename][$length];
+		}
+	}
+	
+	$reportHeader .= 'Processed on '.date('r');
+	$report = $reportHeader.$reportMain.$reportFooter;
+	if(!$test){
+		db_query("UPDATE {node_revisions} SET body = '%s' WHERE nid = %d and vid = %d", $report, $node->nid, $node->vid );	
+	} else {
+		drupal_set_message(nl2br($report));
+	}
+	drupal_goto('node/'.$node->nid);
+}
+
+function ddimport_format_report($reportMain, $what){
+	if(count($reportMain)){
+		$report .=  'REPORTING: '.implode(',',$what)."\n";
+		foreach($reportMain as $line) {
+			if(in_array($line[0], $what)){
+				$report .= '<b>'.$line[0].':</b> '.$line[1]."\n";
+				$aLineExists = TRUE;
+			}
+		}
+		$report .=  "\n\n";
+		
+	}
+	if(!$aLineExists) {
+		$report .=  'No messages to display';
+	}
+	return $report;
+	
+}
+
+function ddimport_check_process_permission($node) {
+  if (($node->type == 'ddmandate' OR $node->type == 'ddpayment' ) AND $node->body =='') { // you can check other permissions here, like "view content", etc.
+    return TRUE;
+  }
+  else {
+    return TRUE;
+    return FALSE;
+  }
+}
+
+function ddimport_process_mandate_csv($csv, $test) {
+	$contacts = ddimport_afc($csv->filepath, ',', 'ConfirmationReference');
+	$report=array();
+	foreach($contacts as $contact){
+		$report=array_merge($report, ddimport_add_mandate($contact, $test));
+	}
+	return $report;
+}
+
+function ddimport_process_payment_csv($csv, $test) {
+	$payments = ddimport_afc($csv->filepath, ',', 'auto'); //TODO - this should be auto IMO
+	$report=array();
+	foreach($payments as $payment){
+		$report=array_merge($report, ddimport_add_payment($payment, $test));
+	}
+	return $report;
+}
+
+function ddimport_add_mandate($contact, $test) {
+	
+	//make sure you want to add this mandate (and return if you don't)
+	if($contact['AccountDetailsValidated']=='FALSE'){
+		$report[]=array('warning', "{$contact['ConfirmationReference']} not imported: 'AccountDetailsValidated is FALSE'", 'warning');
+		return $report;
+	}
+	if(((ddimport_parse_DD_date($contact['DirectDebitStartDate'])-time())/86400)>100){
+		$report[]=array('warning', "{$contact['ConfirmationReference']} not imported: 'DirectDebitStartDate more that 100 days in the future.'", 'warning');
+		return $report;
+	}
+	if($contact['IsTestData']=='TRUE'){
+		$report[]=array('warning', "{$contact['ConfirmationReference']} not imported: 'IsTestData' is TRUE", 'warning');
+		return $report;
+	}
+
+	// See if the URN already exists in CiviCRM
+	$searchResultForURN=ddimport_search_for_URN($contact['ConfirmationReference']);
+	if($searchResultForURN[0]=='info'){
+		$report[]=$searchResultForURN;	
+	}
+
+	// if the URN doesn't exist, see if the contact exists
+	if($searchResultForURN[2]=='none'){
+		$searchResultForContact=ddimport_search_contact($contact);
+		if($searchResultForContact[0]=='info' OR $searchResultForContact[0]=='warning'){
+			$report[]=$searchResultForContact;	
+		}
+		//if the contact doesn't exist
+		if($searchResultForContact[2]=='none'){
+			//add the contact and their URN
+			$newContact=ddimport_add_contact($contact, $test);
+			if($newContact['result']['is_error']){
+				$report=array_merge($report, $newContact['report']);
+				return $report;
+			}
+			$report[]=ddimport_add_URN_to_contact($contact, $newContact['contact_id'], $test);
+
+		//If there is more than one contact, report this fact
+		} elseif($searchResultForContact[2]=='multiple') {
+			$report[]=array('warning', "Multiple possible contacts found for {$contact['ConfirmationReference']}.  Correct contact cannot be reliably identified.  Please add manually.");
+			return $report;
+		} else {
+			$cid=$searchResultForContact['contact_id'];
+			// else the contact does exist, and all we need to do is add the URN
+			$report[]=ddimport_add_URN_to_contact($contact, $cid, $test);
+		}
+		
+	} elseif($searchResultForURN[2]=='multiple') {
+		return $report;
+	} else { // this was an if(is_array($searchResultForURN)) but that wouldn't be applicable any more because they are all arrays.  I wonder if this will cause a problem?  Probably not because it is the last thing, and I think we are just checking to see if it is empty, and if it were empty it would have returned 'none' above
+		$report[]=array('info', "URN {$contact['ConfirmationReference']} is already linked to contact with ID {$searchResultForURN['contact_id']} (no action needed).");
+	}
+	
+	//Now that we have made sure that there is a URN for this contact
+	$result=ddimport_search_for_URN($contact['ConfirmationReference']);
+	if($searchResultForURN[0]=='info'){ // I don't think this will ever be satified - I added it, but I would be happy if someone was confident that it wasn't needed.
+		$report[]=$searchResultForURN;	
+	}
+	if(substr('student', strtolower($rawdata['CustomData2']))!==FALSE){
+		//$youngGreen=1; //(If contains "student" then class as Young Green)
+	} 
+	if((time()-ddimport_parse_DD_date($contact['DateOfBirth']))/(365.25*24*60*60)<26){ //If is young then class as Young Green
+		$youngGreen=1;
+	} 
+	if($youngGreen==1){
+		$params=array('group_id'=>30, 'contact_id'=>$result['contact_id']);
+		if(!$test){
+			$result=civicrm_group_contact_add($params); //TODO test this code!			
+			if($result['is_error']) {
+				$report[]=array('warning', "Failed to add contact with URN {$contact['ConfirmationReference']} to young greens group");
+			} else {
+				$report[]=array('note', "Contact with URN {$contact['ConfirmationReference']} added to young greens group");
+			}
+		}
+	}
+	if($contact['CustomData1']=='Yes'){
+		//check for membership
+		if(!ddimport_is_member($result['contact_id'])){
+			$params['contact_id']=$result['contact_id'];				
+			$params['membership_type_id']=1;
+			$params['status_id']=9;
+			$params['is_override']=1;
+			$params['start_date']=date('Y-m-d', ddimport_parse_DD_date($contact['DirectDebitStartDate']));
+			if(!$test){
+				$result=civicrm_membership_contact_create($params); //TODO error checking on all API calls
+				if($result['is_error']) {
+					$report[]=array('warning', "Failed to add membership for contact with ID <a href='/civicrm/contact/view?reset=1&cid={$result['contact_id']}'>{$result['contact_id']}</a> and URN {$contact['ConfirmationReference']}.");
+				} else {
+					$report[]=array('note', "Membership added for contact with ID <a href='/civicrm/contact/view?reset=1&cid={$result['contact_id']}'>{$result['contact_id']}</a> and URN {$contact['ConfirmationReference']}.");
+				}
+			}
+		}
+	}
+	return $report;
+}
+
+function ddimport_add_payment($payment, $test) {
+	$contact = ddimport_search_for_URN($payment['URN']);
+	
+	if($contact[0]=='info'){
+		$report[]=$contact;	
+		$report[]=array('warning', "Couldn't find a contact with the URN {$payment['URN']}");
+		return $report;
+	}
+	
+	if(isset($contact['contact_id'])) {
+		$report[]=array('info', "Contact with ID <a href='/civicrm/contact/view?reset=1&cid={$contact['contact_id']}'>{$contact['contact_id']}</a> found with URN {$payment['URN']}.");
+	}
+	if(ddimport_is_member($contact['contact_id'])) {
+	 	$report[]=array('info', "Contact with ID <a href='/civicrm/contact/view?reset=1&cid={$contact['contact_id']}'>{$contact['contact_id']}</a> and URN {$payment['URN']} is a member");
+	 	$cont['contribution_type_id']=2;
+	} else {
+	 	$report[]=array('info', "Contact with ID <a href='/civicrm/contact/view?reset=1&cid={$contact['contact_id']}'>{$contact['contact_id']}</a> and URN {$payment['URN']} is not a member");
+	 	$cont['contribution_type_id']=1;
+	}
+	$cont['contact_id']=$contact['contact_id'];
+	$cont['receive_date']=date('Y-m-d', ddimport_parse_DD_date($payment['DD_Date']));
+	$cont['total_amount']=$payment['DD_Amount'];
+	$cont['source']=$payment['Source'];
+	$cont['contribution_status_id']=1;
+	if(!$test){
+		$contResult=civicrm_contribution_add($cont);
+		if(!$contResult['is_error']){
+			$report[]=array('note', "Added contribution of {$payment['DD_Amount']} to contact with with ID <a href='/civicrm/contact/view?reset=1&cid={$contact['contact_id']}'>{$contact['contact_id']}</a> and URN {$payment['URN']}");
+		} else {
+			$report[]=array('warning', "Could not add contribution of {$payment['DD_Amount']} to contact with with ID <a href='/civicrm/contact/view?reset=1&cid={$contact['contact_id']}'>{$contact['contact_id']}</a> and URN {$payment['URN']}");
+			return $report;
+		}
+	}
+	if(ddimport_is_member($contact['contact_id'])) { //TODO only record as a membership if the TGP record is a membership record.
+		$params=array('contact_id'=>$contact['contact_id']);
+		$memberships=civicrm_membership_contact_get($params);
+		$membership=current(current($memberships));
+		
+		
+		;
+		$report[]=array('info', "End date of membership of contact with ID <a href='/civicrm/contact/view?reset=1&cid={$contact['contact_id']}'>{$contact['contact_id']}</a> is {$membership['end_date']}");
+		
+		$currentMembershipEndDate = new DateTime($membership['end_date']);
+		$paymentDate = new DateTime(date('Y-m-d', ddimport_parse_DD_date($payment['DD_Date'])));
+		$freqTrans=array(
+			'Annually'=>'+1 YEAR',
+			'Half Yearly'=>'+6 MONTH',
+			'Monthly'=>'+1 MONTH',
+			'Quarterly'=>'+3 MONTH'					
+		);
+		$potentialEndDate = new DateTime(date('Y-m-d', ddimport_parse_DD_date($payment['DD_Date'])));
+		$potentialEndDate->modify($freqTrans[$payment['Frequency']]);
+		$cedText = $currentMembershipEndDate->format('Y-m-d');
+		$pedText = $potentialEndDate->format('Y-m-d');
+		if($potentialEndDate>$currentMembershipEndDate) {
+			$report[]=array('info', "End date according to DD payment ({$pedText}) for contact with ID <a href='/civicrm/contact/view?reset=1&cid={$contact['contact_id']}'>{$contact['contact_id']}</a> and URN {$payment['URN']} is AFTER current membership end date ({$cedText})");	
+			$membership['end_date']=$pedText;
+			if(!$test){
+				$memResult=civicrm_membership_contact_create($membership);
+				if(!$memResult['is_error']) {
+					$report[]=array('note', "Extended membership for contact with ID <a href='/civicrm/contact/view?reset=1&cid={$contact['contact_id']}'>{$contact['contact_id']}</a> and URN {$payment['URN']} by {$freqTrans[$payment['Frequency']]}");
+				} else {
+					$report[]=array('warning', "Failed to extend membership for contact with ID <a href='/civicrm/contact/view?reset=1&cid={$contact['contact_id']}'>{$contact['contact_id']}</a> and URN {$payment['URN']} by {$freqTrans[$payment['Frequency']]}");
+				}
+			}					
+		} else {
+			$report[]=array('info', "End date according to DD payment ({$pedText}) for contact with ID <a href='/civicrm/contact/view?reset=1&cid={$contact['contact_id']}'>{$contact['contact_id']}</a> and URN {$payment['URN']} is BEFORE current membership end date ({$cedText}), therefore not updating membership record");	
+		}
+		
+
+		
+		$mcl=array(
+			'contribution_id' => $contResult['id'],
+			'membership_id' => $memResult['membership_id']
+		);
+		if(!$test){
+			$mclResult=civicrm_membershipcontributionlink_create($mcl);
+			if(!$memResult['is_error']) {
+				$report[]=array('info', "Linked contribution to membership");
+			} else {
+				$report[]=array('warning', "Could not link contribution to membership for contact with ID <a href='/civicrm/contact/view?reset=1&cid={$contact['contact_id']}'>{$contact['contact_id']}</a> and URN {$payment['URN']} by {$freqTrans[$payment['Frequency']]}");
+			}
+		}
+	}
+	return $report;
+}
+
+function ddimport_parse_DD_date($d){
+	return mktime(substr($d, 14,2), substr($d, 11,2), 00, substr($d, 3,2), substr($d, 0,2) , substr($d, 6,4));
+}
+
+function ddimport_afc($file, $delimiter=',', $key='') {
+  $pointer=fopen($file, 'r');
+  $keys=fgetcsv($pointer, 0, $delimiter);
+	if($key==''){
+		$key=$keys[0];
+	}
+ 	while($line=fgetcsv($pointer, 0, $delimiter)) {
+		if(count($line)==count($keys)) {
+			$line=array_combine($keys, $line);
+			if($key=='auto'){
+				$output[]=$line;	
+			}else{
+				$output[$line[$key]]=$line;
+			}
+		} else {
+			
+		} 
+	}
+	return $output;
+};
+
+function ddimport_search_for_URN($ConfirmationReference) {
+	$contactParams=array('custom_16'=>$ConfirmationReference);
+	$searchResult=civicrm_contact_search($contactParams);
+	if(count($searchResult)==1) {
+		return current($searchResult);
+	} elseif(count($searchResult)>1) {
+		return $searchForURN=array('info', "more than one contact has the URN $ConfirmationReference.", 'multiple');
+	} elseif(count($searchResult)<1) {
+		return $searchForURN=array('info', "No contact has the URN $ConfirmationReference.", 'none');
+	}
+}
+
+function ddimport_search_contact($contact){
+	$contactParams=array('first_name'=>$contact['FirstName'],'last_name'=>$contact['LastName'],'email'=>$contact['Email']);
+	$searchResult=civicrm_contact_search($contactParams);
+	count($searchResult);
+	if(count($searchResult)>1) {
+		return array('info', "more than one contact found for {$contact['ConfirmationReference']}! (searching with first name: '{$contact['FirstName']}', last name: '{$contact['LastName']}' and email: '{$contact['Email']}')", 'multiple');
+	} elseif(count($searchResult)==1) {
+		return current($searchResult);
+	} else {
+		return array('info', "No contact found for {$contact['ConfirmationReference']} (searching with first name: '{$contact['FirstName']}', last name: '{$contact['LastName']}' and email: '{$contact['Email']}').", 'none');
+	}
+}
+
+function ddimport_add_URN_to_contact($contact, $civicrm_contact_id, $test){
+	$contactParams=array('contact_id'=>$civicrm_contact_id);
+	$result=current(civicrm_contact_get($contactParams));
+	$result['custom_16']=$contact['ConfirmationReference'];
+	$result['custom_37']=$contact['DirectDebitFrequency'];
+	if(!$test){
+		civicrm_contact_update($result); 
+	} 
+	return array('note',"{$contact['ConfirmationReference']} added to contact with CiviCRM id {$civicrm_contact_id} with frequency {$contact['DirectDebitFrequency']}.");//echo $contact_id;
+	//$searchResult=civicrm_contact_search($contactParams);
+}
+
+function ddimport_is_member($cid){
+	$params=array('contact_id'=>$cid);
+	$memberships=civicrm_membership_contact_get($params);
+	if($memberships['record_count']>0){
+		return 1;
+	}		
+}
+
+function ddimport_add_contact($rawdata, $test){
+		$contact=array(
+			'contact_type'=>'Individual',
+			'individual_prefix'=>$rawdata['Title'],
+			'first_name'=>$rawdata['FirstName'],
+			'last_name'=>$rawdata['LastName'],
+			'source'=>$rawdata['RefererSource'],
+			'birth_date'=>date('Y-m-d', ddimport_parse_DD_date($rawdata['DateOfBirth']))	
+		);
+		$city=ddimport_combine_fields(array($rawdata['Town'], $rawdata['County']), ', ');
+		$location=array(
+			'location_type'=>'Home',
+			'street_address'=>$rawdata['AddressLine1'],
+			'supplemental_address_1'=>$rawdata['AddressLine2'],
+			'supplemental_address_2'=>$rawdata['AddressLine3'],
+			'city'=>$city,
+			'postal_code'=>$rawdata['PostCode']
+		);
+		$location['email'][]=array(
+			'email'=>$rawdata['Email']
+		);
+		if($rawdata['HomeTelephone']!=''){
+			$location['phone'][] = array(
+					'phone' => $rawdata['HomeTelephone'],
+					'phone_type_id' => 1, // phone
+			);
+		}	  
+		if($rawdata['MobileTelephone']!=''){
+			$location['phone'][] = array(
+					'phone' => $rawdata['MobileTelephone'],
+					'phone_type_id' => 2, // mobile
+			);
+		}
+		if($rawdata['DataProtectionText']== 'FALSE') {
+			$contact['do_not_mail']=1;
+		} //(False -> no paper maillings)
+	
+		if(!$test){
+			$result=civicrm_contact_add($contact);
+			if($result['is_error']) {
+				$report[]=array('warning', "Failed to add membership for contact with URN {$contact['ConfirmationReference']}.");
+			} else {
+				$report[]=array('note', "Membership added for contact with URN {$contact['ConfirmationReference']}.");
+			}
+			
+		}	
+		$addContact['result']=$result;			
+		if($result['is_error']) {
+			$addContact['report'][]=array('warning',"Could not add contact information for contact identfied by {$contact['ConfirmationReference']} ", $result);
+			return $addContact;
+		}
+		$addContact['report'][]=array('note', "Contact (with first name: '{$rawdata['FirstName']}', last name: '{$rawdata['LastName']}' and email: '{$rawdata['Email']}') added with ID ".$result['contact_id'].".");				
+		$location['contact_id']=$result['contact_id'];
+		if(!$test){
+			$locationResult=civicrm_location_add($location);
+		}
+		if($locationResult['is_error']) {
+			$addContact['report'][]=array('warning',"Could not add location information for contact identfied by {$contact['ConfirmationReference']} ");//echo $contact_id;
+		}						
+	return $addContact;
+}
+
+function ddimport_combine_fields($fieldsToCombine, $seperator) {
+	foreach($fieldsToCombine as $field) {
+		$field=trim($field);
+		if($field!='') {
+			$outputFields[]=$field;
+		}
+	}
+	if(count($outputFields)){
+		return implode($outputFields, $seperator);		
+	}
+}
+
+

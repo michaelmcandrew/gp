@@ -1,0 +1,22 @@
+<?php
+/*
+ * Copyright (C) 2010 Michael McAndrew
+ * Licensed to CiviCRM under the Academic Free License version 3.0.
+ *
+ */
+function addressblocktoken_civicrm_tokens( &$tokens ) {
+    $tokens['contact'] = array( 
+        'contact.address_block' => 'Address block' );
+}
+
+function addressblocktoken_civicrm_tokenValues( &$values, &$contactIDs ) {
+	require_once 'api/v2/Contact.php';
+	require_once 'CRM/Utils/Address.php';
+	foreach($contactIDs as $id){
+		$params=array('contact_id'=>$id);
+		$contact=civicrm_contact_get($params);
+		$values[$id]['contact.address_block']=nl2br(CRM_Utils_Address::format($contact[$id]));
+	}
+}
+
+?>

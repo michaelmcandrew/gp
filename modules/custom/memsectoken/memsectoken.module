@@ -1,0 +1,74 @@
+<?php
+
+// function memsectoken_civicrm_tokens( &$tokens ) {
+// 	 $tokens['memsecs'] = array( 'memsec.local', 'memsec.regional');
+// }
+// 
+// 
+// 
+// 
+// function memsectoken_civicrm_tokenValues( &$values, &$contactIDs ) {
+// 	foreach($contactIDs as $id){
+// 		echo $id;
+// 		$values[$id]['memsec.local']='testlocal';
+// 		$values[$id]['memsec.regional']='testregional';
+// 	}
+// }
+
+
+function memsectoken_civicrm_tokens( &$tokens ) {
+    $tokens['contact'] = array(
+		'contact.local_membership_secretary',
+		'contact.regional_membership_secretary',
+	
+);
+}
+
+function memsectoken_civicrm_tokenValues( &$values, &$contactIDs ) {
+	require_once "api/v2/Contact.php";
+	require_once 'api/v2/Relationship.php';
+	foreach($contactIDs as $id){
+		$params=array(
+			'contact_id'=>$id,
+			'return.custom_34'=>1,
+			'return.custom_36'=>1
+			);
+		$contact=civicrm_contact_search($params);
+		if($contact[$id]['custom_34']){
+			$values[$id]['contact.local_membership_secretary']=_memsectoken_get_membership_secretaries($contact[$id]['custom_34']);
+		} else {
+			$values[$id]['contact.local_membership_secretary']="You don't have a local party assigned.  Please contact the office if you think this is an error."; 
+		}
+		if($contact[$id]['custom_36']){
+			$values[$id]['contact.regional_membership_secretary']=_memsectoken_get_membership_secretaries($contact[$id]['custom_36']);
+		} else {
+			$values[$id]['contact.regional_membership_secretary']="You don't have a regional party assigned.  Please contact the office if you think this is an error."; 
+		}
+	}
+}
+
+function _memsectoken_get_membership_secretaries($id){
+	$params=array(
+		'contact_id'=>$id
+		);
+	$contact=civicrm_contact_get($params);
+	$output="{$contact[$id]['display_name']}. ";			
+	$rels=civicrm_relationship_get($params);			
+	foreach($rels['result'] as $rel){
+		// if the is a membership secretary relation
+		if($rel['civicrm_relationship_type_id']==19){
+			if($membershipSecretaryPresent){
+				$output.=' and ';
+			} else {
+				$output.="Membership secretary: ";
+			}
+			$membershipSecretaryPresent=1;
+			$output.=implode(', ', array_filter(array($rel['display_name'], $rel['email'], $rel['phone'])));
+		}
+		
+	}
+	if(!$membershipSecretaryPresent){
+		$output.="Sorry, we don't have a membership secretary recorded for this party.  Please contact the Green Party office and ask them to update this party's information";
+	}
+	return $output.'.';
+}
