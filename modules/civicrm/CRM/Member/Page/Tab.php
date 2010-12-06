@@ -181,7 +181,10 @@ class CRM_Member_Page_Tab extends CRM_Core_Page {
         }
 
         // build associated contributions
-        $this->associatedContribution( );
+		// only need to build associated contributions if it is new
+		if(!CRM_Core_Action::ADD){
+			$this->associatedContribution( );	
+		}
 
         if ( $this->_action & CRM_Core_Action::RENEW ) { 
             $path  = 'CRM_Member_Form_MembershipRenewal';
