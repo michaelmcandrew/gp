@@ -1,10 +1,13 @@
 <?php
 
 function gpew_og_cust_og_links_alter(&$links, $group_node) {
+	global $user;
 	//drupal_set_message('<pre>'. var_export($group_node,TRUE) .'</pre>');
 	//drupal_set_message('<pre>'. var_export($links,TRUE) .'</pre>');	
 	//$links['invite'] = 'Blablabla';  // change the invite anchor text
-	unset ($links['subscribers']);
+	if(!user_access('administer organic groups')) {
+		unset ($links['subscribers']);
+	}
 	unset ($links['forums']);
 	unset ($links['manager']);  
 	unset ($links['create_forum']);  
