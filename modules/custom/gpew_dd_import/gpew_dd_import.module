@@ -1,6 +1,5 @@
 <?php
 // $Id$
-civicrm_initialize( true );
 
 require_once "api/v2/Contact.php";
 require_once "api/v2/Location.php";
@@ -237,7 +236,10 @@ function ddimport_add_mandate($contact, $test) {
 			}
 		}
 	}
-	if($contact['CustomData1']=='Yes'){
+	//If this is not a membership page and the customer has said they don't want to become a member, then return
+	if((substr_count($contact['RefererSource'], 'member') == 0) AND $contact['CustomData1']=='No'){
+		return $report;
+	} else {
 		//check for membership
 		if(!ddimport_is_member($result['contact_id'])){
 			$params['contact_id']=$result['contact_id'];				
@@ -346,7 +348,8 @@ function ddimport_add_payment($payment, $test) {
 }
 
 function ddimport_parse_DD_date($d){
-	return mktime(substr($d, 14,2), substr($d, 11,2), 00, substr($d, 3,2), substr($d, 0,2) , substr($d, 6,4));
+	//TODO: This function doesn't work, I don't think
+	$mktime = @mktime(substr($d, 14,2), substr($d, 11,2), 00, substr($d, 3,2), substr($d, 0,2) , substr($d, 6,4));
 }
 
 function ddimport_afc($file, $delimiter=',', $key='') {
@@ -383,15 +386,24 @@ function ddimport_search_for_URN($ConfirmationReference) {
 }
 
 function ddimport_search_contact($contact){
-	$contactParams=array('first_name'=>$contact['FirstName'],'last_name'=>$contact['LastName'],'email'=>$contact['Email']);
+	$contactParams=array('postal_code'=>$contact['PostCode'],'last_name'=>$contact['LastName'],'email'=>$contact['Email']);
 	$searchResult=civicrm_contact_search($contactParams);
 	count($searchResult);
 	if(count($searchResult)>1) {
-		return array('info', "more than one contact found for {$contact['ConfirmationReference']}! (searching with first name: '{$contact['FirstName']}', last name: '{$contact['LastName']}' and email: '{$contact['Email']}')", 'multiple');
+		return array('info', "more than one contact found for {$contact['ConfirmationReference']}! (searching with post code: '{$contact['PostCode']}', last name: '{$contact['LastName']}' and email: '{$contact['Email']}')", 'multiple');
 	} elseif(count($searchResult)==1) {
 		return current($searchResult);
 	} else {
-		return array('info', "No contact found for {$contact['ConfirmationReference']} (searching with first name: '{$contact['FirstName']}', last name: '{$contact['LastName']}' and email: '{$contact['Email']}').", 'none');
+		$contactParams=array('first_name'=>$contact['FirstName'],'last_name'=>$contact['LastName'],'email'=>$contact['Email']);
+		$searchResult=civicrm_contact_search($contactParams);
+		count($searchResult);
+		if(count($searchResult)>1) {
+			return array('info', "more than one contact found for {$contact['ConfirmationReference']}! (searching with first name: '{$contact['FirstName']}', last name: '{$contact['LastName']}' and email: '{$contact['Email']}')", 'multiple');
+		} elseif(count($searchResult)==1) {
+			return current($searchResult);
+		} 
+		
+		return array('info', "No contact found for {$contact['ConfirmationReference']} (searching with first name: '{$contact['FirstName']}' OR post code: '{$contact['PostCode']}', last name: '{$contact['LastName']}' and email: '{$contact['Email']}').", 'none');
 	}
 }
 
@@ -403,7 +415,7 @@ function ddimport_add_URN_to_contact($contact, $civicrm_contact_id, $test){
 	if(!$test){
 		civicrm_contact_update($result); 
 	} 
-	return array('note',"{$contact['ConfirmationReference']} added to contact with CiviCRM id {$civicrm_contact_id} with frequency {$contact['DirectDebitFrequency']}.");//echo $contact_id;
+	return array('note',"TGP added to contact with CiviCRM id {$civicrm_contact_id} with frequency {$contact['DirectDebitFrequency']} ({$contact['ConfirmationReference']}).");//echo $contact_id;
 	//$searchResult=civicrm_contact_search($contactParams);
 }
 
