@@ -64,6 +64,25 @@ function gpew_user_import_import() {
 	}	
 }
 
+function gpew_user_import_delete() {
+		
+	$contacts_to_delete=db_query( "
+		SELECT
+			uf_id
+		FROM civicrm_membership AS cm
+		JOIN civicrm_uf_match AS cum ON cum.contact_id=cm.contact_id
+		WHERE (status_id=6 OR status_id=7)
+	");
+
+	// add each user
+	while($data=db_fetch_object($contacts_to_delete)){
+//		echo $data->uf_id;
+		user_delete(null, $data->uf_id);
+		//also needs to be commented out so the script will actually loop
+	}	
+}
+
+
 
 function gpew_user_import_make_user_names() {
 

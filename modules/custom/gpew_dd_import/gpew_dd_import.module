@@ -4,6 +4,7 @@
 require_once "api/v2/Contact.php";
 require_once "api/v2/Location.php";
 require_once "api/v2/MembershipContact.php";
+require_once "api/v2/GroupContact.php";
 require_once 'api/v2/Contribute.php';
 require_once 'api/v2/MembershipContributionLink.php';
 
@@ -349,7 +350,8 @@ function ddimport_add_payment($payment, $test) {
 
 function ddimport_parse_DD_date($d){
 	//TODO: This function doesn't work, I don't think
-	$mktime = @mktime(substr($d, 14,2), substr($d, 11,2), 00, substr($d, 3,2), substr($d, 0,2) , substr($d, 6,4));
+	return $mktime = mktime(substr($d, 9,2), substr($d, 12,2), 00, substr($d, 3,2), substr($d, 0,2) , substr($d, 6,2));
+	
 }
 
 function ddimport_afc($file, $delimiter=',', $key='') {
