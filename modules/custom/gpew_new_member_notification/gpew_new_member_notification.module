@@ -73,7 +73,7 @@ function gpew_new_member_notification_civicrm_post( $op, $objectName, $objectId,
 		}
 	}
 	
-	$regional_party_email['cc']=$local_party_email['cc']='michaelmcandrew@thirdsectordesign.org';
+	$regional_party_email['cc']=$local_party_email['cc']='office@greenparty.org.uk';
 	
 	
 	// write body for local party email and for regional party email
