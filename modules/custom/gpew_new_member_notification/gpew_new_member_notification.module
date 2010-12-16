@@ -99,9 +99,12 @@ function gpew_new_member_notification_civicrm_post( $op, $objectName, $objectId,
 //	print_r($local_party_email);
 //	print_r($regional_party_email);
 //	exit;
-	
-	CRM_Utils_Mail::send($local_party_email);
-	CRM_Utils_Mail::send($regional_party_email);
+	if(strlen($local_party_email['toEmail'])){
+		CRM_Utils_Mail::send($local_party_email);
+	}
+	if(strlen($regional_party_email['toEmail'])){
+		CRM_Utils_Mail::send($regional_party_email);
+	}
 }
 
 // look up membership information
