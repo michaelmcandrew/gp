@@ -89,7 +89,7 @@ function gpew_new_member_notification_civicrm_post( $op, $objectName, $objectId,
 
 
 	// override the to address for testing
-	$regional_party_email['toEmail']=$local_party_email['toEmail']='michaelmcandrew@thirdsectordesign.org';
+//	$regional_party_email['toEmail']=$local_party_email['toEmail']='michaelmcandrew@thirdsectordesign.org';
 
 	// send the emails
 	
