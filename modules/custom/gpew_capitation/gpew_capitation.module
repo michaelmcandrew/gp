@@ -103,6 +103,8 @@ function gpew_capitation_capitate($contribution_id, $time_period='annual', $memb
 	require_once 'CRM/Core/BAO/CustomValueTable.php';
 	$params = array(
 		'entityID' => $contact_id,
+		'custom_51' => 1,
+		'custom_52' => 1,
 		);
 		
 	$result=CRM_Core_BAO_CustomValueTable::getValues($params);
@@ -110,8 +112,8 @@ function gpew_capitation_capitate($contribution_id, $time_period='annual', $memb
 	
 	
 	//set this based on the contacts current local and regional party
-	$capitation['local_contact_id'] = $party_ids[GPEW_CAPITATION_LOCAL_PARTY_CUSTOM_FIELD];
-	$capitation['regional_contact_id'] = $party_ids[GPEW_CAPITATION_REGIONAL_PARTY_CUSTOM_FIELD];	
+	$capitation['local_contact_id'] = $party_ids['custom_51'];
+	$capitation['regional_contact_id'] = $party_ids['custom_52'];	
 	
 	$labelTranslation = array (
 		'national_amount' => 'national_party_5',
