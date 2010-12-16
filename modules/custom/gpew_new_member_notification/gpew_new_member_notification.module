@@ -18,28 +18,90 @@ function gpew_new_member_notification_civicrm_post( $op, $objectName, $objectId,
 	
 	
 	
+	require_once 'api/v2/Contact.php';	
+	require_once('api/v2/Relationship.php');
+
+	// get contact data
+	$contact_params=array('contact_id'=>$objectRef->contact_id);
+	$contact_result=civicrm_contact_get($contact_params);
+	
+	//put contact data in email variable
+	$email_data['contact']=current($contact_result);
+
+	// get contacts local and regional party ids
 	require_once 'CRM/Core/BAO/CustomValueTable.php';
-	$params = array(
-		'entityID' => $contact_id,
+	$contact_party_params = array(
+		'entityID' => $objectRef->contact_id,
 		'custom_51' => 1,
 		'custom_52' => 1,
-		);
-		
-	$party_ids=CRM_Core_BAO_CustomValueTable::getValues($params);
-	print_r($party_ids);
-	exit;
-	require_once 'api/v2/Contact.php';	
-	$contact=civicrm_contact_get($contact_params);
-	$params['contact']=current($contact);
-	$params['membership']['start_date'] = date ( 'd-m-Y', strtotime($objectRef->start_date));
+		);	
+	$contact_party_result=CRM_Core_BAO_CustomValueTable::getValues($contact_party_params);
+
+	//get local party contact data
+	$local_party_params=array('contact_id'=>$contact_party_result['custom_51']);
+	$local_party_result=civicrm_contact_get($local_party_params);
+
+	//get local party contact data
+	$regional_party_params=array('contact_id'=>$contact_party_result['custom_52']);
+	$regional_party_result=civicrm_contact_get($regional_party_params);
+	
+	//put membership information in email data
+	$email_data['membership']['start_date'] = date ( 'd-m-Y', strtotime($objectRef->start_date));
 	if(strlen($objectRef->end_date)){
-		$params['membership']['end_date'] = date ( 'd-m-Y', strtotime($objectRef->end_date));		
+		$email_data['membership']['end_date'] = date ( 'd-m-Y', strtotime($objectRef->end_date));		
 	} else {
-		$params['membership']['end_date'] = 'Life';
+		$email_data['membership']['end_date'] = 'Life';
 	}
 	
-//	echo gpew_new_member_notification_write_body($params);
+	//get local membership secretary email
+	$party_relation['email']='';
+	$party_relations_result=civicrm_relationship_get($local_party_params);
+	foreach($party_relations_result['result'] as $party_relation){
+		if($party_relation['civicrm_relationship_type_id']==19){
+			$local_party_email['toEmail']=$party_relation['email'];
+			break;	
+		}
+	}
+
+	//get regional membership secretary email
+	$party_relation['email']='';
+	$party_relations_result=civicrm_relationship_get($regional_party_params);
+	foreach($party_relations_result['result'] as $party_relation){
+		if($party_relation['civicrm_relationship_type_id']==19){
+			$regional_party_email['toEmail']=$party_relation['email'];
+			break;	
+		}
+	}
+	
+	$regional_party_email['cc']=$local_party_email['cc']='michaelmcandrew@thirdsectordesign.org';
+	
+	
+	// write body for local party email and for regional party email
+	$email_data['party']=current($local_party_result);
+	$local_party_email['from']=$local_party_email['reply-to']="office@greenparty.org.uk";
+	$local_party_email['subject']="A new member has joined {$email_data['party']['organization_name']}";
+	$local_party_email['text']=gpew_new_member_notification_write_body($email_data);
+	
+	$email_data['party']=current($regional_party_result);
+	$regional_party_email['from']=$regional_party_email['reply-to']="office@greenparty.org.uk";
+	$regional_party_email['subject']="A new member has joined {$email_data['party']['organization_name']}";
+	$regional_party_email['text']=gpew_new_member_notification_write_body($email_data);
+
+
+	// override the to address for testing
+	$regional_party_email['toEmail']=$local_party_email['toEmail']='michaelmcandrew@thirdsectordesign.org';
+
+	// send the emails
+	
+	require_once('CRM/Utils/Mail.php');
+	
+    
+//	print_r($local_party_email);
+//	print_r($regional_party_email);
 //	exit;
+	
+	CRM_Utils_Mail::send($local_party_email);
+	CRM_Utils_Mail::send($regional_party_email);
 }
 
 // look up membership information
@@ -47,24 +109,26 @@ function gpew_new_member_notification_civicrm_post( $op, $objectName, $objectId,
 //send the emails, cc to office@greenparty.org.uk
 
 
-function gpew_new_member_notification_write_body($params) {
+function gpew_new_member_notification_write_body($email_data) {
 	
 	require_once 'CRM/Utils/Address.php';
-	$address_block=CRM_Utils_Address::format($contact);
+	$address_block=CRM_Utils_Address::format($email_data['contact']);
 		
 	$text="Dear membership secretary,
 
-A new member has joined {$params['party']['organization_name']}.
+This is a message from Green Party office.
 
-{$contact[display_name]}
+A new member has joined {$email_data['party']['organization_name']}.
+
+Name: {$email_data['contact']['display_name']}
 
 Address:
 {$address_block}
-Email: {$contact[email]}
-Phone: {$contact[phone]}
+Email: {$email_data['contact']['email']}
+Phone: {$email_data['contact']['phone']}
 
-Membership start date: {$params['membership']['start_date']}
-Membership end date: {$params['membership']['end_date']}
+Membership start date: {$email_data['membership']['start_date']}
+Membership end date: {$email_data['membership']['end_date']}
 
 ";
 	
@@ -73,7 +137,7 @@ Membership end date: {$params['membership']['end_date']}
 	foreach($contactIDs as $id){
 		$params=array('contact_id'=>$id);
 		$contact=civicrm_contact_get($params);
-		$values[$id]['contact.address_block']=nl2br(CRM_Utils_Address::format($contact[$id]));
+		$values[$id]['contact.address_block']=CRM_Utils_Address::format($contact[$id]);
 	}
 	
 	return $text;
