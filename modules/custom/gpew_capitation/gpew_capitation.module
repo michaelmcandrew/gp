@@ -88,14 +88,26 @@ function gpew_capitation_capitate($contribution_id, $time_period='annual', $memb
 	$capitation['national_amount'] = $capitation['capitatable_amount'] - ($capitation['local_amount'] + $capitation['regional_amount']);
 	
 	//assign local and regional party
-	require_once 'api/v2/Contact.php';
+
+	// API cannot return custom data :(
+
+	// require_once 'api/v2/Contact.php';
+	// $params = array(
+	// 	'contact_id' => $contact_id,
+	// 	'return_'.GPEW_CAPITATION_LOCAL_PARTY_CUSTOM_FIELD => 1,
+	// 	'return_'.GPEW_CAPITATION_REGIONAL_PARTY_CUSTOM_FIELD => 1
+	// 	);
+	// $result=civicrm_contact_get($params);
+	// $party_ids=current($result);
+	
+	require_once 'CRM/Core/BAO/CustomValueTable.php';
 	$params = array(
-		'contact_id' => $contact_id,
-		'return_'.GPEW_CAPITATION_LOCAL_PARTY_CUSTOM_FIELD => 1,
-		'return_'.GPEW_CAPITATION_REGIONAL_PARTY_CUSTOM_FIELD => 1
+		'entityID' => $contact_id,
 		);
-	$result=civicrm_contact_get($params);
-	$party_ids=current($result);
+		
+	$result=CRM_Core_BAO_CustomValueTable::getValues($params);
+	$party_ids=$result;
+	
 	
 	//set this based on the contacts current local and regional party
 	$capitation['local_contact_id'] = $party_ids[GPEW_CAPITATION_LOCAL_PARTY_CUSTOM_FIELD];
