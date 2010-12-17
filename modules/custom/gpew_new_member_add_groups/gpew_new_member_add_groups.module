@@ -6,7 +6,7 @@
 
 // look up the contact id
 
-function gpew_new_member_notification_civicrm_post( $op, $objectName, $objectId, &$objectRef ) {
+function gpew_new_member_add_groups_civicrm_post( $op, $objectName, $objectId, &$objectRef ) {
 	// gpew_capitation_batch_update();
 	// exit;
 	if($op != "create"){

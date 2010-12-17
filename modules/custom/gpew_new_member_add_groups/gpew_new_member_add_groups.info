@@ -1,5 +1,5 @@
-name = New member notification
-description = Sends a notification to local and regional membership secretaries when a new membership is created in CiviCRM
+name = New member add groups
+description = Adds people to groups when they become a member (currently Fundraising) 
 dependencies[] = civicrm
 package = CiviCRM - Green Party extras
 core = 6.x
