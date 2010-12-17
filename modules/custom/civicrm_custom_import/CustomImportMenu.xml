@@ -1,0 +1,12 @@
+<menu>
+  <item>
+     <path>civicrm/import/custom</path>
+     <title>Custom Import</title>
+     <page_callback>CustomImport_Controller</page_callback>
+     <page_arguments></page_arguments>
+     <access_callback>1</access_callback>
+     <access_arguments>access CiviReport</access_arguments>
+     <is_ssl>access CiviReport</is_ssl>
+     <adminGroup>CiviReport</adminGroup>
+  </item>
+</menu>
