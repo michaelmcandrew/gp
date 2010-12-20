@@ -132,14 +132,6 @@ Constituency: {$data['custom']['custom_47']}
 
 ";
 	
-	
-	require_once 'api/v2/Contact.php';
-	foreach($contactIDs as $id){
-		$params=array('contact_id'=>$id);
-		$contact=civicrm_contact_get($params);
-		$values[$id]['contact.address_block']=CRM_Utils_Address::format($contact[$id]);
-	}
-	
 	return $text;
 	
 }
