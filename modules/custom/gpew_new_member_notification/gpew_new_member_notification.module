@@ -91,7 +91,7 @@ function gpew_new_member_notification_civicrm_post( $op, $objectName, $objectId,
 //	print_r($local_party_email);
 //	print_r($regional_party_email);
 //	exit;
-	print_r($to);
+//	print_r($to);
 	foreach($to as $toEmail){
 		$email['toEmail']=$toEmail;
 //		print_r($email);
