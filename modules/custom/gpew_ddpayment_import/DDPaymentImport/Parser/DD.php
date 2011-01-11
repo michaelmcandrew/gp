@@ -154,7 +154,6 @@ class CustomImport_Parser_DD
 		}
 		
 		function addReportLine($type, $message){
-			if ($type=	='warning')
 			$this->report[]=array('type'=>$type,'message'=>$message);
 		}
 		
