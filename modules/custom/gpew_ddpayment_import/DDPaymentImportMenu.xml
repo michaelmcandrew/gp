@@ -1,7 +1,6 @@
 <menu>
   <item>
-     <path>civicrm/import/ddpayment
-	</path>
+     <path>civicrm/import/ddpayment</path>
      <title>Direct debit payment import</title>
      <page_callback>DDPaymentImport_Controller</page_callback>
      <page_arguments></page_arguments>
