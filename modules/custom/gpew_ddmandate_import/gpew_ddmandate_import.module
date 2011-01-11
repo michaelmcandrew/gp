@@ -2,7 +2,7 @@
 
 //TODO Ensure that the menu is rebuilt!
 
-function civicrm_custom_import_civicrm_config( &$config ) {
+function gpew_ddmandate_import_civicrm_config( &$config ) {
 	
 	//Register template directory
     $template =& CRM_Core_Smarty::singleton( );
@@ -22,8 +22,8 @@ function civicrm_custom_import_civicrm_config( &$config ) {
     set_include_path( $include_path );
 }
 
-function civicrm_custom_import_civicrm_xmlMenu( &$files ) {
-	$files[]=dirname( __FILE__ ).DIRECTORY_SEPARATOR.'CustomImportMenu.xml';
+function gpew_ddmandate_civicrm_xmlMenu( &$files ) {
+	$files[]=dirname( __FILE__ ).DIRECTORY_SEPARATOR.'DDMandateImportMenu.xml';
 }
 
 

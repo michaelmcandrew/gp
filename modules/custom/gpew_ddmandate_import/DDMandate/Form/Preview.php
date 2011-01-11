@@ -41,7 +41,7 @@ require_once 'CRM/Import/Parser/Contact.php';
  * This class previews the uploaded file and returns summary
  * statistics
  */
-class CustomImport_Form_Preview extends CRM_Core_Form {
+class DDMandateImport_Form_Preview extends CRM_Core_Form {
 
     /**
      * Function to set variables up before form is built
@@ -53,8 +53,8 @@ class CustomImport_Form_Preview extends CRM_Core_Form {
     {
         //get the data from the session
         if($this->get( 'import_done')!=TRUE) {             
-			require_once('CustomImport/Parser/Payment.php');
-			$ImportJob = new CustomImport_Parser_Payment();
+			require_once('DDMandate/Parser/Mandate.php');
+			$ImportJob = new DDMandateImport_Parser_Mandate();
 			$ImportJob->db_table=$this->get('importTableName');
 			$ImportJob->test = TRUE;
 			$ImportJob->import();        
@@ -97,8 +97,8 @@ class CustomImport_Form_Preview extends CRM_Core_Form {
         $qfKey = CRM_Utils_Request::retrieve( 'qfKey', 'String', $form );
         if ( CRM_Utils_Rule::qfKey( $qfKey ) ) $path .= "&qfKey=$qfKey";
         
-        $previousURL = CRM_Utils_System::url('civicrm/import/custom', $path, false, null, false);
-        $cancelURL   = CRM_Utils_System::url('civicrm/import/custom', 'reset=1');
+        $previousURL = CRM_Utils_System::url('civicrm/import/ddmandate', $path, false, null, false);
+        $cancelURL   = CRM_Utils_System::url('civicrm/import/ddmandate', 'reset=1');
         
         $buttons = array(
                          array ( 'type'      => 'back',
@@ -118,7 +118,6 @@ class CustomImport_Form_Preview extends CRM_Core_Form {
         
         $this->addButtons( $buttons );
 
-        $this->addFormRule( array( 'CustomImport_Form_Preview', 'formRule' ), $this );
     }
 
     /**
@@ -221,8 +220,8 @@ class CustomImport_Form_Preview extends CRM_Core_Form {
 
         // run the import
         if($this->get( 'import_done')!=TRUE) {             
-			require_once('CustomImport/Parser/Payment.php');
-			$ImportJob = new CustomImport_Parser_Payment();
+			require_once('DDMandate/Parser/Mandate.php');
+			$ImportJob = new DDMandateImport_Parser_Mandate();
 			$ImportJob->db_table=$this->get('importTableName');
 			$ImportJob->import();        
 	        $this->assign( 'report', $ImportJob->getReport());

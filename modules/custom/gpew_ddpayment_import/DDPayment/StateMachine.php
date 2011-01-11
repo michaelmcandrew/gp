@@ -1,4 +1,6 @@
-{*
+<?php
+
+/*
  +--------------------------------------------------------------------+
  | CiviCRM version 3.2                                                |
  +--------------------------------------------------------------------+
@@ -22,33 +24,45 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*}
-<div class="crm-block crm-form-block crm-import-summary-form-block">
+*/
 
-{* Import Wizard - Step 4 (summary of import results AFTER actual data loading) *}
-{* @var $form Contains the array for the form elements and other form associated information assigned to the template by the controller *}
+/**
+ *
+ * @package CRM
+ * @copyright CiviCRM LLC (c) 2004-2010
+ * $Id$
+ *
+ */
 
- {* WizardHeader.tpl provides visual display of steps thru the wizard as well as title for current step *}
- {include file="CRM/common/WizardHeader.tpl"}
-<h2>Results</h2>
+require_once 'CRM/Core/StateMachine.php';
 
-<div id="help">
-    <p>
-    {ts}<strong>Import completed successfully.</strong> The information below summarizes the results.{/ts} <a href="{$errorFile}">Download</a>.
-    </p>
-</div>    
+/**
+ * State machine for managing different states of the Import process.
+ *
+ */
+class DDPaymentImport_StateMachine extends CRM_Core_StateMachine {
 
-<table class="report">
-{foreach from=$final_report item=line}
-	{if $line.type eq 'warning'}
-		<tr><td style="color:red">{$line.type}</td><td style="color:red">{$line.message}</td></tr>
-	{else}
-		<tr><td>{$line.type}</td><td>{$line.message}</td></tr>
-	{/if}	
-{/foreach}
-</table>
- 
-<div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl" location="bottom"}</div>
+    /**
+     * class constructor
+     *
+     * @param object  CRM_Import_Controller
+     * @param int     $action
+     *
+     * @return object CRM_Import_StateMachine
+     */
+    function __construct( &$controller, $action = CRM_Core_Action::NONE ) {
+        parent::__construct( $controller, $action );
+        
+        $this->_pages = array(
+                              'DDPaymentImport_Form_DataSource' => null,
+//                              'CustomImport_Form_MapField' => null,
+                              'DDPaymentImport_Form_Preview' => null,
+                              'DDPaymentImport_Form_Summary' => null,
+                              );
+        
+        $this->addSequentialPages( $this->_pages, $action );
+    }
 
-</div>
- 
+}
+
+

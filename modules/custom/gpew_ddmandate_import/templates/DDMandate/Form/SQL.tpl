@@ -23,32 +23,14 @@
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
 *}
-<div class="crm-block crm-form-block crm-import-summary-form-block">
-
-{* Import Wizard - Step 4 (summary of import results AFTER actual data loading) *}
-{* @var $form Contains the array for the form elements and other form associated information assigned to the template by the controller *}
-
- {* WizardHeader.tpl provides visual display of steps thru the wizard as well as title for current step *}
- {include file="CRM/common/WizardHeader.tpl"}
-<h2>Results</h2>
-
-<div id="help">
-    <p>
-    {ts}<strong>Import completed successfully.</strong> The information below summarizes the results.{/ts} <a href="{$errorFile}">Download</a>.
-    </p>
-</div>    
-
-<table class="report">
-{foreach from=$final_report item=line}
-	{if $line.type eq 'warning'}
-		<tr><td style="color:red">{$line.type}</td><td style="color:red">{$line.message}</td></tr>
-	{else}
-		<tr><td>{$line.type}</td><td>{$line.message}</td></tr>
-	{/if}	
-{/foreach}
-</table>
- 
-<div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl" location="bottom"}</div>
-
-</div>
- 
+<div class="crm-block crm-form-block crm-import_sql-form-block">
+  <fieldset><legend>{ts}SQL Import{/ts}</legend>
+    <table class="form-layout-compressed">
+      <tr class ="crm-import_sql-form-block-sqlQuery">
+         <td class="label">{$form.sqlQuery.label}</td>
+         <td>{$form.sqlQuery.html}<br />
+         <span class="description">{ts}SQL Query must be a SELECT query that returns one or more rows of data to be imported. Specify the database name(s) AND table name(s) in the query (e.g. "SELECT * FROM my_database.my_table WHERE date_entered BETWEEN '1999-01-01' AND '2000-07-31'").{/ts}</span></td>
+    </tr>
+   <tabble>
+  </fieldset>
+ </div>

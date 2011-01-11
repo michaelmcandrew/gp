@@ -39,7 +39,7 @@ require_once 'CRM/Core/Form.php';
 /**
  * This class summarizes the import results
  */
-class CustomImport_Form_Summary extends CRM_Core_Form {
+class DDPaymentImport_Form_Summary extends CRM_Core_Form {
 
     /**
      * Function to set variables up before form is built

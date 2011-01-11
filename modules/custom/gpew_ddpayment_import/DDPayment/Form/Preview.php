@@ -41,7 +41,7 @@ require_once 'CRM/Import/Parser/Contact.php';
  * This class previews the uploaded file and returns summary
  * statistics
  */
-class CustomImport_Form_Preview extends CRM_Core_Form {
+class DDPaymentImport_Form_Preview extends CRM_Core_Form {
 
     /**
      * Function to set variables up before form is built
@@ -53,8 +53,8 @@ class CustomImport_Form_Preview extends CRM_Core_Form {
     {
         //get the data from the session
         if($this->get( 'import_done')!=TRUE) {             
-			require_once('CustomImport/Parser/Payment.php');
-			$ImportJob = new CustomImport_Parser_Payment();
+			require_once('DDPaymentImport/Parser/Payment.php');
+			$ImportJob = new DDPaymentImport_Parser_Payment();
 			$ImportJob->db_table=$this->get('importTableName');
 			$ImportJob->test = TRUE;
 			$ImportJob->import();        
@@ -97,8 +97,8 @@ class CustomImport_Form_Preview extends CRM_Core_Form {
         $qfKey = CRM_Utils_Request::retrieve( 'qfKey', 'String', $form );
         if ( CRM_Utils_Rule::qfKey( $qfKey ) ) $path .= "&qfKey=$qfKey";
         
-        $previousURL = CRM_Utils_System::url('civicrm/import/custom', $path, false, null, false);
-        $cancelURL   = CRM_Utils_System::url('civicrm/import/custom', 'reset=1');
+        $previousURL = CRM_Utils_System::url('civicrm/import/ddpayment', $path, false, null, false);
+        $cancelURL   = CRM_Utils_System::url('civicrm/import/ddpayment', 'reset=1');
         
         $buttons = array(
                          array ( 'type'      => 'back',
@@ -118,7 +118,6 @@ class CustomImport_Form_Preview extends CRM_Core_Form {
         
         $this->addButtons( $buttons );
 
-        $this->addFormRule( array( 'CustomImport_Form_Preview', 'formRule' ), $this );
     }
 
     /**

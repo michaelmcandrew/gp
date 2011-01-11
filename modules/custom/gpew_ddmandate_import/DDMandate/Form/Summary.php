@@ -39,7 +39,7 @@ require_once 'CRM/Core/Form.php';
 /**
  * This class summarizes the import results
  */
-class CustomImport_Form_Summary extends CRM_Core_Form {
+class DDMandateImport_Form_Summary extends CRM_Core_Form {
 
     /**
      * Function to set variables up before form is built
@@ -49,8 +49,8 @@ class CustomImport_Form_Summary extends CRM_Core_Form {
      */
     public function preProcess( ) {
 	
-		require_once('CustomImport/Parser/Payment.php');
-		$ImportJob = new CustomImport_Parser_Payment();
+		require_once('DDMandateImport/Parser/Mandate.php');
+		$ImportJob = new DDMandateImport_Parser_Mandate();
 		$ImportJob->db_table=$this->get('importTableName');
 		$ImportJob->test = TRUE;
 		$ImportJob->import();

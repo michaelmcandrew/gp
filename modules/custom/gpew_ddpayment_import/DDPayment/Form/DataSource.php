@@ -41,7 +41,7 @@ require_once 'CRM/Import/Parser/Contact.php';
  * This class delegates to the chosen DataSource to grab the data to be
  *  imported.
  */
-class CustomImport_Form_DataSource extends CRM_Core_Form {
+class DDPaymentImport_Form_DataSource extends CRM_Core_Form {
     
     private $_dataSource;
     
@@ -324,7 +324,6 @@ class CustomImport_Form_DataSource extends CRM_Core_Form {
 			
 			
 			
-			$this->set('report', 'report_text');
 //			print_r($this->get('testname'));
 			
         } else {

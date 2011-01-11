@@ -23,32 +23,20 @@
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
 *}
-<div class="crm-block crm-form-block crm-import-summary-form-block">
-
-{* Import Wizard - Step 4 (summary of import results AFTER actual data loading) *}
-{* @var $form Contains the array for the form elements and other form associated information assigned to the template by the controller *}
-
- {* WizardHeader.tpl provides visual display of steps thru the wizard as well as title for current step *}
- {include file="CRM/common/WizardHeader.tpl"}
-<h2>Results</h2>
-
-<div id="help">
-    <p>
-    {ts}<strong>Import completed successfully.</strong> The information below summarizes the results.{/ts} <a href="{$errorFile}">Download</a>.
-    </p>
-</div>    
-
-<table class="report">
-{foreach from=$final_report item=line}
-	{if $line.type eq 'warning'}
-		<tr><td style="color:red">{$line.type}</td><td style="color:red">{$line.message}</td></tr>
-	{else}
-		<tr><td>{$line.type}</td><td>{$line.message}</td></tr>
-	{/if}	
-{/foreach}
-</table>
- 
-<div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl" location="bottom"}</div>
-
-</div>
- 
+<fieldset><legend>{ts}Upload CSV File{/ts}</legend>
+  <table class="form-layout">
+    <tr>
+        <td class="label">{$form.uploadFile.label}</td>
+        <td>{$form.uploadFile.html}<br />
+            <div class="description">{ts}File format must be comma-separated-values (CSV). File must be UTF8 encoded if it contains special characters (e.g. accented letters, etc.).{/ts}</div>
+            {ts 1=$uploadSize}Maximum Upload File Size: %1 MB{/ts}
+        </td>
+    </tr>
+    <tr>
+        <td></td>
+        <td>{$form.skipColumnHeader.html} {$form.skipColumnHeader.label}
+            <div class="description">{ts}Check this box if the first row of your file consists of field names (Example: 'First Name','Last Name','Email'){/ts}</div>
+        </td>
+    </tr>
+  </table>
+</fieldset>
