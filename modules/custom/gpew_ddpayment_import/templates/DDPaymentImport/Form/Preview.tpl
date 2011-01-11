@@ -93,6 +93,17 @@ function verify( ) {
 
 <div id="preview-info">
 <h2>Preview</h2>
+<h3>Warnings</h3>
+
+<table class="report">
+{foreach from=$report item=line}
+	{if $line.type eq 'warning'}
+		<tr><td style="color:red">{$line.type}</td><td style="color:red">{$line.message}</td></tr>
+	{/if}	
+{/foreach}
+</table>
+
+<h3>Full report</h3>
 
 <table class="report">
 {foreach from=$report item=line}
