@@ -1,5 +1,0 @@
-; $Id$
-name = Green Party Direct Debit Import
-description = Creates a screen which can be used to run the direct debit import script
-package = CiviCRM - Green Party extras
-core = 6.x

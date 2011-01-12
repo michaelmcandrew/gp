@@ -1,5 +1,0 @@
-; $Id$
-name = CiviCRM direct debit payment import
-description = For importing direct debit payments
-package = CiviCRM - Green Party extras
-core = 6.x

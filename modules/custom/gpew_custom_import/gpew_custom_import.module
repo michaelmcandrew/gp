@@ -1,0 +1,65 @@
+<?php
+
+//TODO Ensure that the menu is rebuilt!
+
+function gpew_custom_import_civicrm_config( &$config ) {
+	
+	//Register template directory
+    $template =& CRM_Core_Smarty::singleton( );
+    $civicrm_custom_import_root = dirname( __FILE__ );
+    $civicrm_custom_import_template_root = $civicrm_custom_import_root . DIRECTORY_SEPARATOR . 'templates';
+    
+    if ( is_array( $template->template_dir ) ) {
+        array_unshift( $template->template_dir, $civicrm_custom_import_template_root );
+    } else {
+        $template->template_dir = array( $civicrm_custom_import_template_root, $template->template_dir );
+    }
+    
+    //Register php directory
+    $include_path = $civicrm_custom_import_template_root . PATH_SEPARATOR . get_include_path( );
+    set_include_path( $include_path );
+    $include_path = $civicrm_custom_import_root . PATH_SEPARATOR . get_include_path( );
+    set_include_path( $include_path );
+}
+
+function gpew_custom_import_civicrm_xmlMenu( &$files ) {
+	$files[]=dirname( __FILE__ ).DIRECTORY_SEPARATOR.'CustomImportMenu.xml';
+}
+
+
+
+// function civicrm_custom_import_civicrm_navigationMenu( &$params ) {
+//    
+// 	// print_r($params);
+// 	//     //  Get the maximum key of $params 
+// 	$maxKey = max(array_keys($params));
+//     
+//     $params[] = array ( 
+//                        'attributes' => array (
+//                                               'label'      => 'Direct debit',
+//                                               'name'       => 'Direct debit',
+//                                               'url'        => 'civicrm/customImport',
+//                                               'permission' => null,
+//                                               'operator'   => null,
+//                                               'separator'  => null,
+//                                               'parentID'   => null,
+//                                               'navID'      => $maxKey+1,
+//                                               'active'     => 1
+//                                               ),
+//                        'child' =>  array ( 
+//                                           '1' => array (
+//                                                         'attributes' => array ( 
+//                                                                                'label'      => 'Custom Child Menu',
+//                                                                                'name'       => 'Custom Child Menu',
+//                                                                                'url'        => 'http://www.testlink.com',
+//                                                                                'permission' => 'access CiviContribute
+// ',
+//                                                                                'operator'   => null,
+//                                                                                'separator'  => 1,
+//                                                                                'parentID'   => $maxKey+1,
+//                                                                                'navID'      => 1,
+//                                                                                'active'     => 1
+//                                                                                 ),
+//                                                         'child' => null 
+//                                                         ) ) );    
+// }
