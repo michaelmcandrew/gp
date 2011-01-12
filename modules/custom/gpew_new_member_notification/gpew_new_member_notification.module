@@ -57,20 +57,20 @@ function gpew_new_member_notification_civicrm_post( $op, $objectName, $objectId,
 	//get local membership secretary email
 	$party_relations_result=civicrm_relationship_get($local_party_params);
 	foreach($party_relations_result['result'] as $party_relation){
-		if($party_relation['civicrm_relationship_type_id']==19 AND strlen($party_relation['email'])){
+		if($party_relation['civicrm_relationship_type_id']==19 AND strlen($party_relation['email']) AND $party_relation['is_active']==1){
 			$to[]=$party_relation['email'];
 		}
 	}
 
 	//get regional membership secretary email
 	$party_relations_result=civicrm_relationship_get($regional_party_params);
-	foreach($party_relations_result['result'] as $party_relation){
-		if($party_relation['civicrm_relationship_type_id']==19 AND strlen($party_relation['email'])){
+	foreach($party_relations_result['result'] as $party_relation){		
+		if($party_relation['civicrm_relationship_type_id']==19 AND strlen($party_relation['email']) AND $party_relation['is_active']==1){
 			$to[]=$party_relation['email'];
 		}
 	}
 	$party_email['cc']='office@greenparty.org.uk';
-	
+	$party_email['bcc']='michaelmcandrew@thirdsectordesign.org';
 	
 	// write body for local party email and for regional party email
 	$data['local_party']=current($local_party_result);
