@@ -24,6 +24,8 @@ function gpew_new_member_add_groups_civicrm_post( $op, $objectName, $objectId, &
 
 	$params=array('contact_id'=>$objectRef->contact_id, 'group_id'=>37);
 	civicrm_group_contact_add($params); //TODO test this code!			
+	$params=array('contact_id'=>$objectRef->contact_id, 'group_id'=>14);
+	civicrm_group_contact_add($params); //TODO test this code!			
 }
 
 // look up membership information
