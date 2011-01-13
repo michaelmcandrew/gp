@@ -318,6 +318,23 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 		}
 	}
 
+	function tagAsFreeGift(){
+		$params=array(
+			'group_id'=>30,
+			'contact_id'=>$result['contact_id']
+		);
+		if(!$this->test){
+			$result=civicrm_group_contact_add($params); //TODO test this code!			
+			if($result['is_error']) {
+				$this->addReportLine('warning', "Failed to add contact with URN {$contact['ConfirmationReference']} to young greens group");
+			} else {
+				$this->addReportLine('note', "Contact with URN {$contact['ConfirmationReference']} added to young greens group");
+			}
+		} else {
+			$this->addReportLine('note', "Ready to add TGP {$this->getCurrent('tgp')} to young green groups.");
+		}
+	}
+
 	
 
 	function addMembership(){

@@ -17,7 +17,8 @@ function gpew_new_member_notification_civicrm_post( $op, $objectName, $objectId,
 	}
 	
 	require_once 'api/v2/Contact.php';	
-	require_once('api/v2/Relationship.php');
+	require_once 'api/v2/Relationship.php';
+	require_once 'api/v2/ActivityContact.php';	
 
 	// get contact data
 	$contact_params=array('contact_id'=>$objectRef->contact_id);
@@ -59,6 +60,7 @@ function gpew_new_member_notification_civicrm_post( $op, $objectName, $objectId,
 	foreach($party_relations_result['result'] as $party_relation){
 		if($party_relation['civicrm_relationship_type_id']==19 AND strlen($party_relation['email']) AND $party_relation['is_active']==1){
 			$to[]=$party_relation['email'];
+			$local_party_activity_emails[]=$party_relation['email'];
 		}
 	}
 
@@ -67,6 +69,8 @@ function gpew_new_member_notification_civicrm_post( $op, $objectName, $objectId,
 	foreach($party_relations_result['result'] as $party_relation){		
 		if($party_relation['civicrm_relationship_type_id']==19 AND strlen($party_relation['email']) AND $party_relation['is_active']==1){
 			$to[]=$party_relation['email'];
+			$regional_party_activity_emails[]=$party_relation['email'];
+			
 		}
 	}
 	$party_email['cc']='office@greenparty.org.uk';
@@ -80,7 +84,8 @@ function gpew_new_member_notification_civicrm_post( $op, $objectName, $objectId,
 	$email['subject']="New member has joined your local/regional Green Party";
 	$email['text']=gpew_new_member_notification_write_body($data);
 
-//['toEmail']	// override the to address for testing
+// ['toEmail']
+// override the to address for testing
 //	$regional_party_email['toEmail']=$local_party_email['toEmail']='michaelmcandrew@thirdsectordesign.org';
 
 	// send the emails
@@ -95,7 +100,32 @@ function gpew_new_member_notification_civicrm_post( $op, $objectName, $objectId,
 	foreach($to as $toEmail){
 		$email['toEmail']=$toEmail;
 //		print_r($email);
-		CRM_Utils_Mail::send($email);
+//		CRM_Utils_Mail::send($email);
+	}
+	
+	//record activity for local party notification
+	if(count($local_party_activity_emails)) {
+		$params = array(
+			'activity_type_id' => 32,
+			'target_contact_id' => $objectId,
+			'subject' => 'Email sent to '.implode(', ', $local_party_activity_emails),
+			'details' => $email['text'],
+			'status_id' => 2,
+			'activity_date_time' => date('YmdHis')
+		);
+	 civicrm_activity_create($params);
+	}
+	
+	if(count($regional_party_activity_emails)) {
+		$params = array(
+			'activity_type_id' => 32,
+			'target_contact_id' => $objectId,
+			'subject' => 'Email sent to '.implode(', ', $regional_party_activity_emails),
+			'details' => $email['text'],
+			'status_id' => 2,
+			'activity_date_time' => date('YmdHis')
+		);
+	civicrm_activity_create($params); 
 	}
 }
 
