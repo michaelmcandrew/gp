@@ -161,6 +161,10 @@ class CustomImport_Parser_Mandate extends CustomImport_Parser_DD
 		}
 	}	
 	
+	function wantsFreeGift(){
+		return (substr_count($this->getCurrent('source'), 'member') == 0) AND $this->getCurrent('custom_data_1')=='No';
+	}
+	
 
 	function addReportLine($type, $message){
 		$this->report[]=array('type'=>$type,'message'=>$message);

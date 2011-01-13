@@ -107,6 +107,7 @@ class CustomImport_Parser_Payment extends CustomImport_Parser_DD
 			$this->currentContributionArray['total_amount'] = $this->current['amount'];
 			$this->currentContributionArray['receive_date'] = $this->current['date']->format('Y-m-d');
 			$this->currentContributionArray['contribution_status_id']=1;
+			$this->currentContributionArray['source']=$this->current['frequency'];
 			
 			//record the contribution
 			if(!$this->test){
