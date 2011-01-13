@@ -105,8 +105,7 @@ class CustomImport_Parser_DD
 		}
 		
 		function wantsToBeAMember(){
-			return (substr_count($this->getCurrent('tgp'), 'member') == 0)
-			AND $this->getCurrent('custom_data_1')=='No';
+			return (substr_count($this->getCurrent('source'), 'member') == 0) AND $this->getCurrent('custom_data_1')=='No';
 		}
 		
 		function searchForTGP() {

@@ -77,7 +77,6 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 		$this->current['start_date']=$this->RapiDataToDate($this->candidate->directdebitstartdate_30);
 		$this->current['frequency']=$this->candidate->directdebitfrequency_29;
 		
-
 		$this->current['first_name']=$this->candidate->firstname_2;				
 		$this->current['last_name']=$this->candidate->lastname_4;
 

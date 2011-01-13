@@ -105,6 +105,7 @@ class CustomImport_Parser_DDPayment extends CustomImport_Parser_DD
 			$this->currentContributionArray['contribution_type_id'] = $this->current['is_membership_contribution'] ? 2 : 1 ;
 			$this->currentContributionArray['contact_id'] = $this->currentContactArray['contact_id'];
 			$this->currentContributionArray['total_amount'] = $this->current['amount'];
+			$this->currentContributionArray['source'] = $this->current['frequency'];
 			$this->currentContributionArray['receive_date'] = $this->current['date']->format('Y-m-d');
 			$this->currentContributionArray['contribution_status_id']=1;
 			
