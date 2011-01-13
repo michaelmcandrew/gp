@@ -11,7 +11,7 @@
   </item>
   <item>
      <path>civicrm/import/ddmandate</path>
-     <title>Direct debit payment import</title>
+     <title>Direct debit mandate import</title>
      <page_callback>CustomImport_DDMandate_Controller</page_callback>
      <page_arguments></page_arguments>
      <access_callback>1</access_callback>
