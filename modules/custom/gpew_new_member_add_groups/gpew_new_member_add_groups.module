@@ -23,13 +23,6 @@ function gpew_new_member_add_groups_civicrm_post( $op, $objectName, $objectId, &
 	require_once "api/v2/GroupContact.php";
 
 	$params=array('contact_id'=>$objectRef->contact_id, 'group_id'=>37);
-	civicrm_group_contact_add($params); //TODO test this code!			
-	$params=array('contact_id'=>$objectRef->contact_id, 'group_id'=>14);
-	civicrm_group_contact_add($params); //TODO test this code!			
+	civicrm_group_contact_add($params); 	
 }
-
-// look up membership information
-
-//send the emails, cc to office@greenparty.org.uk
-
 
