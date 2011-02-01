@@ -1,5 +1,0 @@
-; $Id$
-name = CiviCRM custom import
-description = UI to create customised imports
-package = CiviCRM
-core = 6.x
