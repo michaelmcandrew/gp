@@ -18,7 +18,7 @@ function gpew_new_member_notification_civicrm_post( $op, $objectName, $objectId,
 	
 	require_once 'api/v2/Contact.php';	
 	require_once 'api/v2/Relationship.php';
-	require_once 'api/v2/ActivityContact.php';	
+	require_once 'api/v2/Activity.php';	
 
 	// get contact data
 	$contact_params=array('contact_id'=>$objectRef->contact_id);
@@ -107,25 +107,27 @@ function gpew_new_member_notification_civicrm_post( $op, $objectName, $objectId,
 	if(count($local_party_activity_emails)) {
 		$params = array(
 			'activity_type_id' => 32,
-			'target_contact_id' => $objectId,
-			'subject' => 'Email sent to '.implode(', ', $local_party_activity_emails),
-			'details' => $email['text'],
+			'source_contact_id' => $objectRef->contact_id,
+			'target_contact_id' => $objectRef->contact_id,
+			'subject' => 'Email sent to local party ('.implode(', ', $local_party_activity_emails).')',
+			'details' => nl2br($email['text']),
 			'status_id' => 2,
 			'activity_date_time' => date('YmdHis')
 		);
-	 civicrm_activity_create($params);
+	civicrm_activity_create($params);
 	}
 	
 	if(count($regional_party_activity_emails)) {
 		$params = array(
 			'activity_type_id' => 32,
-			'target_contact_id' => $objectId,
-			'subject' => 'Email sent to '.implode(', ', $regional_party_activity_emails),
-			'details' => $email['text'],
+			'source_contact_id' => $objectRef->contact_id,
+			'target_contact_id' => $objectRef->contact_id,
+			'subject' => 'Email sent to regional party ('.implode(', ', $regional_party_activity_emails).')',
+			'details' => nl2br($email['text']),
 			'status_id' => 2,
 			'activity_date_time' => date('YmdHis')
 		);
-	civicrm_activity_create($params); 
+	civicrm_activity_create($params);
 	}
 }
 
