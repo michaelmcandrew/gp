@@ -5,8 +5,7 @@
  *
  */
 function addressblocktoken_civicrm_tokens( &$tokens ) {
-    $tokens['contact'] = array( 
-        'contact.address_block' => 'Address block' );
+    $tokens['contact']['contact.address_block'] = 'Address block' ;
 }
 
 function addressblocktoken_civicrm_tokenValues( &$values, &$contactIDs ) {
