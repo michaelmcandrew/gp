@@ -61,6 +61,8 @@ function localpartyupdate_civicrm_postProcess( $formName, &$form ) {
 		'phone-1-1',
 		'phone-1-2',
 		);
+		
+		//TODO add email
 	
 	foreach($fieldsThatMightHaveChanged as $field) {
 		if($form->_submitValues[$field]!=$form->_defaultValues[$field]){
