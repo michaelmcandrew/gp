@@ -57,33 +57,26 @@ class CRM_Report_Form_Member_GPDetail extends CRM_Report_Form {
 				'fields' => array(
 					'display_name' => array(
 						'title' => ts('Contact Name'),
-						'no_repeat' => true
 					),
 					'joint_member_display_name' => array(
 						'title' => ts('Joint member name'),
 						'name'      => 'display_name',
-						'no_repeat' => true,
 						'alias' => 'civicrm_contact_joint_member',
 					),
 					'postal_greeting_display' => array(
 						'title' => ts('Postal Greeting'),
-						'no_repeat' => true
 					),
 					'email_greeting_display' => array(
 						'title' => ts('Email Greeting'),
-						'no_repeat' => true
 					),
 					'first_name' => array(
 						'title' => ts('First Name'),
-						'no_repeat' => true
 					),
 					'last_name' => array(
 						'title' => ts('Last Name'),
-						'no_repeat' => true
 					),
 					'do_not_mail' => array(
 						'title' => ts('Do not mail'),
-						'no_repeat' => true
 					),
 					'id' => array(
 						'no_display' => true, 
