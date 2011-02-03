@@ -1,0 +1,7 @@
+name = Capitation
+description = Performs capitation calculations based on Green Party local and regional party info.
+dependencies[] = civicrm
+package = CiviCRM - Green Party extras
+core = 6.x
+version = 0.1
+

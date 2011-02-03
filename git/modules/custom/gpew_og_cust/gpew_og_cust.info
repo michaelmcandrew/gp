@@ -1,0 +1,5 @@
+name = OG customisations
+version = 1.0
+description = OG customisations for the Green Party (England and Wales) site.  Amongst other things, changes the group details block
+package = CiviCRM - Green Party extras
+core = 6.x

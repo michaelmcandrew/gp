@@ -1,0 +1,109 @@
+<?php
+
+function gpew_setparty_civicrm_post( $op, $objectName, $objectId, &$objectRef ) {
+
+	if($op!='create' AND $op!='edit'){
+		return;
+	}
+	if($objectName!='Individual'){
+		return;
+	}
+		
+	// set local party
+	gpew_setparty_set_party($objectId);
+}
+function gpew_setparty_set_party($objectId){
+	// if there is no override
+	$params=array();
+	$params[1] = array( $objectId, 'Integer');
+	$civicrm_value_gpew_party_information = CRM_Core_DAO::executeQuery( "SELECT * FROM civicrm_value_gpew_party_information WHERE entity_id=%1", $params );
+	$civicrm_value_gpew_party_information->fetch();
+	if($civicrm_value_gpew_party_information->override_local_party!=true){
+		$params=array();
+		$params[1] = array( $objectId, 'Integer');
+		$local_party_contact=CRM_Core_DAO::executeQuery( "
+			SELECT local_party_contact_id as `id`
+			FROM `civicrm_gpew_ward_local_party`
+			WHERE ward_ons_code = (
+			SELECT ward_ons_code
+			FROM `civicrm_value_area_information`
+			WHERE entity_id =%1 )", $params
+			);
+		$local_party_contact->fetch();
+		$params=array();
+		$params[1] = array( $objectId, 'Integer');
+		if(strlen($local_party_contact->id)){
+			$params[2] = array( $local_party_contact->id, 'Integer');
+			CRM_Core_DAO::executeQuery( "INSERT INTO `civicrm_value_gpew_party_information` SET `local_party_id`= %2, `entity_id` = %1 ON DUPLICATE KEY UPDATE `local_party_id`= %2", $params );
+		} else {
+			CRM_Core_DAO::executeQuery( "INSERT INTO `civicrm_value_gpew_party_information` SET `local_party_id`= NULL, `entity_id` = %1 ON DUPLICATE KEY UPDATE `local_party_id`= NULL", $params );
+		}
+
+	} else {
+		// if this has been overridden, validate that it is actually a local party or null
+	}
+	
+	// set regional party
+
+
+
+	//fetch the local party again (it might have been set above, or might be overridden)
+	$params=array();
+	$params[1] = array( $objectId, 'Integer');
+	$local_party_contact=CRM_Core_DAO::executeQuery( "SELECT `local_party_id` as `id` FROM `civicrm_value_gpew_party_information` WHERE `entity_id` = %1", $params );
+	$local_party_contact->fetch();
+	if(is_numeric($local_party_contact->id)){
+		// look up the regional party ID
+		$params=array();
+		$params[1] = array( $local_party_contact->id, 'Integer');
+		$regional_party_contact=CRM_Core_DAO::executeQuery( "
+			SELECT `regional_party_contact_id` as `id`
+			FROM `civicrm_gpew_local_party_regional_party`
+			WHERE `local_party_contact_id`=%1", $params
+			);
+		$regional_party_contact->fetch();
+		$params=array();
+		$params[1] = array( $objectId, 'Integer');	
+		CRM_Core_DAO::executeQuery( "UPDATE `civicrm_value_gpew_party_information` SET `regional_party_id`= '{$regional_party_contact->id}' WHERE `entity_id` = %1", $params );
+		
+	} else {
+		
+		// if there is no local party, try and set the region based on the european region
+		
+		$european_region=CRM_Core_DAO::executeQuery( "
+			SELECT european_region as name
+			FROM `civicrm_value_area_information`
+			WHERE entity_id =%1", $params
+			);
+
+		$european_region->fetch();
+
+		$regional_parties=array(
+			'South East' => 22318,
+			'North West' => 22319,
+			'North East' => 22320,
+			'East Midlands' => 22321,
+			'Eastern' => 22322,
+			'London' => 22323,
+			'Yorkshire and the Humber' => 22324,
+			'South West' => 22325,
+			'West Midlands' => 22326,
+			'Wales' =>	22327
+		);
+		
+		if(in_array ( $european_region->name , array_keys($regional_parties))) {
+			$params=array();
+			$params[1] = array( $objectId, 'Integer');	
+			$params[2] = array( $regional_parties[$european_region->name], 'Integer');	
+			CRM_Core_DAO::executeQuery( "UPDATE `civicrm_value_gpew_party_information` SET `regional_party_id` = %2 WHERE `entity_id` = %1", $params );
+			
+		} else {
+			$params=array();
+			$params[1] = array( $objectId, 'Integer');	
+			CRM_Core_DAO::executeQuery( "UPDATE `civicrm_value_gpew_party_information` SET `regional_party_id` = NULL WHERE `entity_id` = %1", $params );
+		}
+	}	
+}
+
+
+?>
