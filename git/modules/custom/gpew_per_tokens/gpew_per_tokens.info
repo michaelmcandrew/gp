@@ -1,5 +1,0 @@
-; $Id$
-name = GP Public enquiry recipient tokens
-description = Creates tokens that display a contact's local and regional party's public enquiry recipient  
-package = CiviCRM - Green Party extras
-core = 6.x

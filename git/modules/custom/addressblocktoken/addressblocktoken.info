@@ -1,7 +1,0 @@
-name = Address block token
-description = Adds an address block to the list of available CiviCRM tokens
-dependencies[] = civicrm
-package = CiviCRM
-core = 6.x
-version = 1.0alpha1
-

@@ -1,5 +1,0 @@
-name = "Set party"
-description = "Sets local and regional party information, in part based on data looked up from MaPit."
-package = "CiviCRM - Green Party extras"
-version = "0.1"
-core = "6.x"
