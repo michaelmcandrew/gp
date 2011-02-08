@@ -69,8 +69,13 @@ html, div, span, applet, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, 
 	background:transparent;
 }
 ol, ul {
-	list-style:none;
+	list-style: disc inside none;
 }
+
+ol {
+	list-style-type: decimal;
+}
+
 blockquote, q {
 	quotes:none;
 }
@@ -452,6 +457,7 @@ body#groups #pri h2, body#groups #pri .node a { color: #008db8; }
 #forum .links li.forum { font-weight: bold; font-size: 1.2em; }
 #pri #forum a { color: #9424bb; }
 #forum td.container { font-weight: bold; border-top: 2px solid #ccc; background-color: #eeedec; }
+div#comments div.comment { margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dotted #D6D6D6; }
 
 /* Views general styles */
 .block-views { margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px dotted #d6d6d6; }
@@ -459,6 +465,7 @@ body#groups #pri h2, body#groups #pri .node a { color: #008db8; }
 .block-views .content { clear: both; }
 .view .views-table { width: 100%; }
 .view .views-table th, .view .views-table td { padding: .5em 1em }
+
 /* Views subheaders */
 #block-views-News-block_1 h3 { background: #e5e5e5 url(images/icons-subheaders.png) 5px 0 no-repeat; padding-left: 32px; }
 #block-views-Events-block_2 h3 { background: #e5e5e5 url(images/icons-subheaders.png) 5px -60px no-repeat; padding-left: 32px; }
