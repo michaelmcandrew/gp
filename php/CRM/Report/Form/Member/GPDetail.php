@@ -241,8 +241,8 @@ class CRM_Report_Form_Member_GPDetail extends CRM_Report_Form {
 		
 	
         
-		LEFT JOIN civicrm_relationship cr ON {$this->_aliases['civicrm_contact']}.id=cr.contact_id_a AND relationship_type_id=22
-		LEFT JOIN civicrm_contact civicrm_contact_joint_member ON civicrm_contact_joint_member.id = cr.contact_id_b
+		LEFT JOIN civicrm_relationship cr ON {$this->_aliases['civicrm_contact']}.id=cr.contact_id_b AND relationship_type_id=22
+		LEFT JOIN civicrm_contact civicrm_contact_joint_member ON civicrm_contact_joint_member.id = cr.contact_id_a
 		
 		";
 		
