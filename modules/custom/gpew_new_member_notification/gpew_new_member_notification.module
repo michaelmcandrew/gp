@@ -5,6 +5,9 @@
 // look up the local and regional membership secretary email
 
 // look up the contact id
+require_once 'api/v2/Contact.php';	
+require_once 'api/v2/Relationship.php';
+require_once 'api/v2/Activity.php';	
 
 function gpew_new_member_notification_civicrm_post( $op, $objectName, $objectId, &$objectRef ) {
 	// gpew_capitation_batch_update();
@@ -16,14 +19,15 @@ function gpew_new_member_notification_civicrm_post( $op, $objectName, $objectId,
 		return;
 	}
 	
-	require_once 'api/v2/Contact.php';	
-	require_once 'api/v2/Relationship.php';
-	require_once 'api/v2/Activity.php';	
+	gpew_new_member_notification_notify($objectRef);
+}
 
+function gpew_new_member_notification_notify($objectRef) {	
+	
 	// get contact data
 	$contact_params=array('contact_id'=>$objectRef->contact_id);
 	$contact_result=civicrm_contact_get($contact_params);
-	
+//	print_r($contact_result);
 	//put contact data in email variable
 	$data['contact']=current($contact_result);
 
