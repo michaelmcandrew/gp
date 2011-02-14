@@ -100,7 +100,8 @@ function gpew_new_member_notification_civicrm_post( $op, $objectName, $objectId,
 	foreach($to as $toEmail){
 		$email['toEmail']=$toEmail;
 //		print_r($email);
-//		CRM_Utils_Mail::send($email);
+		
+		CRM_Utils_Mail::send($email);
 	}
 	
 	//record activity for local party notification
