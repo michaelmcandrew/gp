@@ -27,5 +27,6 @@
      <path>civicrm/export/wardmapping</path>
      <title>File System Paths</title>
      <page_callback>CustomImport_WardMapping_Page</page_callback>
+     <access_arguments>administer CiviCRM</access_arguments>
   </item>
 </menu>

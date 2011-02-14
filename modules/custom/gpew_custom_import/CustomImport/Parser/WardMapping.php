@@ -164,7 +164,7 @@ class CustomImport_Parser_WardMapping extends CustomImport_Parser_Custom
 		
 		if(count($allLPs)){
 			foreach($allLPs as $localpartyid => $void){
-				$this->addReportLine('warning', "No wards map to local party <a href='/civicrm/contact/view?id={$localpartyid}'>{$allLPs[$localpartyid]}</a>.");
+				$this->addReportLine('warning', "No wards map to local party <a href='/civicrm/contact/view?cid={$localpartyid}'>{$allLPs[$localpartyid]}</a>.");
 			}	
 		}		
 		if(count($nonExistentPartyIds)){
