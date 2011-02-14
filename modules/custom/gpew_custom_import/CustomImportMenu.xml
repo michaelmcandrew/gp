@@ -23,4 +23,9 @@
      <access_arguments>edit contributions</access_arguments>
      <adminGroup>CiviReport</adminGroup>
   </item>
+  <item>
+     <path>civicrm/export/wardmapping</path>
+     <title>File System Paths</title>
+     <page_callback>CustomImport_WardMapping_Page</page_callback>
+  </item>
 </menu>

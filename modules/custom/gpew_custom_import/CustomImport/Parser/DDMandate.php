@@ -100,17 +100,6 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 	}
 
 	function combineFields($fieldsToCombine) {
-		foreach($fieldsToCombine as $field) {
-			$field=trim($field);
-			if($field!='') {
-				$outputFields[]=$field;
-			}
-		}
-		if(count($outputFields)){
-			return implode($outputFields, ',');		
-		}
-	}	
-
 	
 	function setCurrentContactID($contact_id){
 		$this->current['contact_id']=$contact_id;
@@ -160,31 +149,10 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 		}
 	}	
 	
-
 	function addReportLine($type, $message){
 		$this->report[]=array('type'=>$type,'message'=>$message);
 	}
-
 	
-	function isValidCandidate() {
-		$valid = TRUE;
-		if($this->getCurrent('account_details_validated')=='FALSE'){
-			$this->addReportLine('warning', "{$this->getCurrent('tgp')} not imported: AccountDetailsValidated is FALSE");
-			$valid = FALSE;
-		}
-		if($this->getCurrent('start_date') > new DateTime('+100 days')){
-			$this->addReportLine('warning', "{$this->getCurrent('tgp')} not imported: start date more than 100 days in the future.");
-			$valid = FALSE;
-		}
-		if($contact['IsTestData']=='TRUE'){
-			$this->addReportLine('warning', "{$this->getCurrent('tgp')} not imported: is test data.");
-			$valid = FALSE;
-		}		
-		return $valid;
-	}
-
-	
-
 	function SearchForContact($fields) {
 		foreach($fields as $field){
 			if(is_array($field)){
@@ -334,8 +302,6 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 			$this->addReportLine('note', "Ready to add TGP {$this->getCurrent('tgp')} to young green groups.");
 		}
 	}
-
-	
 
 	function addMembership(){
 		if(!$this->test){

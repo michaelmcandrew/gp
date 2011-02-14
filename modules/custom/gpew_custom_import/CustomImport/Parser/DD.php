@@ -34,7 +34,7 @@
  *
  */
 
-require_once 'CRM/Import/Parser.php';
+require_once 'CustomImport/Parser/Custom.php';
 require_once 'api/v2/utils.php';
 
 define ('CIVICRM_GPEW_DD_MANDATE_TABLE', 'civicrm_value_external_identifiers_5');
@@ -45,7 +45,7 @@ define ('CIVICRM_GPEW_DD_MANDATE_FREQUENCY', 'payment_frequency_37');
 /**
  * class to parse contact csv files
  */
-class CustomImport_Parser_DD
+class CustomImport_Parser_DD extends CustomImport_Parser_Custom
 {
 		//DB object containing all candidates
 	    protected $candidate;
@@ -57,9 +57,6 @@ class CustomImport_Parser_DD
 
 	    public $test = FALSE;
 	
-		function getReport(){
-			return $this->report;
-		}
 
 		function getCanditates(){
 			$params = array();

@@ -34,43 +34,29 @@
  *
  */
 
-require_once 'CRM/Core/Form.php';
+require_once 'CRM/Admin/Form/Setting.php';
 
 /**
- * This class summarizes the import results
+ * This class generates form components for File System Path
+ * 
  */
-class CustomImport_WardMapping_Form_Summary extends CRM_Core_Form {
+class CustomImport_WardMapping_Page extends CRM_Admin_Form_Setting
+{
 
-    public function preProcess( ) {
-		$this->assign( 'final_report', $this->get('final_report'));
-		$this->assign( 'final_report_csv_url', $this->get('final_report_csv_url'));
-		$config = CRM_Core_Config::singleton( );
-        
-    }
-
-    public function buildQuickForm( ) {
-        $this->addButtons( array(
-                                 array ( 'type'      => 'next',
-                                         'name'      => ts('Done'),
-                                         'isDefault' => true   ),
-                                 )
-                           );
-    }
+    public function run( ) {
+	include_once('CustomImport/Parser/WardMapping.php');
+	$wardMapping= new CustomImport_Parser_WardMapping;
+	$wardMapping->initExport();
+	
+	header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+    header('Content-Description: File Transfer');
+    header('Content-Type: text/csv');
+//    header('Content-Length: ' . filesize( $wardMapping->fileSize ) );
+    header('Content-Disposition: attachment; filename=' . 'WardMapping.csv' );
+	echo $wardMapping->output;
     
-    public function postProcess( ) {
-        $dao = new CRM_Core_DAO( );
-        $db = $dao->getDatabaseConnection( );
-        
-        $importTableName = $this->get( 'importTableName' );
-        // do a basic sanity check here
-        if (strpos( $importTableName, 'civicrm_import_job_' ) === 0) {
-            $query = "DROP TABLE IF EXISTS $importTableName";
-            $db->query( $query );
-        }
-    }
-
-    public function getTitle( ) {
-        return ts('Summary');
-    }
+	}
 
 }
+
+

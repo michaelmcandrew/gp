@@ -34,6 +34,21 @@
   {* WizardHeader.tpl provides visual display of steps thru the wizard as well as title for current step *}
   {include file="CRM/common/WizardHeader.tpl"}
   <div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl" location="top"}</div>
+
+  <div id="download-ward-mapping" class="form-item">
+    <fieldset>
+    <legend>{ts}Download Ward Mapping CSV file{/ts}</legend>
+    <table class="form-layout">
+      <tr class="crm-import-datasource-form-block-dataSource">
+          <td class="label"></td>
+          <td><a href="/civicrm/export/wardmapping">Click here to download ward mapping</a> (which you can then update and import below).</td>
+      </tr>
+    </table>
+
+    </fieldset>
+  </div>
+
+
   <div id="choose-data-source" class="form-item">
     <fieldset>
       <legend>{ts}Choose Data Source{/ts}</legend>

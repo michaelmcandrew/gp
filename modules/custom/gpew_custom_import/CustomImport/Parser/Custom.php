@@ -41,9 +41,17 @@ require_once 'api/v2/utils.php';
 /**
  * class to parse contact csv files
  */
-class CustomImport_Parser_Custom extends CRM_Import_Parser 
+class CustomImport_Parser_Custom  
 {
-    
+    function getReport(){
+		return $this->report;
+	}
+	
+	function addReportLine($type, $message){
+		$this->report[]=array('type'=>$type,'message'=>$message);
+	}
+	
+	
 }
 
 

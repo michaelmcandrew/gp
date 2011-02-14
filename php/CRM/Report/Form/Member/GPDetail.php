@@ -238,8 +238,6 @@ class CRM_Report_Form_Member_GPDetail extends CRM_Report_Form {
 		LEFT JOIN civicrm_membership_status {$this->_aliases['civicrm_membership_status']}
 		ON {$this->_aliases['civicrm_membership_status']}.id = 
 		{$this->_aliases['civicrm_membership']}.status_id
-		
-	
         
 		LEFT JOIN civicrm_relationship cr ON {$this->_aliases['civicrm_contact']}.id=cr.contact_id_b AND relationship_type_id=22
 		LEFT JOIN civicrm_contact civicrm_contact_joint_member ON civicrm_contact_joint_member.id = cr.contact_id_a

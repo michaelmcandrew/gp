@@ -34,31 +34,12 @@
 
 <div id="help">
     <p>
-    {ts}<strong>Import completed successfully.</strong> The information below summarizes the results.{/ts} <a href="{$final_report_csv_url}">Download</a>.
+    {ts}<strong>Ward local party mapping updated successfully.</strong>{/ts}.
     </p>
 </div>    
 
 <h3>Warnings</h3>
 
-<table class="report">
-{foreach from=$final_report item=line}
-	{if $line.type eq 'warning'}
-		<tr><td style="color:red">{$line.type}</td><td style="color:red">{$line.message}</td></tr>
-	{/if}	
-{/foreach}
-</table>
-
-<h3>Full report</h3>
-
-<table class="report">
-{foreach from=$final_report item=line}
-	{if $line.type eq 'warning'}
-		<tr><td style="color:red">{$line.type}</td><td style="color:red">{$line.message}</td></tr>
-	{else}
-		<tr><td>{$line.type}</td><td>{$line.message}</td></tr>
-	{/if}	
-{/foreach}
-</table>
  
 <div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl" location="bottom"}</div>
 
