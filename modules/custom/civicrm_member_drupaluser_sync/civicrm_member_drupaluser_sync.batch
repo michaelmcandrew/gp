@@ -1,0 +1,11 @@
+<?php
+define( 'CIVICRM_CONFDIR', '/var/www/gp/sites' );
+require_once CIVICRM_CONFDIR.'/all/modules/civicrm/civicrm.config.php';
+require_once(CIVICRM_CONFDIR.'/default/civicrm.settings.php');
+require_once 'CRM/Core/Config.php';
+$config = CRM_Core_Config::singleton();
+require_once('civicrm_member_drupaluser_sync.module');
+
+// fina all members without logins and call this
+
+civicrm_member_drupaluser_sync_get_name();
