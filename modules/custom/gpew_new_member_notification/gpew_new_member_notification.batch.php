@@ -1,7 +1,7 @@
 <?php
-define( 'CIVICRM_CONFDIR', '/var/www/gp/sites' );
-require_once '/m/htdocs/gp/sites/all/modules/civicrm/civicrm.config.php';
-require_once('/m/htdocs/gp/sites/gp.local/civicrm.settings.php');
+define( 'CIVICRM_CONFDIR', '/var/www/drupal.green/sites' );
+require_once '/var/www/drupal.green/sites/all/modules/civicrm/civicrm.config.php';
+require_once('/var/www/drupal.green/sites/my.greenparty.org.uk/civicrm.settings.php');
 require_once 'CRM/Core/Config.php';
 $config = CRM_Core_Config::singleton();
 
