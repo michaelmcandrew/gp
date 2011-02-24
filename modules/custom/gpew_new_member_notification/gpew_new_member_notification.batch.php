@@ -18,13 +18,3 @@ while($membs->fetch()){
 }
 // echo "Done.\n";
 ?>
-
-
-SELECT contact_id, civicrm_membership.start_date, civicrm_membership.end_date
-FROM civicrm_membership_log
-JOIN civicrm_membership ON civicrm_membership.id=membership_id
-JOIN civicrm_contact ON civicrm_contact.id=civicrm_membership.contact_id
-WHERE modified_date > '2011-01-12'
-AND civicrm_membership.status_id=1
-AND civicrm_contact.is_deleted!=1
-GROUP BY contact_id;

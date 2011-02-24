@@ -47,6 +47,7 @@ function civicrm_member_drupaluser_sync_create_user($ContactID) {
 	if($result->N){
 		$result->fetch();
 		CRM_Core_Session::setStatus("<br /><span style='color:red'>Email address $email already assigned to Drupal user account <a href='/user/{$result->uid}'>{$result->uid}</a>.</span>", true);
+		return;
 	}	
 	
 	//find the display name for this person as the basis for a decent login name
@@ -54,10 +55,11 @@ function civicrm_member_drupaluser_sync_create_user($ContactID) {
 	$clean_name=civicrm_member_drupaluser_sync_clean_name($dirty_name);
 	$username = civicrm_member_drupaluser_sync_suggest_name($clean_name);
 
+	$pass = user_password();
 	//create the Drupal user
 	$user_data = array(
 		'name' => $username,
-		'pass' => user_password(), // note: do not md5 the password
+		'pass' => $pass, // note: do not md5 the password
 		'mail' => $email,
 		'status' => 1,
 		'init' => $email, // same as mail
