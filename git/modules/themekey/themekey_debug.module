@@ -1,0 +1,76 @@
+<?php
+// $Id: themekey_debug.module,v 1.1.2.4 2010/07/16 14:26:34 mkalkbrenner Exp $
+
+/**
+ * @file
+ * provides a debug mode for module ThemeKey.
+ * @see themekey.module
+ *
+ * @author Markus Kalkbrenner | Cocomore AG
+ *   @see http://drupal.org/user/124705
+ */
+
+
+/**
+ * Iterates over all ThemeKey Properties and prints
+ * out their current values.
+ */
+function themekey_debug_properties() {
+  global $user;
+
+  if (1 == $user->uid || variable_get('themekey_debug_non_admin_users', FALSE)) {
+    module_load_include('inc', 'themekey', 'themekey_base');
+
+    $properties = variable_get('themekey_properties', array());
+    $message = t('These are the current values of all available ThemeKey Properties. By clicking the value you can start creating a corresponding Theme Switching Rule.') . '<ul>';
+    $parameters = themekey_get_global_parameters();
+
+    foreach ($properties as $property) {
+      if (!isset($parameters[$property])) {
+        themekey_property_value($parameters, $property);
+      }
+
+      $value = '';
+      if (is_null($parameters[$property])) {
+        if ('drupal:path' == $property) {
+          $value = '<em>no debug information</em>';
+        }
+        else {
+          $value = '<em>empty</em>';
+        }
+      }
+      else {
+        $values = is_array($parameters[$property]) ?  $parameters[$property] : array($parameters[$property]);
+        $links = array();
+        foreach ($values as $single_value) {
+          $links[] = l($single_value, 'admin/settings/themekey', array('fragment' => 'themekey_new_rule', 'query' => array('property' => $property, 'value' => $single_value)));
+        }
+
+        $value = implode('<br />', $links);
+      }
+      $message .= '<li>' . $property . '<br />' . $value . '</li><br />';
+    }
+    $message .= '</ul>';
+    themekey_set_debug_message($message, array(), FALSE);
+  }
+}
+
+
+/**
+ * Implements hook_menu().
+ */
+function themekey_debug_menu() {
+  $items = array();
+  $items['admin/settings/themekey/settings/debug'] = array(
+    'title' => 'Debug',
+    'access callback' => 'user_access',
+    'access arguments' => array('administer themekey settings'),
+    'file' => 'themekey_debug_admin.inc',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('themekey_debug_settings_form'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 10
+  );
+
+  return $items;
+}

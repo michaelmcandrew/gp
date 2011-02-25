@@ -1,0 +1,25 @@
+<?php
+/*
+ * Copyright (C) 2010 Michael McAndrew
+ * Licensed to CiviCRM under the Academic Free License version 3.0.
+ *
+ */
+function gpew_custom_tokens_civicrm_tokens( &$tokens ) {
+    $tokens['contact']['contact.is_young_green'] = 'Is a young Green' ;
+}
+
+function gpew_custom_tokens_civicrm_tokenValues( &$values, &$contactIDs ) {
+	require_once 'api/v2/GroupContact.php';
+	foreach($contactIDs as $id){
+		$params=array('contact_id'=>$id);
+		$groups=civicrm_group_contact_get($params);
+		$values[$id]['contact.is_young_green']='';
+		foreach($groups as $group) {
+			if($group['group_id'] == 30){
+				$values[$id]['contact.is_young_green']='[young green]';				
+			}
+		}
+	}
+}
+
+?>

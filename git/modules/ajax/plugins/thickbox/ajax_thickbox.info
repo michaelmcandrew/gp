@@ -1,0 +1,13 @@
+name = Ajax plugin - thickbox
+description = Enhances AJAX functionality for thickbox.
+package = Ajax
+dependencies[] = ajax
+core = 6.x
+
+
+; Information added by drupal.org packaging script on 2009-04-27
+version = "6.x-1.14"
+core = "6.x"
+project = "ajax"
+datestamp = "1240859105"
+

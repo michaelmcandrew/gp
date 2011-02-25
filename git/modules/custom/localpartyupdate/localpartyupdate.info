@@ -1,0 +1,5 @@
+; $Id$
+name = GP Local Party Update
+description = Sends an email to the local party email address when a member updates their details or a new member is received
+package = CiviCRM - Green Party extras
+core = 6.x

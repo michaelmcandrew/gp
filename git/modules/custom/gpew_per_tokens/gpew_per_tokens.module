@@ -1,0 +1,71 @@
+<?php
+
+// function memsectoken_civicrm_tokens( &$tokens ) {
+// 	 $tokens['memsecs'] = array( 'memsec.local', 'memsec.regional');
+// }
+// 
+// 
+// 
+// 
+// function memsectoken_civicrm_tokenValues( &$values, &$contactIDs ) {
+// 	foreach($contactIDs as $id){
+// 		echo $id;
+// 		$values[$id]['memsec.local']='testlocal';
+// 		$values[$id]['memsec.regional']='testregional';
+// 	}
+// }
+
+
+function gpew_per_tokens_civicrm_tokens( &$tokens ) {
+    $tokens['contact']['contact.local_per'] = 'Local public enquiry recipient' ;
+    $tokens['contact']['contact.regional_per'] = 'Regional public enquiry recipient' ;
+}
+
+function gpew_per_tokens_civicrm_tokenValues( &$values, &$contactIDs ) {
+	require_once "api/v2/Contact.php";
+	require_once 'api/v2/Relationship.php';
+	foreach($contactIDs as $id){
+		$params=array(
+			'contact_id'=>$id,
+			'return.custom_51'=>1,
+			'return.custom_52'=>1
+			);
+		$contact=civicrm_contact_search($params);
+		if($contact[$id]['custom_51']){
+			$values[$id]['contact.local_per']=_gpew_per_tokens_get_pers($contact[$id]['custom_51']);
+		} else {
+			$values[$id]['contact.local_per']="There is no local party on record for you.  Please contact the office if you think this is an error."; 
+		}
+		if($contact[$id]['custom_52']){
+			$values[$id]['contact.regional_per']=_gpew_per_tokens_get_pers($contact[$id]['custom_52']);
+		} else {
+			$values[$id]['contact.regional_per']="There is no regional party on record for you.  Please contact the office if you think this is an error."; 
+		}
+	}
+}
+
+function _gpew_per_tokens_get_pers($id){
+	$params=array(
+		'contact_id'=>$id
+		);
+	$contact=civicrm_contact_get($params);
+	$output="<b>{$contact[$id]['display_name']}:</b> ";			
+	$rels=civicrm_relationship_get($params);			
+	foreach($rels['result'] as $rel){
+		// if the is a membership secretary relation
+		if($rel['civicrm_relationship_type_id']==17){
+			if($membershipSecretaryPresent){
+				$output.=' and ';
+			} else {
+				$output.="Contact: ";
+			}
+			$membershipSecretaryPresent=1;
+			$output.=implode(', ', array_filter(array($rel['display_name'], $rel['email'], $rel['phone'])));
+		}
+		
+	}
+	if(!$membershipSecretaryPresent){
+		$output.="Sorry, we don't have a contact on record for {$contact[$id]['display_name']}.  Please contact the Green Party office for more info";
+	}
+	return $output.'.';
+}

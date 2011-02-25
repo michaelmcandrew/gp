@@ -1,0 +1,28 @@
+<?php
+
+// when a new memeber is added to CiviCRM
+
+// look up the local and regional membership secretary email
+
+// look up the contact id
+
+function gpew_new_member_add_groups_civicrm_post( $op, $objectName, $objectId, &$objectRef ) {
+	// gpew_capitation_batch_update();
+	// exit;
+	if($op != "create"){
+		return;
+	}
+	if($objectName != "Membership"){
+		return;
+	}
+	
+	
+	
+	require_once 'api/v2/Contact.php';	
+	require_once('api/v2/Relationship.php');
+	require_once "api/v2/GroupContact.php";
+
+	$params=array('contact_id'=>$objectRef->contact_id, 'group_id'=>37);
+	civicrm_group_contact_add($params); 	
+}
+

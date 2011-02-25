@@ -1,0 +1,6 @@
+name = CiviMember Drupal login sync
+description = Creates a Drupal user for each time a CiviCRM membership is created (useful when manually creating CiviCRM membership records)
+dependencies[] = civicrm
+package = CiviCRM
+core = 6.x
+

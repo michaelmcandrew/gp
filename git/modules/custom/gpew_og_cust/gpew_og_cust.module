@@ -1,0 +1,16 @@
+<?php
+
+function gpew_og_cust_og_links_alter(&$links, $group_node) {
+	global $user;
+	//drupal_set_message('<pre>'. var_export($group_node,TRUE) .'</pre>');
+	//drupal_set_message('<pre>'. var_export($links,TRUE) .'</pre>');	
+	//$links['invite'] = 'Blablabla';  // change the invite anchor text
+	if(!user_access('administer organic groups')) {
+		unset ($links['subscribers']);
+	}
+	unset ($links['forums']);
+	unset ($links['create_forum']);  
+	unset ($links['invite']);  // Remove invite a friend link from group details block.
+	//unset ($links['manager']);
+	//unset ($links['my_membership']);
+}

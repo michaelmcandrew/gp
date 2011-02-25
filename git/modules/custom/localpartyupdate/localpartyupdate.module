@@ -1,0 +1,259 @@
+<?php
+// hook that fires when someone saves their contact data (we could check to see if any changes have actually been made)
+
+function localpartyupdate_civicrm_postProcess( $formName, &$form ) {
+	
+	if($formName!='CRM_Profile_Form_Dynamic'){
+		return;
+	};
+	
+	$localRegionalPartyRelationshipTypeID=23;
+	$membershipSecRelationshipTypeID=19;
+		
+	require_once('api/v2/Relationship.php');
+	//get old local party
+	if($form->_defaultValues['custom_34']!=''){
+		$oldLPparams=array('organization_name'=>$form->_defaultValues['custom_34']);
+		$oldLPOrg=current(civicrm_contact_search($oldLPparams));
+		$oldLPRels=civicrm_relationship_get(($oldLPOrg));
+		foreach($oldLPRels['result'] as $oldLPRel){
+			if($oldLPRel['civicrm_relationship_type_id']==$localRegionalPartyRelationshipTypeID){
+				$oldRPparams=array('contact_id'=>$oldLPRel['cid']);
+				$oldRPOrg=current(civicrm_contact_search($oldRPparams));
+			}
+		}
+		$oldRPRels=civicrm_relationship_get(($oldRPOrg));
+	} else {
+		$oldLPOrg=$oldLPRels=$oldRPRels=array('result'=>array());
+	}
+	
+//	print_r($oldLPOrg);
+	//get old regional party
+
+	
+	if($form->_submitValues['custom_34']!=''){
+		$newLPparams=array('contact_id'=>$form->_submitValues['custom_34_id']); // todo - replace with geo lookup of new party
+		$newLPOrg=current(civicrm_contact_get($newLPparams));
+		$newLPRels=civicrm_relationship_get(($newLPOrg));
+		foreach($newLPRels['result'] as $newLPRel){
+			if($newLPRel['civicrm_relationship_type_id']==$localRegionalPartyRelationshipTypeID){
+				$newRPparams=array('contact_id'=>$newLPRel['cid']);
+				$newRPOrg=current(civicrm_contact_search($newRPparams));
+			}
+		}
+		$newRPRels=civicrm_relationship_get(($newRPOrg));
+	} else {
+		$newLPOrg=$newLPRels=$newRPRels=array('result'=>array());
+	}
+	//get new regional party
+	
+	//Check if anything has changed	
+	
+	
+	$fieldsThatMightHaveChanged=array(
+		'first_name',
+		'last_name',
+		'street_address-1',
+		'supplemental_address_1-Primary',
+		'supplemental_address_2-Primary',
+		'city-1',
+		'postal_code-1',
+		'phone-1-1',
+		'phone-1-2',
+		);
+		
+		//TODO add email
+	
+	foreach($fieldsThatMightHaveChanged as $field) {
+		if($form->_submitValues[$field]!=$form->_defaultValues[$field]){
+			$contactDetailsChanged=TRUE;
+		}
+	}
+	// print_r(1);
+	// print_r($newLPOrg['organization_name']);
+	// print_r(2);
+	// print_r($oldLPOrg['organization_name']);
+	// print_r(3);
+	
+	if($newLPOrg['organization_name']!=$oldLPOrg['organization_name']){
+		$localPartyChanged=TRUE;
+	}
+
+	if(!($contactDetailsChanged OR $localPartyChanged)){
+		// If neither the contact details or the local party has changed, there is no need to do anything else
+		return;
+	}
+
+	if($newRPOrg['organization_name']!=$oldRPOrg['organization_name']){
+		$regionalPartyChanged=TRUE;
+	}
+	
+	if($contactDetailsChanged){
+		drupal_set_message('Contact details have changed');
+	}
+	if($localPartyChanged){
+		drupal_set_message('Local party has changed');
+	}
+	if($regionalPartyChanged){
+		drupal_set_message('Regional party has changed');
+	}
+	
+	//Array containing old details
+	$nd[]= "NEW DETAILS";
+	$nd[]= "First name: {$form->_submitValues['first_name']}";
+	$nd[]= "Last name: {$form->_submitValues['last_name']}";
+	$nd[]= "Address line 1: {$form->_submitValues['street_address-1']}";
+	$nd[]= "Address line 2: {$form->_submitValues['supplemental_address_1-Primary']}";
+	$nd[]= "Address line 3: {$form->_submitValues['supplemental_address_2-Primary']}";
+	$nd[]= "City: {$form->_submitValues['city-1']}";
+	$nd[]= "Postcode: {$form->_submitValues['postal_code-1']}";
+	$nd[]= "Home phone: {$form->_submitValues['phone-1-1']}";
+	$nd[]= "Home mobile: {$form->_submitValues['phone-1-2']}";
+	$nd[]= "Local party: {$newLPOrg['organization_name']}";
+	$nd[]= "Regional party: {$newRPOrg['organization_name']}";
+	if($form->_submitValues['custom_35']['override_local']){
+		$nd[]= '';
+		$nd[]= "NOTE: This member opted to override their default local party.";
+	};
+	
+	$od[]= "OLD DETAILS";
+	$od[]= "First name: {$form->_defaultValues['first_name']}";
+	$od[]= "Last name: {$form->_defaultValues['last_name']}";
+	$od[]= "Address line 1: {$form->_defaultValues['street_address-1']}";
+	$od[]= "Address line 2: {$form->_defaultValues['supplemental_address_1-Primary']}";
+	$od[]= "Address line 3: {$form->_defaultValues['supplemental_address_2-Primary']}";
+	$od[]= "City: {$form->_defaultValues['city-1']}";
+	$od[]= "Postcode: {$form->_defaultValues['postal_code-1']}";
+	$od[]= "Home phone: {$form->_defaultValues['phone-1-1']}";
+	$od[]= "Home mobile: {$form->_defaultValues['phone-1-2']}";
+	$od[]= "Local party: {$oldLPOrg['organization_name']}";
+	$od[]= "Regional party: {$oldRPOrg['organization_name']}";
+	if($form->_defaultValues['custom_35']['override_local']){
+		$od[]= '';
+		$od[]= "NOTE: This member has opted to override their default local party.";
+	};
+	
+	$limitedEmail=implode('<br />', $od);	
+	$fullEmail=implode('<br />', array_merge($nd, array('', 'For your records, the old details are below.'),$od));	
+	
+	if($contactDetailsChanged OR $localPartyChanged){
+		//inform new local party of old details and new details
+		foreach($newLPRels['result'] as $rel) {
+			if($rel['civicrm_relationship_type_id']==$membershipSecRelationshipTypeID && $rel['email']!=''){
+				$mails['nlp '.$rel['email']][] = "Subject: Notification of updated contact details for a member of {$newLPOrg['organization_name']}.";
+				$mails['nlp '.$rel['email']][] = "To: {$rel['email']}.";
+				$mails['nlp '.$rel['email']][] = "Body: ".$fullEmail;
+			}
+		}
+		//inform new regional party of old details and new details
+		foreach($newRPRels['result'] as $rel) {
+			if($rel['civicrm_relationship_type_id']==$membershipSecRelationshipTypeID && $rel['email']!=''){
+				$mails['nrp '.$rel['email']][] = "Subject: Notification of updated contact details for a member of {$newRPOrg['organization_name']}.";
+				$mails['nrp '.$rel['email']][] = "To: {$rel['email']}.";
+				$mails['nrp '.$rel['email']][] = "Body: ".$fullEmail;
+			}
+		}
+	}
+	if($localPartyChanged) {
+		//inform old local party that member left
+		foreach($oldLPRels['result'] as $rel) {
+			if($rel['civicrm_relationship_type_id']==$membershipSecRelationshipTypeID && $rel['email']!=''){
+				$mails['olp '.$rel['email']][] = "Subject: Member moved away from {$oldLPOrg['organization_name']}.";
+				$mails['olp '.$rel['email']][] = "To: {$rel['email']}.";
+				$mails['olp '.$rel['email']][] = "Body: ".$limitedEmail;
+			}
+		}
+	}
+	if($regionalPartyChanged) {
+		//inform old regional party of old details and new details
+		foreach($oldRPRels['result'] as $rel) {
+			if($rel['civicrm_relationship_type_id']==$membershipSecRelationshipTypeID && $rel['email']!=''){
+				$mails['orp '.$rel['email']][] = "Subject: Member moved away from {$oldRPOrg['organization_name']}.";
+				$mails['orp '.$rel['email']][] = "To: {$rel['email']}.";
+				$mails['orp '.$rel['email']][] = "Body: ".$limitedEmail;
+			}
+		}
+	}
+	if(!count($mails)){
+		return;
+	}	
+	foreach($mails as $mail) {
+		drupal_set_message(implode('<br />', $mail));
+		//drupal_set_message('an email');
+	}
+
+	
+
+				
+//		drupal_set_message());
+		
+		
+	
+	// drupal_set_message(implode('<br />', $od));
+	// drupal_set_message(implode('<br />', $nd));
+	
+	//print_r($form->_submitValues['custom_35']);
+	// drupal_set_message('Improve: Local and regional parties have been informed of your contact detail updates where necessary.');
+	
+	//if the old and new party ID are different send email to the old one.
+	
+	//drupal_set_message($form->_defaultValues['custom_34']);
+	//drupal_set_message($form->_submitValues['custom_34_id']);
+}
+
+function localpartyupdate_nodeapi(&$node, $op, $teaser, $page) {
+}
+
+
+// hook that fires when a new membership is created
+
+function localpartyupdate_not_sure(&$node, $op, $teaser, $page) {
+}
+
+
+function localpartyupdate_mail_send($form_values) {
+  // All system mails need to specify the module and template key (mirrored from
+  // hook_mail()) that the message they want to send comes from.
+  $module = 'localpartyupdate';
+  $key = 'contact_message';
+
+  // Specify 'to' and 'from' addresses.
+  $to = $form_values['email'];
+  $from = 'office@greenparty.org.uk';
+
+  // "params" loads in additional context for email content completion in
+  // hook_mail(). In this case, we want to pass in the values the user entered
+  // into the form, which include the message body in $form_values['message'].
+  $params = $form_values;
+
+  // The language of the e-mail. This will one of three values:
+  // * user_preferred_language(): Used for sending mail to a particular website
+  //   user, so that the mail appears in their preferred language.
+  // * global $language: Used when sending a mail back to the user currently
+  //   viewing the site. This will send it in the language they're currently
+  //   using.
+  // * language_default(): Used when sending mail to a pre-existing, 'neutral'
+  //   address, such as the system e-mail address, or when you're unsure of the
+  //   language preferences of the intended recipient.
+  //
+  // Since in our case, we are sending a message to a random e-mail address that
+  // is not necessarily tied to a user account, we will use the site's default
+  // language.
+  $language = language_default();
+
+  // Whether or not to automatically send the mail when drupal_mail() is
+  // called. This defaults to TRUE, and is normally what you want unless you
+  // need to do additional processing before drupal_mail_send() is called.
+  $send = TRUE;
+  // Send the mail, and check for success. Note that this does not guarantee
+  // message delivery; only that there were no PHP-related issues encountered
+  // while sending.
+  $result = drupal_mail($module, $key, $to, $language, $params, $from, $send);
+  if ($result['result'] == TRUE) {
+    drupal_set_message(t('Your message has been sent.'));
+  }
+  else {
+    drupal_set_message(t('There was a problem sending your message and it was not sent.'), 'error');
+  }
+
+}
