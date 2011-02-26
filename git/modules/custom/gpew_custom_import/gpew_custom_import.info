@@ -1,5 +1,0 @@
-; $Id$
-name = Green Party custom imports
-description = For importing direct debit payments and mandates, and ward to local party mapping.
-package = CiviCRM - Green Party extras
-core = 6.x
