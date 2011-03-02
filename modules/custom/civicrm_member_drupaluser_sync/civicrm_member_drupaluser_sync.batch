@@ -23,7 +23,7 @@ JOIN civicrm_membership AS cm ON cc.id=cm.contact_id
 JOIN civicrm_membership_status AS cms ON cms.id=cm.status_id
 JOIN civicrm_email AS ce ON ce.contact_id=cc.id
 LEFT JOIN civicrm_uf_match AS cuf ON cuf.contact_id=cc.id
-WHERE uf_id IS NULL AND is_current_member
+WHERE uf_id IS NULL AND is_current_member AND email IS NOT NULL AND email !='' AND email COLLATE utf8_unicode_ci NOT IN (SELECT mail FROM users)
 GROUP BY email;";
 $result = CRM_Core_DAO::executeQuery( $query, $params );
 while($result->fetch()){

@@ -41,12 +41,12 @@ function civicrm_member_drupaluser_sync_create_user($ContactID) {
 		return;
 	}
 	
+	//is there already a Drupal account with this email address?
 	$params=array( 1 => array( $email, 'String'));
 	$query="SELECT uid FROM users WHERE mail=%1";
 	$result = CRM_Core_DAO::executeQuery( $query, $params );
 	if($result->N){
 		$result->fetch();
-		CRM_Core_Session::setStatus("<br /><span style='color:red'>Email address $email already assigned to Drupal user account <a href='/user/{$result->uid}'>{$result->uid}</a>.</span>", true);
 		return;
 	}	
 	
@@ -89,7 +89,8 @@ function civicrm_member_drupaluser_sync_create_user($ContactID) {
 	}	
 //	send them an email
 	$new_user->password=$pass;
-	//_user_mail_notify('register_admin_created', $new_user);
+	_user_mail_notify('register_admin_created', $new_user);
+	echo "Notified $email of new account.\n";
 	return;
 	
 }
