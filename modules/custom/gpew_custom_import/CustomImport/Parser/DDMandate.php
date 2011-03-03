@@ -171,6 +171,19 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 		}
 		
 		$this->addTGPToMandate();
+
+		$params[1]=array( $this->currentContactArray['contact_id'], 'Integer');
+		$params[2]=array( $this->getCurrent('tgp'), 'String');
+		if($this->wantsToBeAMember()){
+			$params[3]=array( '1', 'String');
+		} else {
+			$params[3]=array( '0', 'String');
+		}
+		$query = "
+			UPDATE ".CIVICRM_GPEW_DD_MANDATE_TABLE."
+			SET is_membership_payment_55= %3 WHERE entity_id = %1 AND direct_debit_reference_16 = %2";				
+		$result = CRM_Core_DAO::executeQuery( $query, $params );
+		
 		if($this->wantsToBeAMember() AND !$this->isAMember($this->currentContactArray['contact_id'])){
 			$this->addMembership();
 		} else {
@@ -345,17 +358,15 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 			} else {
 				
 				//add custom data to membership to say that it is paid by direct debit
+				
+				
 				$params[1]=array( $result['id'], 'Integer');
-				$params[2]=array( $this->currentContactArray['contact_id'], 'Integer');
 				$query = "
 					INSERT INTO civicrm_value_membership_information_9
 					SET pays_membership_by_direct_debit_54 = 1, entity_id = %1
 					ON DUPLICATE KEY UPDATE pays_membership_by_direct_debit_54 = 1;";				
 				$result = CRM_Core_DAO::executeQuery( $query, $params );
-				$query = "
-					UPDATE ".CIVICRM_GPEW_DD_MANDATE_TABLE."
-					SET is_membership_payment_55= 1 WHERE entity_id = %2";				
-				$result = CRM_Core_DAO::executeQuery( $query, $params );
+				
 
 				$this->addReportLine('note', "Membership added for contact TGP {$this->getContactLink()} (with TGP {$this->getCurrent('tgp')}).");
 				
