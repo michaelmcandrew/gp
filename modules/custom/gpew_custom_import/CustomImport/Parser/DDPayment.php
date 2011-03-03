@@ -129,20 +129,24 @@ class CustomImport_Parser_DDPayment extends CustomImport_Parser_DD
 			
 			//edit the membership record the membership (potentially extend membership)
 
+			
+			$MembershipParams=array('contact_id'=>$this->current['contact_id']);
+			$memberships=civicrm_membership_contact_get($MembershipParams);
+			$membership=current(current($memberships));
+
+			
+
+			$this->addReportLine('info', "End date of membership for {$this->getContactLink()} is {$membership['end_date']}");
+			$currentMembershipEndDate = new DateTime($membership['end_date']);
+
 			$freqTrans=array(
 				'Annually'=>'+1 YEAR',
 				'Half Yearly'=>'+6 MONTH',
 				'Monthly'=>'+1 MONTH',
 				'Quarterly'=>'+3 MONTH'					
 			);
-			
-			$MembershipParams=array('contact_id'=>$this->current['contact_id']);
-			$memberships=civicrm_membership_contact_get($MembershipParams);
-			$membership=current(current($memberships));
-			
 
-			$this->addReportLine('info', "End date of membership for {$this->getContactLink()} is {$membership['end_date']}");
-			$currentMembershipEndDate = new DateTime($membership['end_date']);
+
 			$potentialEndDate = clone $this->current['date'];
 			$potentialEndDate->modify($freqTrans[$this->current['frequency']]);
 

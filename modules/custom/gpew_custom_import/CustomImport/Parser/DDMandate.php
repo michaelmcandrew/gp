@@ -142,8 +142,8 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 
 		if(!$this->isValidCandidate()){
 			return;
-		}			
-		
+		}
+
 		//if the TGP is already in CiviCRM and matched to one contact, nothing else this script needs to do, so return.
 		if($this->searchForTGP() != 'none'){
 			return;
@@ -172,18 +172,21 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 		
 		$this->addTGPToMandate();
 
-		$params[1]=array( $this->currentContactArray['contact_id'], 'Integer');
-		$params[2]=array( $this->getCurrent('tgp'), 'String');
-		if($this->wantsToBeAMember()){
-			$params[3]=array( '1', 'String');
-		} else {
-			$params[3]=array( '0', 'String');
+		//if this is for real, we need to say whether or not this is intended as a membership payment
+		if(!$this->test){
+
+			$params[1]=array( $this->currentContactArray['contact_id'], 'Integer');
+			$params[2]=array( $this->getCurrent('tgp'), 'String');
+			if($this->wantsToBeAMember()){
+				$params[3]=array( '1', 'String');
+			} else {
+				$params[3]=array( '0', 'String');
+			}
+			$query = "
+				UPDATE ".CIVICRM_GPEW_DD_MANDATE_TABLE."
+				SET is_membership_payment_55= %3 WHERE entity_id = %1 AND direct_debit_reference_16 = %2";				
+			$result = CRM_Core_DAO::executeQuery( $query, $params );
 		}
-		$query = "
-			UPDATE ".CIVICRM_GPEW_DD_MANDATE_TABLE."
-			SET is_membership_payment_55= %3 WHERE entity_id = %1 AND direct_debit_reference_16 = %2";				
-		$result = CRM_Core_DAO::executeQuery( $query, $params );
-		
 		if($this->wantsToBeAMember() AND !$this->isAMember($this->currentContactArray['contact_id'])){
 			$this->addMembership();
 		} else {
@@ -352,14 +355,21 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 			$params['status_id']=9;
 			$params['is_override']=1;
 			$params['start_date']=$this->getCurrent('start_date')->format('Y-m-d');
+			$freqTrans=array(
+				'Annually'=>'+1 YEAR',
+				'Half Yearly'=>'+6 MONTH',
+				'Monthly'=>'+1 MONTH',
+				'Quarterly'=>'+3 MONTH'					
+			);
+			$enddate = clone $this->getCurrent('start_date');
+			$enddate->modify($freqTrans[$this->getCurrent('frequency')]);
+			$params['end_date']=$enddate->format('Y-m-d');
 			$result=civicrm_membership_contact_create($params); 
 			if($result['is_error']) {
 				$this->addReportLine('warning', "Failed to add membership for {$this->getContactLink()} (with TGP {$this->getCurrent('tgp')}).");
 			} else {
 				
 				//add custom data to membership to say that it is paid by direct debit
-				
-				
 				$params[1]=array( $result['id'], 'Integer');
 				$query = "
 					INSERT INTO civicrm_value_membership_information_9

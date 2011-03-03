@@ -4,13 +4,23 @@
  * Licensed to CiviCRM under the Academic Free License version 3.0.
  *
  */
+
+
+
+
 function gpew_custom_tokens_civicrm_tokens( &$tokens ) {
     $tokens['contact']['contact.is_young_green'] = 'Is a young Green' ;
+    $tokens['contact']['contact.exp_dds_date'] = 'Membership expiry date / date of first direct debit' ;
 }
 
 function gpew_custom_tokens_civicrm_tokenValues( &$values, &$contactIDs ) {
 	require_once 'api/v2/GroupContact.php';
+	require_once 'api/v2/Membership.php';
+	
+	//Go through each contact, creating custom tokens
 	foreach($contactIDs as $id){
+
+		//create the young green token
 		$params=array('contact_id'=>$id);
 		$groups=civicrm_group_contact_get($params);
 		$values[$id]['contact.is_young_green']='';
@@ -19,6 +29,20 @@ function gpew_custom_tokens_civicrm_tokenValues( &$values, &$contactIDs ) {
 				$values[$id]['contact.is_young_green']='[young green]';				
 			}
 		}
+		
+		//create the membership expiry date / date of first direct debit
+		$contact_memberships=civicrm_contact_memberships_get($params);
+		$membership=current(current($contact_memberships));
+		//if the membership ID is 9 (direct debit pending) then this string needs to say:
+
+
+		if ($membership['status_id']==9){
+			$startdate = new DateTime($membership['start_date']);
+			$values[$id]['contact.exp_dds_date'] = "Pays by direct debit.  First payment due on {$startdate->format('l jS F Y')}";
+		} else {
+			$enddate = new DateTime($membership['end_date']);
+			$values[$id]['contact.exp_dds_date'] = "Membership expiry date: {$enddate->format('l jS F Y')}";
+		}		
 	}
 }
 
