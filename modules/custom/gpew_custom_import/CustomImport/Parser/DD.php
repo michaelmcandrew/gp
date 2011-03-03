@@ -102,7 +102,14 @@ class CustomImport_Parser_DD extends CustomImport_Parser_Custom
 		}
 		
 		function wantsToBeAMember(){
-			return (substr_count($this->getCurrent('source'), 'member') == 0) AND $this->getCurrent('custom_data_1')=='No';
+			if(substr_count($this->getCurrent('source'), 'member') > 0){
+				return TRUE;
+			}
+			if($this->getCurrent('custom_data_1')=='No'){
+				return FALSE;
+			} else {
+				return TRUE;
+			}
 		}
 		
 		function searchForTGP() {
@@ -149,9 +156,6 @@ class CustomImport_Parser_DD extends CustomImport_Parser_Custom
 			}
 		}
 		
-		function addReportLine($type, $message){
-			$this->report[]=array('type'=>$type,'message'=>$message);
-		}
 		
 		
 		

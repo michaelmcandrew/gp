@@ -38,12 +38,12 @@
     </p>
 </div>    
 
-<h3>Warnings</h3>
+<h3>Summary</h3>
 
 <table class="report">
 {foreach from=$final_report item=line}
-	{if $line.type eq 'warning'}
-		<tr><td style="color:red">{$line.type}</td><td style="color:red">{$line.message}</td></tr>
+	{if $line.type eq 'note'}
+		<tr><td>{$line.type}</td><td>{$line.message}</td></tr>
 	{/if}	
 {/foreach}
 </table>

@@ -36,6 +36,10 @@
 
 require_once 'CRM/Import/Parser.php';
 require_once 'api/v2/utils.php';
+require_once 'api/v2/Location.php';
+require_once "api/v2/Contact.php";
+require_once "api/v2/Membership.php";
+require_once "api/v2/MembershipContact.php";
 require_once 'DD.php';
 
 define ('CIVICRM_GPEW_DD_MANDATE_TABLE', 'civicrm_value_external_identifiers_5');
@@ -76,10 +80,8 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 		$this->current['is_test_data']=$this->candidate->istestdata_47;				
 		$this->current['start_date']=$this->RapiDataToDate($this->candidate->directdebitstartdate_30);
 		$this->current['frequency']=$this->candidate->directdebitfrequency_29;
-		
 		$this->current['first_name']=$this->candidate->firstname_2;				
 		$this->current['last_name']=$this->candidate->lastname_4;
-
 		$this->current['individual_prefix']=$this->candidate->Title_1;
 		$this->current['source']=$this->candidate->referersource_35;
 		$this->current['address_line_1']=$this->candidate->addressline_5;
@@ -87,12 +89,10 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 		$this->current['address_line_3']=$this->candidate->addressline_7;
 		$this->current['city']=$this->combineFields(array($this->candidate->town_12,$this->candidate->county_13));
 		$this->current['postcode']=$this->candidate->postcode_14;
-
 		$this->current['email']=$this->candidate->email_16;				
 		$this->current['phone_home']=$this->candidate->hometelephone_17;				
 		$this->current['phone_mobile']=$this->candidate->mobiletelephone_18;				
-
-		$this->current['custom_data_1']=$this->RapiDataToDate($this->candidate->customdata_36);
+		$this->current['custom_data_1']=$this->candidate->customdata_36;
 		$this->current['birth_date']=$this->RapiDataToDate($this->candidate->dateofbirth_19);
 		$this->current['dp_text']=$this->candidate->dataprotectiontext_20;
 
@@ -100,11 +100,44 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 	}
 
 	function combineFields($fieldsToCombine) {
+		foreach($fieldsToCombine as $field) {
+			$field=trim($field);
+			if($field!='') {
+				$outputFields[]=$field;
+			}
+		}
+		if(count($outputFields)){
+			return implode($outputFields, ',');             
+		}
+	}       
+
 	
 	function setCurrentContactID($contact_id){
 		$this->current['contact_id']=$contact_id;
 	}
-		
+	
+	function isValidCandidate() {
+	        $valid = TRUE;
+	        if($this->getCurrent('start_date') ==''){
+	                $this->addReportLine('warning', "{$this->getCurrent('tgp')} has no valid start date.");
+	                $valid = FALSE;
+	        }
+	        if($this->getCurrent('account_details_validated')=='FALSE'){
+	                $this->addReportLine('warning', "{$this->getCurrent('tgp')} not imported: AccountDetailsValidated is FALSE");
+	                $valid = FALSE;
+	        }
+	        if($this->getCurrent('start_date') > new DateTime('+100 days')){
+	                $this->addReportLine('warning', "{$this->getCurrent('tgp')} not imported: start date more than 100 days in the future.");
+	                $valid = FALSE;
+	        }
+	        if($contact['IsTestData']=='TRUE'){
+	                $this->addReportLine('warning', "{$this->getCurrent('tgp')} not imported: is test data.");
+	                $valid = FALSE;
+	        }               
+	        return $valid;
+	}
+	
+	
 	function parseCandidate(){
 
 		if(!$this->isValidCandidate()){
@@ -138,10 +171,10 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 		}
 		
 		$this->addTGPToMandate();
-				
 		if($this->wantsToBeAMember() AND !$this->isAMember($this->currentContactArray['contact_id'])){
 			$this->addMembership();
 		} else {
+			
 			return;
 		}
 		if($this->couldBeYoungGreen()){
@@ -149,9 +182,6 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 		}
 	}	
 	
-	function addReportLine($type, $message){
-		$this->report[]=array('type'=>$type,'message'=>$message);
-	}
 	
 	function SearchForContact($fields) {
 		foreach($fields as $field){
@@ -161,7 +191,6 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 				$params[$field]=$this->getCurrent($field);				
 			}
 		}
-		require_once "api/v2/Contact.php";
 		$result=civicrm_contact_search($params);
 		$searchedFields=implode(', ',array_keys($params));
 		if(count($result)==1) {
@@ -198,7 +227,7 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 			$contact_params['birth_date'] = $birth_date->format('Y-m-d');
 		}
 
-		if($this->getCurrent('dp_text')== 'FALSE') {
+		if($this->getCurrent('dp_text')== 'TRUE') {
 			$contact_params['do_not_mail']=1;
 		}
 		
@@ -284,7 +313,7 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 		} else {
 			$this->addReportLine('note', "Ready to add TGP {$this->getCurrent('tgp')} to young green groups.");
 		}
-	}
+	}	
 
 	function tagAsFreeGift(){
 		$params=array(
@@ -314,7 +343,22 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 			if($result['is_error']) {
 				$this->addReportLine('warning', "Failed to add membership for {$this->getContactLink()} (with TGP {$this->getCurrent('tgp')}).");
 			} else {
+				
+				//add custom data to membership to say that it is paid by direct debit
+				$params[1]=array( $result['id'], 'Integer');
+				$params[2]=array( $this->currentContactArray['contact_id'], 'Integer');
+				$query = "
+					INSERT INTO civicrm_value_membership_information_9
+					SET pays_membership_by_direct_debit_54 = 1, entity_id = %1
+					ON DUPLICATE KEY UPDATE pays_membership_by_direct_debit_54 = 1;";				
+				$result = CRM_Core_DAO::executeQuery( $query, $params );
+				$query = "
+					UPDATE ".CIVICRM_GPEW_DD_MANDATE_TABLE."
+					SET is_membership_payment_55= 1 WHERE entity_id = %2";				
+				$result = CRM_Core_DAO::executeQuery( $query, $params );
+
 				$this->addReportLine('note', "Membership added for contact TGP {$this->getContactLink()} (with TGP {$this->getCurrent('tgp')}).");
+				
 			}
 		} else {
 			$this->addReportLine('note', "Ready to add membership to {$this->getContactLink()} (with TGP {$this->getCurrent('tgp')}).");
