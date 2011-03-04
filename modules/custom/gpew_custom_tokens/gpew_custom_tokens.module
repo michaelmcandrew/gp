@@ -10,7 +10,7 @@
 
 function gpew_custom_tokens_civicrm_tokens( &$tokens ) {
     $tokens['contact']['contact.is_young_green'] = 'Is a young Green' ;
-    $tokens['contact']['contact.exp_dds_date'] = 'Membership expiry date / date of first direct debit' ;
+    $tokens['contact']['contact.exp_dds_date'] = 'Membership expiry date or date of first direct debit' ;
 }
 
 function gpew_custom_tokens_civicrm_tokenValues( &$values, &$contactIDs ) {
