@@ -11,11 +11,14 @@
 function gpew_custom_tokens_civicrm_tokens( &$tokens ) {
     $tokens['contact']['contact.is_young_green'] = 'Is a young Green' ;
     $tokens['contact']['contact.exp_dds_date'] = 'Membership expiry date or date of first direct debit' ;
+    $tokens['contact']['contact.date'] = 'Todays date' ;
 }
 
 function gpew_custom_tokens_civicrm_tokenValues( &$values, &$contactIDs ) {
 	require_once 'api/v2/GroupContact.php';
 	require_once 'api/v2/Membership.php';
+	
+	$date = new DateTime;
 	
 	//Go through each contact, creating custom tokens
 	foreach($contactIDs as $id){
@@ -42,7 +45,11 @@ function gpew_custom_tokens_civicrm_tokenValues( &$values, &$contactIDs ) {
 		} else {
 			$enddate = new DateTime($membership['end_date']);
 			$values[$id]['contact.exp_dds_date'] = "Membership expiry date: {$enddate->format('l jS F Y')}";
-		}		
+		}
+		
+		$values[$id]['contact.date'] = $date->format('l jS F Y');
+		
+				
 	}
 }
 
