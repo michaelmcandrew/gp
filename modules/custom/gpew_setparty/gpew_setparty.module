@@ -57,10 +57,15 @@ function gpew_setparty_set_party($objectId){
 		$params=array();
 		$params[1] = array( $local_party_contact->id, 'Integer');
 		$regional_party_contact=CRM_Core_DAO::executeQuery( "
-			SELECT `regional_party_contact_id` as `id`
-			FROM `civicrm_gpew_local_party_regional_party`
-			WHERE `local_party_contact_id`=%1", $params
-			);
+			
+			SELECT rp.id as id
+			FROM civicrm_contact AS rp
+			JOIN civicrm_relationship AS cr ON rp.id=cr.contact_id_b
+			JOIN civicrm_contact AS lp ON lp.id=cr.contact_id_a
+			WHERE lp.id=%1 AND cr.relationship_type_id=23
+			
+			", $params
+		);
 		$regional_party_contact->fetch();
 		$params=array();
 		$params[1] = array( $objectId, 'Integer');	
