@@ -2,6 +2,14 @@
 
 /* MM added this */
 
+/* remove 'reply' link from comments.
+   why? in forums, we want people to comment on the forum topic node, rather than the comment
+   this will also apply to any other type of comment in the system */
+
+ul.links li.comment_reply {
+  display: none;
+}
+
 #user-login-form {
   text-align: left;
 }

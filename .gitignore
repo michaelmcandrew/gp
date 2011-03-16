@@ -1,1 +1,11 @@
-settings_location.php
+*settings.php*
+*.sql
+*.tar
+*.gz
+*.zip
+.svn*
+*~
+\#*\#
+drupal/sites/*/files/*
+drupal/backup/*
+drupal/sites/all/cam/*
