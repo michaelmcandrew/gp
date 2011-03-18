@@ -201,7 +201,7 @@ div#ter {
 	width:220px;
 }
 div#ft {
-	background-color:#242163;
+	background-color:#639523;
 	clear:both;
 	color:#FCFDFA;
 	font-size:.8333em;
@@ -269,7 +269,7 @@ div#utility-nav li.last {
 	border: none;
 }
 div#utility-nav li.active-trail a, div#utility-nav li.active-trail a:link, div#utility-nav li.active-trail a:hover, div#utility-nav li.active-trail a:visited, div#utility-nav li.active-trail a:focus, div#utility-nav li.active-trail a:active {
-	color:#3c6802;
+	color:#242163;
 	font-weight: bold;
 }
 /* main (primary) nav */
@@ -302,7 +302,7 @@ div#block-menu-primary-links li.first {
 	border: none;
 }
 div#block-menu-primary-links li.active-trail a, div#block-menu-primary-links li.active-trail a:link, div#block-menu-primary-links li.active-trail a:hover, div#block-menu-primary-links li.active-trail a:visited, div#block-menu-primary-links li.active-trail a:focus, div#block-menu-primary-links li.active-trail a:active {
-	color:#3c6802;
+	color:#242163;
 	font-weight: bold;
 }
 /* turn off expanded menus until we turn them off in the theme */
@@ -317,7 +317,7 @@ div#sub-nav h3 {
 	display: inline-block;
 	height: 23px;
 	line-height: 23px;
-	background: #3c6802 url(images/bg-subnav-title.png) top right no-repeat;
+	background: #242163 url(images/bg-subnav-title.png) top right no-repeat;
 	color: white;
 	-webkit-border-top-left-radius: 5px; -webkit-border-bottom-left-radius: 5px;
 	-moz-border-radius-topleft: 5px; -moz-border-radius-bottomleft: 5px;
@@ -410,7 +410,7 @@ form#search-theme-form input#edit-submit-1 {
 .sidebar div.block-tagadelic ul, .sidebar div.block-og ul, .sidebar div.block-bandheader ul { margin-bottom: .5em; padding: 0; list-style: none; }
 .sidebar div.block-tagadelic li, .sidebar div.block-og li {  background: transparent url(images/bullet-green.gif) no-repeat 3px 4px; padding-left: 18px; list-style: none; margin: 0 0 .25em 0; }
 .sidebar div.block-tagadelic a.more, .sidebar div.block-og a.more { background: transparent url(images/bullet-green.gif) no-repeat 3px 8px; display: block; font-weight: bold; line-height: 22px; padding-left: 14px; }
-.sidebar div.block-tagadelic a.email, .sidebar div.block-og a.email { color: #464646; }
+.sidebar div.block-tagadelic a.email, .sidebar div.block-og a.email { color: #666; }
 #block-block-3 .content { background: url(images/jargon-acronyms.png) 0 0 no-repeat; padding-left: 80px; } /* Jargon */
 #block-block-8 .content { background: url(images/speech-bubbles.png) 0 0 no-repeat; padding-left: 80px; } /* Questions */
 
@@ -437,7 +437,7 @@ padding-left:14px;
 /* General node style */
 #pri .node { margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px dotted #d6d6d6; }
 #front #pri .node { display: none; }
-#pri h2 { font-size: 1.5em; line-height: 1.2em; color: #3c6802; margin: 0 0 1em 0; }
+#pri h2 { font-size: 1.5em; line-height: 1.2em; color: #242163; margin: 0 0 1em 0; }
 #pri .node span.submitted { margin: .5em 0; font-weight: bold; display: block; font-style: italic; }
 #pri .node .content { padding: 1em 0; }
 body#news #pri h2, body#news #pri .node a { color: #f58a24; }
@@ -467,9 +467,9 @@ body#groups #pri h2, body#groups #pri .node a { color: #008db8; }
 #forum td.container { font-weight: bold; border-top: 2px solid #ccc; background-color: #eeedec; }
 div#comments div.comment { margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dotted #D6D6D6; overflow: hidden; }
 div.comment .comment-bar { float: left; }
-body#discussions .picture, div.comment .picture { width: 85px; float: right; margin: 0 5px 5px 10px; }
-body#discussions .picture a, div.comment .picture a { display: block; }
-body#discussions .picture img, div.comment .picture img, .profile .picture img{ border: 1px solid #639523; }
+body#discussions .picture, div.comment .picture, div#pri .picture  { width: 85px; float: right; margin: 0 5px 5px 10px; }
+body#discussions .picture a, div.comment .picture a, div#pri .picture a { display: block; }
+body#discussions .picture img, div.comment .picture img, .profile .picture img, div#pri .picture img { border: 1px solid #639523; }
 div.comment .comment-title { clear: left; }
 div.comment .content { margin-top: 5px; }
 
@@ -536,7 +536,7 @@ div#pri .view-Discussions .views-field-name a:link,
 div#pri .view-Discussions .views-field-name a:visited,
 div#pri .view-Discussions .views-field-name a:hover,
 div#pri .view-Discussions .views-field-name a:focus,
-div#pri .view-Discussions .views-field-name a:active { color: #464646; }
+div#pri .view-Discussions .views-field-name a:active { color: #666; }
 div#pri .view-Discussions .views-field-title a,
 div#pri .view-Discussions .views-field-title a:link,
 div#pri .view-Discussions .views-field-title a:visited,
@@ -602,7 +602,7 @@ div#block-block-10  { padding: 0 !important; }
 div#pri ul.primary { border-bottom: 0; padding: 0; border-left: 1px solid #d5d5d5; margin: 0 0 10px 0; white-space: normal; }
 div#pri ul.primary  li { display: inline-block; margin: 0; }
 div#pri ul.primary  li a { font-weight: normal; border: none; background-color: white; border-right: 1px solid #d5d5d5; margin: 0; padding: .2em 1em .2em .8em; display: block; }
-div#pri ul.primary  li a.active { color: #3c6802; font-weight: bold; }
+div#pri ul.primary  li a.active { color: #242163; font-weight: bold; }
 
 div#pri .view-og-tabs-GP.view-display-id-page_3 a:link,
 div#pri .view-og-tabs-GP.view-display-id-page_3 a:visited,
