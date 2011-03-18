@@ -57,9 +57,9 @@ ul.links li.comment_reply {
 /* --- 0.General styles --- */
 body {
 	background:#fff;
-	color:#666;
+	color:#464646;
 	font-family:Verdana, Arial, Helvetica, sans-serif;
-	font-size:75%;
+	font-size:80%;
 	line-height:1.5;
 	margin:0;
 	padding:0;
@@ -405,7 +405,7 @@ form#search-theme-form input#edit-submit-1 {
 
 /* specific block styling for banded style */
 .sidebar div.block-tagadelic, .sidebar div.block-og, .sidebar div.block-bandheader { background: #EEEDEC; margin: 0 8px 21px; padding: 8px 11px; overflow: visible; border: none; }
-.sidebar div.block-tagadelic h3, .sidebar div.block-og h3, .sidebar div.block-bandheader h3 { display: block; background: #242163 url(images/bg-block-heading.gif) no-repeat left bottom; color: #FFF; font-size: 12px; font-style: normal; font-weight: bold; line-height: 13px; margin: 0 -19px 0; padding: 8px 19px 14px; text-transform: uppercase; }
+.sidebar div.block-tagadelic h3, .sidebar div.block-og h3, .sidebar div.block-bandheader h3 { display: block; background: #639523 url(images/bg-block-heading.gif) no-repeat left bottom; color: #FFF; font-size: 12px; font-style: normal; font-weight: bold; line-height: 13px; margin: 0 -19px 0; padding: 8px 19px 14px; text-transform: uppercase; }
 .sidebar div.block-tagadelic h3 a, .sidebar div.block-og h3 a, .sidebar div.block-bandheader h3 a { color: white; }
 .sidebar div.block-tagadelic ul, .sidebar div.block-og ul, .sidebar div.block-bandheader ul { margin-bottom: .5em; padding: 0; list-style: none; }
 .sidebar div.block-tagadelic li, .sidebar div.block-og li {  background: transparent url(images/bullet-green.gif) no-repeat 3px 4px; padding-left: 18px; list-style: none; margin: 0 0 .25em 0; }
