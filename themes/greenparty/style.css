@@ -111,7 +111,7 @@ ul.links .first { padding-left: 0; }
 
 /* --- links --- */
 a, a:link, a:hover, a:visited, a:focus, a:active {
-	color:#639523;
+	color:#242163;
 	text-decoration:none;
 }
 a:hover, a:focus, a:active {
@@ -201,7 +201,7 @@ div#ter {
 	width:220px;
 }
 div#ft {
-	background-color:#639523;
+	background-color:#242163;
 	clear:both;
 	color:#FCFDFA;
 	font-size:.8333em;
@@ -213,7 +213,7 @@ div#ft {
 /* *** 3.page components *** */
 /* header */
 div#hd a, div#hd a:link, div#hd a:hover, div#hd a:visited, div#hd a:focus, div#hd a:active {
-	color: #639523;
+	color: #242163;
 }
 /* mast head */
 div #mast {
@@ -399,13 +399,13 @@ form#search-theme-form input#edit-submit-1 {
 
 /* gret fade block style for both sidebars */
 .sidebar div.block-greyfade { background:#FFF url(images/bg-block-gradient.gif) no-repeat 0 0; margin-bottom: 10px; padding: 10px; overflow: hidden; border: none; }
-.sidebar div.block-greyfade h3 { background: none; padding: 0; text-transform: none; color: #639523; font-size: 17px; font-style: italic; font-weight:normal; line-height: 1; margin-bottom: 0.5em; }
+.sidebar div.block-greyfade h3 { background: none; padding: 0; text-transform: none; color: #242163; font-size: 17px; font-style: italic; font-weight:normal; line-height: 1; margin-bottom: 0.5em; }
 .sidebar div.block-greyfade a.more { background: transparent url(images/bullet-green.gif) no-repeat 3px 8px; display: block; font-weight: bold; line-height: 22px; padding-left: 14px; }
-.sidebar div.block-greyfade h4 { text-transform: uppercase; color: #639523; line-height: 1.2em; }
+.sidebar div.block-greyfade h4 { text-transform: uppercase; color: #242163; line-height: 1.2em; }
 
 /* specific block styling for banded style */
 .sidebar div.block-tagadelic, .sidebar div.block-og, .sidebar div.block-bandheader { background: #EEEDEC; margin: 0 8px 21px; padding: 8px 11px; overflow: visible; border: none; }
-.sidebar div.block-tagadelic h3, .sidebar div.block-og h3, .sidebar div.block-bandheader h3 { display: block; background: #639523 url(images/bg-block-heading.gif) no-repeat left bottom; color: #FFF; font-size: 12px; font-style: normal; font-weight: bold; line-height: 13px; margin: 0 -19px 0; padding: 8px 19px 14px; text-transform: uppercase; }
+.sidebar div.block-tagadelic h3, .sidebar div.block-og h3, .sidebar div.block-bandheader h3 { display: block; background: #242163 url(images/bg-block-heading.gif) no-repeat left bottom; color: #FFF; font-size: 12px; font-style: normal; font-weight: bold; line-height: 13px; margin: 0 -19px 0; padding: 8px 19px 14px; text-transform: uppercase; }
 .sidebar div.block-tagadelic h3 a, .sidebar div.block-og h3 a, .sidebar div.block-bandheader h3 a { color: white; }
 .sidebar div.block-tagadelic ul, .sidebar div.block-og ul, .sidebar div.block-bandheader ul { margin-bottom: .5em; padding: 0; list-style: none; }
 .sidebar div.block-tagadelic li, .sidebar div.block-og li {  background: transparent url(images/bullet-green.gif) no-repeat 3px 4px; padding-left: 18px; list-style: none; margin: 0 0 .25em 0; }
@@ -465,7 +465,15 @@ body#groups #pri h2, body#groups #pri .node a { color: #008db8; }
 #forum .links li.forum { font-weight: bold; font-size: 1.2em; }
 #pri #forum a { color: #9424bb; }
 #forum td.container { font-weight: bold; border-top: 2px solid #ccc; background-color: #eeedec; }
-div#comments div.comment { margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dotted #D6D6D6; }
+div#comments div.comment { margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dotted #D6D6D6; overflow: hidden; }
+div.comment .comment-bar { float: left; }
+body#discussions .picture, div.comment .picture { width: 85px; float: right; margin: 0 5px 5px 10px; }
+body#discussions .picture a, div.comment .picture a { display: block; }
+body#discussions .picture img, div.comment .picture img{ border: 1px solid #242163; }
+div.comment .comment-title { clear: left; }
+div.comment .content { margin-top: 5px; }
+
+.profile .picture { margin-top: 35px; }
 
 /* Views general styles */
 .block-views { margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px dotted #d6d6d6; }
