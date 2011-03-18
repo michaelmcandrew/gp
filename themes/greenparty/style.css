@@ -469,7 +469,7 @@ div#comments div.comment { margin-bottom: 15px; padding-bottom: 10px; border-bot
 div.comment .comment-bar { float: left; }
 body#discussions .picture, div.comment .picture { width: 85px; float: right; margin: 0 5px 5px 10px; }
 body#discussions .picture a, div.comment .picture a { display: block; }
-body#discussions .picture img, div.comment .picture img{ border: 1px solid #242163; }
+body#discussions .picture img, div.comment .picture img, .profile .picture img{ border: 1px solid #639523; }
 div.comment .comment-title { clear: left; }
 div.comment .content { margin-top: 5px; }
 
