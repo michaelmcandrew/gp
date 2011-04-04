@@ -1,0 +1,344 @@
+<?php
+// hook that fires when someone saves their contact data (we could check to see if any changes have actually been made)
+
+//gets a list of old primary email, phone, and address, and checks against new primary email, phone or add
+
+
+
+function gpew_local_party_coa_civicrm_pre( $op, $objectName, $id, &$params ) {
+	//find out if this is an edit of a contact (and return if it is not)
+	if($objectName!='Individual' AND $op!='edit'){
+		return;
+	};		
+	$changes=gpew_local_party_coa_what_changed($id, $params);
+	if(
+		!$changes['summary']['local_party_changed'] AND
+		!$changes['summary']['regional_party_changed'] AND
+		!$changes['summary']['phone_changed'] AND
+		!$changes['summary']['address_changed']
+	){
+		return;
+	}
+	gpew_local_party_coa_send_notifications($changes);
+}
+
+function gpew_local_party_coa_what_changed($id, &$params) {
+
+	// the following variables will be changed by this function and returned at the end
+	$old=array();
+	$new=array();
+	$summary['local_party_changed']=0;
+	$summary['regional_party_changed']=0;
+	$summary['address_changed']=0;
+	$summary['phone_changed']=0;
+
+	//get details before this form was submitted and put them into a nice sensible array $old
+	require_once('api/v2/Contact.php');
+	$contactParams=array(
+		'contact_id' => $id
+	);
+	$oldContact=civicrm_contact_get($contactParams);
+	
+	//get the old and new regional parties
+	$contactParamsParty=array(
+		'contact_id' => $id,
+		'return.custom_51' => 1,
+		'return.custom_52' => 1,
+		'return.custom_53' => 1
+		);
+	$oldContactParty=civicrm_contact_get($contactParamsParty);//exit;
+	
+	$old['party']['local']=$oldContactParty[$id]['custom_51'];
+ 	$old['party']['regional']=$oldContactParty[$id]['custom_52'];
+ 	$old['party']['override_local_party']=$oldContactParty[$id]['custom_53'];
+	
+	
+	//get OLD primary email, phone, and address.  these can be got quite easily with the contact api
+	$old['display_name']=$oldContact[$id]['display_name'];
+	$old['address']['street_address']=$oldContact[$id]['street_address'];
+	$old['address']['supplemental_address_1']=$oldContact[$id]['supplemental_address_1'];
+	$old['address']['supplemental_address_2']=$oldContact[$id]['supplemental_address_2'];
+	$old['address']['city']=$oldContact[$id]['city'];
+	$old['address']['postal_code']=$oldContact[$id]['postal_code'];
+	$old['phone']['phone']=$oldContact[$id]['phone'];
+
+	//get details present when this form was submitted and put them into a nice sensible array $new
+	//sadly, the format of the fields depends on where they are called from, so we have to account for that, so...
+	
+	// if this upadte happens via profile 1
+	if($params['uf_group_id']==1){
+
+		$new['address']['street_address']=$params['street_address-1'];
+		$new['address']['supplemental_address_1']=$params['supplemental_address_1-Primary'];
+		$new['address']['supplemental_address_2']=$params['supplemental_address_2-Primary'];
+		$new['address']['city']=$params['city-1'];
+		$new['address']['postal_code']=$params['postal_code-1'];
+		$new['phone']['phone']=$params['phone-1-1'];
+		
+		// if this is happening via the profile, we set the new override party as equal to the old override local party (because there is no chance to change this via the profile)
+		// this is necessary to respect the local override setting when someone moves
+		
+		// if we do allow people to change their LP themselves, we should change this code.  Also, people might not realise that their LP is overridden: TODO: Warn them somehow :p
+		$new['party']['override_local_party']=$old['party']['override_local_party'];
+		$new['party']['local']=$old['party']['local'];
+		
+	//else assume this is happening through the interface	
+	} else {
+		foreach($params['address'] as $address){
+			if($address['is_primary']){
+				$new['address']['street_address']=$address['street_address'];
+				$new['address']['supplemental_address_1']=$address['supplemental_address_1'];
+				$new['address']['supplemental_address_2']=$address['supplemental_address_2'];
+				$new['address']['city']=$address['city'];
+				$new['address']['postal_code']=$address['postal_code'];
+			}
+		}
+		foreach($params['phone'] as $phone){
+			if($phone['is_primary']){
+				$new['phone']['phone']=$phone['phone'];
+			}
+		}
+	}
+	
+	//see if the phone number or address has changed
+	if(count(array_diff($new['phone'], $old['phone']))) {
+		$summary['phone_changed']=1;
+	}	
+	if(count(array_diff($new['address'], $old['address']))) {
+		$summary['address_changed']=1;
+	}	
+	//get the new local and regional party ids (kind of convoluted and redundant checks here, but seems like it can't be helped)
+	//we basically call gpew_setparty_get_party_ids with the new posted data 
+
+	//get the ons code that would be returned from the new postcode
+	$new_mapit_area_data=civimapit_lookupAreaData($new['address']['postal_code']);
+	if($params['uf_group_id']!=1){
+		foreach ($params as $k => $p) {
+			//get the is this party overridden
+			if(substr($k, 0, 10)=='custom_53_') {
+				$new['party']['override_local_party']=$p;
+
+			}
+			//get the submitted local party
+			if(substr($k, 0, 10)=='custom_51_' AND substr($k, -2, 2)=='id') {
+				$new['party']['local']=$p; // this will get overridden
+
+			}
+		}		
+	}
+	
+	$new_party_ids=gpew_setparty_get_party_ids($id, $new['party']['override_local_party'], $new_mapit_area_data['ward_ons_code'], $new['party']['local']);
+	$new['party']['local']=$new_party_ids['local_party_contact_id'];
+	$new['party']['regional']=$new_party_ids['regional_party_contact_id'];
+
+	if($old['party']['local']!=$new['party']['local']) {
+		$summary['local_party_changed']=1;
+	}
+	if($old['party']['regional']!=$new['party']['regional']) {
+		$summary['regional_party_changed']=1;
+	}	
+
+	
+	return array('summary'=>$summary, 'old'=>$old, 'new'=>$new);
+}
+	
+function gpew_local_party_coa_send_notifications($changes){
+	
+		
+	//work out what notifications need to be sent
+	$coaText=get_coa_text($changes['old'], $changes['new'], $changes['summary']);
+	$mlhText=get_mlh_text($changes['old'], $changes['summary']);
+	
+	$old = $changes['old'];
+	$new = $changes['new'];
+
+	// get all emails for parties
+	$party_ids = array($old['party']['local'], $old['party']['regional'], $new['party']['local'], $new['party']['regional']);
+	$party_ids = array_unique(array_filter($party_ids));
+	$party_ids_imploded = implode($party_ids,', ');
+	
+	$params = array();
+	$query = "
+		SELECT party.id as party_id, party.display_name, email
+		FROM civicrm_contact AS party
+		JOIN civicrm_relationship ON party.id = civicrm_relationship.contact_id_b
+		JOIN civicrm_email AS email ON email.contact_id = civicrm_relationship.contact_id_a
+		WHERE party.id IN ($party_ids_imploded) AND relationship_type_id=19 AND email.is_primary
+	";
+	
+	$result = CRM_Core_DAO::executeQuery( $query, $params );	
+	while($result->fetch()) {
+		$emails[]=array('party_id' => $result->party_id,'email' => $result->email);
+	}
+	$query = "
+		SELECT party.id as party_id, party.display_name
+		FROM civicrm_contact AS party
+		WHERE party.id IN ($party_ids_imploded)
+	";
+	
+	$result = CRM_Core_DAO::executeQuery( $query, $params );	
+	while($result->fetch()) {
+		$party_info[$result->party_id]['display_name']=$result->display_name;
+	}
+	$party_info['']['display_name']='[no local party]';
+	
+	
+
+	// 
+	// 
+	// $parties = CRM_Core_DAO::executeQuery( $query, $params );
+	// 
+	// while($parties->fetch()){
+	// 	$emails[]=array('email'=>$parties->email, 'party_id'=>$parties->id);
+	// 	$party_info[$parties->id]['display_name']=$parties->display_name;
+	// };
+	
+	if($changes['summary']['regional_party_changed']){
+		$notifications[$old['party']['regional']]="
+A member has left regional party: {$party_info[$old['party']['regional']]['display_name']}.
+
+Their new regional party is: {$party_info[$new['party']['regional']]['display_name']}.
+
+Their new local party is: {$party_info[$new['party']['local']]['display_name']}).
+
+$mlhText
+";
+		$notifications[$old['party']['local']]="
+A member has left local party: {$party_info[$old['party']['local']]['display_name']}.
+
+Their new local party is: {$party_info[$new['party']['local']]['display_name']}.
+
+Their new regional party is: {$party_info[$new['party']['regional']]['display_name']}.
+
+$mlhText
+";
+		$notifications[$new['party']['regional']]="
+A member has joined regional party: {$party_info[$new['party']['regional']]['display_name']}.
+
+Their new local party is: {$party_info[$new['party']['local']]['display_name']}.
+
+Their previous regional party was: {$party_info[$old['party']['regional']]['display_name']}.
+
+Their previous local party was: {$party_info[$old['party']['local']]['display_name']}.
+
+$coaText
+";
+		$notifications[$new['party']['local']]="
+A member has joined local party: {$party_info[$new['party']['local']]['display_name']}.
+
+Their previous local party was: {$party_info[$old['party']['local']]['display_name']}.
+
+Their previous regional party was: {$party_info[$old['party']['regional']]['display_name']}.
+
+$coaText
+";
+	}	
+	elseif($changes['summary']['local_party_changed']) {
+		$notifications[$old['party']['local']]="
+A member has left local party: {$party_info[$old['party']['local']]['display_name']}.
+
+They have joined local party: {$party_info[$new['party']['local']]['display_name']}.
+
+(Their regional party remains unchanged.)
+
+$mlhText.
+";
+
+		$notifications[$new['party']['regional']]="
+A member has moved local party.
+
+Their new local party is: {$party_info[$new['party']['local']]['display_name']}.
+
+Their previous local party was: {$party_info[$old['party']['local']]['display_name']}.
+
+$coaText
+";
+		$notifications[$new['party']['local']]="
+A member has joined local party: {$party_info[$new['party']['local']]['display_name']}.
+
+Their previous local party was: {$party_info[$old['party']['local']]['display_name']}
+
+(Their regional party remains unchanged.)
+
+$coaText
+";
+}
+	
+	else{
+		$notifications[$new['party']['regional']]="
+A member has updated their contact details.
+
+$coaText
+";
+		$notifications[$new['party']['local']]="
+A member has updated their contact details.
+
+$coaText
+";
+	}
+	
+	$email['from']=$email['reply-to']="office@greenparty.org.uk";
+	$email['subject']="Member has updated contact details / moved party";
+	
+	require_once('CRM/Utils/Mail.php');
+	
+	foreach($emails as $data){
+		$email['toEmail']=$data['email'];
+		$email['text']=$notifications[$data['party_id']];
+//		$email['toEmail']='michaelmcandrew@thirdsectordesign.org';
+//drupal_set_message(print_r($email, TRUE));
+		//print_r($email);
+		CRM_Utils_Mail::send($email);
+		
+	}
+	exit;
+	
+}
+
+
+function get_coa_text($old, $new, $summary){
+	require_once 'CRM/Utils/Address.php';	
+	$new['address']['formatted'] = CRM_Utils_Address::format($new['address']);
+	$old['address']['formatted'] = CRM_Utils_Address::format($old['address']);
+	if($summary['address_changed'] OR $summary['phone_changed']){
+
+		return "Their NEW contact details as follows:
+
+Address:
+{$new['address']['formatted']}
+Phone:
+{$new['phone']['phone']}
+
+Their OLD contact details were as follows:
+
+Address:
+{$old['address']['formatted']}
+Phone:
+{$old['phone']['phone']}
+";		
+	
+	} else {
+		return "Their contact details (below) remain unchanged:
+		
+Address:
+{$new['address']['formatted']}
+Phone:
+{$new['phone']['phone']}
+		
+";
+	}
+}
+
+function get_mlh_text($old, $summary){
+			require_once 'CRM/Utils/Address.php';	
+			$old['address']['formatted'] = CRM_Utils_Address::format($old['address']);
+
+			return "Their old contact details were as follows:
+
+Address:
+{$old['address']['formatted']}
+Phone:
+{$old['phone']['phone']}
+";		
+
+}

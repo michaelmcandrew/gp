@@ -26,7 +26,8 @@ class CustomImport_Parser_WardMapping extends CustomImport_Parser_Custom
 			cc.id AS local_party_contact_id,
 			w.code AS ons_code,
 			w.name AS ward_name,
-			w.name AS ward_name, b.name AS DC_MD_UA_LB_name,
+			w.name AS ward_name,
+			b.name AS DC_MD_UA_LB_name,
 			a.name AS county_name
 			
 		FROM civicrm_gpew_ons AS w

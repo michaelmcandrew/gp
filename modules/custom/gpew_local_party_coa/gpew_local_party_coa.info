@@ -1,0 +1,5 @@
+; $Id$
+name = GP local party COA nofication
+description = Sends an email to the local and regional membership secretaries when members update their details online or when a someone updates contact info in the back end.
+package = CiviCRM - Green Party extras
+core = 6.x
