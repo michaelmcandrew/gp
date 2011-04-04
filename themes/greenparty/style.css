@@ -2,6 +2,14 @@
 
 /* MM added this */
 
+/* remove 'reply' link from comments.
+   why? in forums, we want people to comment on the forum topic node, rather than the comment
+   this will also apply to any other type of comment in the system */
+
+ul.links li.comment_reply {
+  display: none;
+}
+
 #user-login-form {
   text-align: left;
 }
@@ -49,9 +57,9 @@
 /* --- 0.General styles --- */
 body {
 	background:#fff;
-	color:#666;
+	color:#464646;
 	font-family:Verdana, Arial, Helvetica, sans-serif;
-	font-size:75%;
+	font-size:80%;
 	line-height:1.5;
 	margin:0;
 	padding:0;
@@ -103,7 +111,7 @@ ul.links .first { padding-left: 0; }
 
 /* --- links --- */
 a, a:link, a:hover, a:visited, a:focus, a:active {
-	color:#639523;
+	color:#242163;
 	text-decoration:none;
 }
 a:hover, a:focus, a:active {
@@ -205,7 +213,7 @@ div#ft {
 /* *** 3.page components *** */
 /* header */
 div#hd a, div#hd a:link, div#hd a:hover, div#hd a:visited, div#hd a:focus, div#hd a:active {
-	color: #639523;
+	color: #242163;
 }
 /* mast head */
 div #mast {
@@ -261,7 +269,7 @@ div#utility-nav li.last {
 	border: none;
 }
 div#utility-nav li.active-trail a, div#utility-nav li.active-trail a:link, div#utility-nav li.active-trail a:hover, div#utility-nav li.active-trail a:visited, div#utility-nav li.active-trail a:focus, div#utility-nav li.active-trail a:active {
-	color:#3c6802;
+	color:#242163;
 	font-weight: bold;
 }
 /* main (primary) nav */
@@ -294,7 +302,7 @@ div#block-menu-primary-links li.first {
 	border: none;
 }
 div#block-menu-primary-links li.active-trail a, div#block-menu-primary-links li.active-trail a:link, div#block-menu-primary-links li.active-trail a:hover, div#block-menu-primary-links li.active-trail a:visited, div#block-menu-primary-links li.active-trail a:focus, div#block-menu-primary-links li.active-trail a:active {
-	color:#3c6802;
+	color:#242163;
 	font-weight: bold;
 }
 /* turn off expanded menus until we turn them off in the theme */
@@ -309,7 +317,7 @@ div#sub-nav h3 {
 	display: inline-block;
 	height: 23px;
 	line-height: 23px;
-	background: #3c6802 url(images/bg-subnav-title.png) top right no-repeat;
+	background: #242163 url(images/bg-subnav-title.png) top right no-repeat;
 	color: white;
 	-webkit-border-top-left-radius: 5px; -webkit-border-bottom-left-radius: 5px;
 	-moz-border-radius-topleft: 5px; -moz-border-radius-bottomleft: 5px;
@@ -391,9 +399,9 @@ form#search-theme-form input#edit-submit-1 {
 
 /* gret fade block style for both sidebars */
 .sidebar div.block-greyfade { background:#FFF url(images/bg-block-gradient.gif) no-repeat 0 0; margin-bottom: 10px; padding: 10px; overflow: hidden; border: none; }
-.sidebar div.block-greyfade h3 { background: none; padding: 0; text-transform: none; color: #639523; font-size: 17px; font-style: italic; font-weight:normal; line-height: 1; margin-bottom: 0.5em; }
+.sidebar div.block-greyfade h3 { background: none; padding: 0; text-transform: none; color: #242163; font-size: 17px; font-style: italic; font-weight:normal; line-height: 1; margin-bottom: 0.5em; }
 .sidebar div.block-greyfade a.more { background: transparent url(images/bullet-green.gif) no-repeat 3px 8px; display: block; font-weight: bold; line-height: 22px; padding-left: 14px; }
-.sidebar div.block-greyfade h4 { text-transform: uppercase; color: #639523; line-height: 1.2em; }
+.sidebar div.block-greyfade h4 { text-transform: uppercase; color: #242163; line-height: 1.2em; }
 
 /* specific block styling for banded style */
 .sidebar div.block-tagadelic, .sidebar div.block-og, .sidebar div.block-bandheader { background: #EEEDEC; margin: 0 8px 21px; padding: 8px 11px; overflow: visible; border: none; }
@@ -429,7 +437,7 @@ padding-left:14px;
 /* General node style */
 #pri .node { margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px dotted #d6d6d6; }
 #front #pri .node { display: none; }
-#pri h2 { font-size: 1.5em; line-height: 1.2em; color: #3c6802; margin: 0 0 1em 0; }
+#pri h2 { font-size: 1.5em; line-height: 1.2em; color: #242163; margin: 0 0 1em 0; }
 #pri .node span.submitted { margin: .5em 0; font-weight: bold; display: block; font-style: italic; }
 #pri .node .content { padding: 1em 0; }
 body#news #pri h2, body#news #pri .node a { color: #f58a24; }
@@ -457,7 +465,15 @@ body#groups #pri h2, body#groups #pri .node a { color: #008db8; }
 #forum .links li.forum { font-weight: bold; font-size: 1.2em; }
 #pri #forum a { color: #9424bb; }
 #forum td.container { font-weight: bold; border-top: 2px solid #ccc; background-color: #eeedec; }
-div#comments div.comment { margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dotted #D6D6D6; }
+div#comments div.comment { margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dotted #D6D6D6; overflow: hidden; }
+div.comment .comment-bar { float: left; }
+body#discussions .picture, div.comment .picture, div#pri .picture  { width: 85px; float: right; margin: 0 5px 5px 10px; }
+body#discussions .picture a, div.comment .picture a, div#pri .picture a { display: block; }
+body#discussions .picture img, div.comment .picture img, .profile .picture img, div#pri .picture img { border: 1px solid #639523; }
+div.comment .comment-title { clear: left; }
+div.comment .content { margin-top: 5px; }
+
+.profile .picture { margin-top: 35px; }
 
 /* Views general styles */
 .block-views { margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px dotted #d6d6d6; }
@@ -586,7 +602,7 @@ div#block-block-10  { padding: 0 !important; }
 div#pri ul.primary { border-bottom: 0; padding: 0; border-left: 1px solid #d5d5d5; margin: 0 0 10px 0; white-space: normal; }
 div#pri ul.primary  li { display: inline-block; margin: 0; }
 div#pri ul.primary  li a { font-weight: normal; border: none; background-color: white; border-right: 1px solid #d5d5d5; margin: 0; padding: .2em 1em .2em .8em; display: block; }
-div#pri ul.primary  li a.active { color: #3c6802; font-weight: bold; }
+div#pri ul.primary  li a.active { color: #242163; font-weight: bold; }
 
 div#pri .view-og-tabs-GP.view-display-id-page_3 a:link,
 div#pri .view-og-tabs-GP.view-display-id-page_3 a:visited,
