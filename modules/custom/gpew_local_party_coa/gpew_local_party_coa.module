@@ -7,10 +7,32 @@
 
 function gpew_local_party_coa_civicrm_pre( $op, $objectName, $id, &$params ) {
 	//find out if this is an edit of a contact (and return if it is not)
+
+	//don't process this twice from the contact profile - http://forum.civicrm.org/index.php/topic,19363.0.html
+	if(isset($params['edit']['civicrm_dummy_field'])){
+		return;
+	};
 	if($objectName!='Individual' AND $op!='edit'){
 		return;
-	};		
+	};
+	
+	//only send COA if they are a current member
+	require_once 'api/v2/Membership.php';
+	$contactParams=array(
+		'contact_id' => $id
+	);
+	$contact_memberships=civicrm_contact_memberships_get($contactParams);
+	if($contact_memberships['record_count']<1) {
+		return;
+	}
+	$membership=current(current($contact_memberships));
+	if(!in_array($membership[status_id], array(1,2,3,9,10))){ //if they don't have a membership status id that is considered current
+		return;		
+	}
+	
 	$changes=gpew_local_party_coa_what_changed($id, $params);
+	// drupal_set_message('-');
+	// drupal_set_message(print_r($changes, TRUE));
 	if(
 		!$changes['summary']['local_party_changed'] AND
 		!$changes['summary']['regional_party_changed'] AND
@@ -54,7 +76,7 @@ function gpew_local_party_coa_what_changed($id, &$params) {
 	
 	
 	//get OLD primary email, phone, and address.  these can be got quite easily with the contact api
-	$old['display_name']=$oldContact[$id]['display_name'];
+	$old['email']['email']=$oldContact[$id]['email'];
 	$old['address']['street_address']=$oldContact[$id]['street_address'];
 	$old['address']['supplemental_address_1']=$oldContact[$id]['supplemental_address_1'];
 	$old['address']['supplemental_address_2']=$oldContact[$id]['supplemental_address_2'];
@@ -62,43 +84,53 @@ function gpew_local_party_coa_what_changed($id, &$params) {
 	$old['address']['postal_code']=$oldContact[$id]['postal_code'];
 	$old['phone']['phone']=$oldContact[$id]['phone'];
 
+	$old['display_name']=$oldContact[$id]['display_name'];
+	$new['display_name']=$old['display_name'];
+
 	//get details present when this form was submitted and put them into a nice sensible array $new
 	//sadly, the format of the fields depends on where they are called from, so we have to account for that, so...
 	
 	// if this upadte happens via profile 1
-	if($params['uf_group_id']==1){
-
-		$new['address']['street_address']=$params['street_address-1'];
-		$new['address']['supplemental_address_1']=$params['supplemental_address_1-Primary'];
-		$new['address']['supplemental_address_2']=$params['supplemental_address_2-Primary'];
-		$new['address']['city']=$params['city-1'];
-		$new['address']['postal_code']=$params['postal_code-1'];
-		$new['phone']['phone']=$params['phone-1-1'];
-		
-		// if this is happening via the profile, we set the new override party as equal to the old override local party (because there is no chance to change this via the profile)
-		// this is necessary to respect the local override setting when someone moves
-		
-		// if we do allow people to change their LP themselves, we should change this code.  Also, people might not realise that their LP is overridden: TODO: Warn them somehow :p
+ 	if($params['uf_group_id']==1){
+// //		print_r($params);print'---';
+// 		$new['address']['street_address']=$params['street_address-1'];
+// 		$new['address']['supplemental_address_1']=$params['supplemental_address_1-Primary'];
+// 		$new['address']['supplemental_address_2']=$params['supplemental_address_2-Primary'];
+// 		$new['address']['city']=$params['city-1'];
+// 		$new['address']['postal_code']=$params['postal_code-1'];
+// 		$new['phone']['phone']=$params['phone-1-1'];
+// 		
+// 		// if this is happening via the profile, we set the new override party as equal to the old override local party (because there is no chance to change this via the profile)
+// 		// this is necessary to respect the local override setting when someone moves
+// 		
+// 		// if we do allow people to change their LP themselves, we should change this code.  Also, people might not realise that their LP is overridden: TODO: Warn them somehow :p
 		$new['party']['override_local_party']=$old['party']['override_local_party'];
 		$new['party']['local']=$old['party']['local'];
-		
-	//else assume this is happening through the interface	
-	} else {
-		foreach($params['address'] as $address){
-			if($address['is_primary']){
-				$new['address']['street_address']=$address['street_address'];
-				$new['address']['supplemental_address_1']=$address['supplemental_address_1'];
-				$new['address']['supplemental_address_2']=$address['supplemental_address_2'];
-				$new['address']['city']=$address['city'];
-				$new['address']['postal_code']=$address['postal_code'];
-			}
-		}
-		foreach($params['phone'] as $phone){
-			if($phone['is_primary']){
-				$new['phone']['phone']=$phone['phone'];
-			}
+		$new['email']['email']=$old['email']['email'];
+// 		
+// 	//else assume this is happening through the interface	
+// 	} else {	
+	}
+	foreach($params['address'] as $address){
+		if($address['is_primary']){
+			$new['address']['street_address']=$address['street_address'];
+			$new['address']['supplemental_address_1']=$address['supplemental_address_1'];
+			$new['address']['supplemental_address_2']=$address['supplemental_address_2'];
+			$new['address']['city']=$address['city'];
+			$new['address']['postal_code']=$address['postal_code'];
 		}
 	}
+	foreach($params['phone'] as $phone){
+		if($phone['is_primary']){
+			$new['phone']['phone']=$phone['phone'];
+		}
+	}
+	foreach($params['email'] as $email){
+		if($email['is_primary']){
+			$new['email']['email']=$email['email'];
+		}
+	}
+//	}
 	
 	//see if the phone number or address has changed
 	if(count(array_diff($new['phone'], $old['phone']))) {
@@ -286,12 +318,12 @@ $coaText
 		$email['toEmail']=$data['email'];
 		$email['text']=$notifications[$data['party_id']];
 //		$email['toEmail']='michaelmcandrew@thirdsectordesign.org';
-//drupal_set_message(print_r($email, TRUE));
-		//print_r($email);
-		CRM_Utils_Mail::send($email);
+		drupal_set_message(print_r($email, TRUE));
+//		print_r($email);
+//		CRM_Utils_Mail::send($email);
 		
 	}
-	exit;
+//	print_r($changes);
 	
 }
 
@@ -302,23 +334,30 @@ function get_coa_text($old, $new, $summary){
 	$old['address']['formatted'] = CRM_Utils_Address::format($old['address']);
 	if($summary['address_changed'] OR $summary['phone_changed']){
 
-		return "Their NEW contact details as follows:
+		return "NEW contact details for member {$old['display_name']} ({$new['email']['email']}).
 
 Address:
 {$new['address']['formatted']}
 Phone:
 {$new['phone']['phone']}
 
-Their OLD contact details were as follows:
+Member's OLD contact details were as follows:
 
 Address:
 {$old['address']['formatted']}
 Phone:
 {$old['phone']['phone']}
+
 ";		
 	
 	} else {
-		return "Their contact details (below) remain unchanged:
+		return "Members contact details (below) remain unchanged:
+
+Name:
+{$old['display_name']}
+
+Email:
+{$new['email']['email']}
 		
 Address:
 {$new['address']['formatted']}

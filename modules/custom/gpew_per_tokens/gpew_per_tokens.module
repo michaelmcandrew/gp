@@ -52,7 +52,7 @@ function _gpew_per_tokens_get_pers($id){
 	$output="<b>{$contact[$id]['display_name']}</b><br />";			
 	$rels=civicrm_relationship_get($params);			
 	foreach($rels['result'] as $rel){
-		// if the is a membership secretary relation
+		// if there is a membership secretary relation
 		if($rel['civicrm_relationship_type_id']==17){
 			if($membershipSecretaryPresent){
 				$output.=' and ';
