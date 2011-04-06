@@ -37,6 +37,7 @@ function gpew_local_party_coa_civicrm_pre( $op, $objectName, $id, &$params ) {
 		!$changes['summary']['local_party_changed'] AND
 		!$changes['summary']['regional_party_changed'] AND
 		!$changes['summary']['phone_changed'] AND
+		!$changes['summary']['email_changed'] AND
 		!$changes['summary']['address_changed']
 	){
 		return;
@@ -53,6 +54,7 @@ function gpew_local_party_coa_what_changed($id, &$params) {
 	$summary['regional_party_changed']=0;
 	$summary['address_changed']=0;
 	$summary['phone_changed']=0;
+	$summary['email_changed']=0;
 
 	//get details before this form was submitted and put them into a nice sensible array $old
 	require_once('api/v2/Contact.php');
@@ -92,18 +94,6 @@ function gpew_local_party_coa_what_changed($id, &$params) {
 	
 	// if this upadte happens via profile 1
  	if($params['uf_group_id']==1){
-// //		print_r($params);print'---';
-// 		$new['address']['street_address']=$params['street_address-1'];
-// 		$new['address']['supplemental_address_1']=$params['supplemental_address_1-Primary'];
-// 		$new['address']['supplemental_address_2']=$params['supplemental_address_2-Primary'];
-// 		$new['address']['city']=$params['city-1'];
-// 		$new['address']['postal_code']=$params['postal_code-1'];
-// 		$new['phone']['phone']=$params['phone-1-1'];
-// 		
-// 		// if this is happening via the profile, we set the new override party as equal to the old override local party (because there is no chance to change this via the profile)
-// 		// this is necessary to respect the local override setting when someone moves
-// 		
-// 		// if we do allow people to change their LP themselves, we should change this code.  Also, people might not realise that their LP is overridden: TODO: Warn them somehow :p
 		$new['party']['override_local_party']=$old['party']['override_local_party'];
 		$new['party']['local']=$old['party']['local'];
 		$new['email']['email']=$old['email']['email'];
@@ -138,6 +128,9 @@ function gpew_local_party_coa_what_changed($id, &$params) {
 	}	
 	if(count(array_diff($new['address'], $old['address']))) {
 		$summary['address_changed']=1;
+	}	
+	if(count(array_diff($new['email'], $old['email']))) {
+		$summary['email_changed']=1;
 	}	
 	//get the new local and regional party ids (kind of convoluted and redundant checks here, but seems like it can't be helped)
 	//we basically call gpew_setparty_get_party_ids with the new posted data 
@@ -318,9 +311,9 @@ $coaText
 		$email['toEmail']=$data['email'];
 		$email['text']=$notifications[$data['party_id']];
 //		$email['toEmail']='michaelmcandrew@thirdsectordesign.org';
-		drupal_set_message(print_r($email, TRUE));
+//		drupal_set_message(print_r($email, TRUE));
 //		print_r($email);
-//		CRM_Utils_Mail::send($email);
+		CRM_Utils_Mail::send($email);
 		
 	}
 //	print_r($changes);
@@ -332,14 +325,17 @@ function get_coa_text($old, $new, $summary){
 	require_once 'CRM/Utils/Address.php';	
 	$new['address']['formatted'] = CRM_Utils_Address::format($new['address']);
 	$old['address']['formatted'] = CRM_Utils_Address::format($old['address']);
-	if($summary['address_changed'] OR $summary['phone_changed']){
+	if($summary['address_changed'] OR $summary['phone_changed'] OR $summary['email_changed']){
 
-		return "NEW contact details for member {$old['display_name']} ({$new['email']['email']}).
+		return "NEW contact details for member {$new['display_name']}.
 
 Address:
 {$new['address']['formatted']}
 Phone:
 {$new['phone']['phone']}
+
+Email:
+{$new['email']['email']}
 
 Member's OLD contact details were as follows:
 
@@ -348,22 +344,22 @@ Address:
 Phone:
 {$old['phone']['phone']}
 
+Email:
+{$old['email']['email']}
+
+
 ";		
 	
 	} else {
-		return "Members contact details (below) remain unchanged:
+		return "Contact details for {$new['display_name']} remain unchanged:
 
-Name:
-{$old['display_name']}
-
-Email:
-{$new['email']['email']}
-		
 Address:
 {$new['address']['formatted']}
 Phone:
 {$new['phone']['phone']}
 		
+Email:
+{$new['email']['email']}
 ";
 	}
 }
@@ -372,12 +368,16 @@ function get_mlh_text($old, $summary){
 			require_once 'CRM/Utils/Address.php';	
 			$old['address']['formatted'] = CRM_Utils_Address::format($old['address']);
 
-			return "Their old contact details were as follows:
+			return "The OLD contact details for member {$old['display_name']} were as follows:
 
 Address:
 {$old['address']['formatted']}
 Phone:
 {$old['phone']['phone']}
+
+Email:
+{$old['email']['email']}
+
 ";		
 
 }
