@@ -11,9 +11,14 @@ function gpew_local_party_coa_civicrm_pre( $op, $objectName, $id, &$params ) {
 	if(isset($params['edit']['civicrm_dummy_field'])){
 		return;
 	};
-	if($objectName!='Individual' AND $op!='edit'){
+
+	if($objectName!='Individual') {
 		return;
 	};
+
+	if($op!='edit') {
+		return;
+	}
 	
 	//only send COA if they are a current member
 	require_once 'api/v2/Membership.php';
