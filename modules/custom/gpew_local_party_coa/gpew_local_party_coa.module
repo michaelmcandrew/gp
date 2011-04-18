@@ -187,7 +187,7 @@ function gpew_local_party_coa_send_notifications($changes){
 		FROM civicrm_contact AS party
 		JOIN civicrm_relationship ON party.id = civicrm_relationship.contact_id_b
 		JOIN civicrm_email AS email ON email.contact_id = civicrm_relationship.contact_id_a
-		WHERE party.id IN ($party_ids_imploded) AND relationship_type_id=19 AND email.is_primary
+		WHERE party.id IN ($party_ids_imploded) AND relationship_type_id=19 AND email.is_primary AND civicrm_relationship.is_active
 	";
 	
 	$result = CRM_Core_DAO::executeQuery( $query, $params );	
