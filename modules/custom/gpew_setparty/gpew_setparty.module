@@ -47,15 +47,20 @@ function gpew_setparty_get_party_ids($objectId, $override_local_party, $ward_ons
 			$ward_ons_code_result->fetch();
 			$ward_ons_code = $ward_ons_code_result->ward_ons_code;
 		}
-		$params=array( 1 => array( $ward_ons_code, 'String'));
+		if(strlen($ward_ons_code)){
+		
+			$params=array( 1 => array( $ward_ons_code, 'String'));
 		 
-		$local_party_contact_id_result=CRM_Core_DAO::executeQuery( "
-			SELECT local_party_contact_id as id
-			FROM civicrm_gpew_ward_local_party
-			WHERE ward_ons_code = %1
-		", $params);
-		$local_party_contact_id_result->fetch();
-		$local_party_contact_id=$local_party_contact_id_result->id;
+			$local_party_contact_id_result=CRM_Core_DAO::executeQuery( "
+				SELECT local_party_contact_id as id
+				FROM civicrm_gpew_ward_local_party
+				WHERE ward_ons_code = %1
+			", $params);
+			$local_party_contact_id_result->fetch();
+			$local_party_contact_id=$local_party_contact_id_result->id;
+		} else {
+			$local_party_contact_id='';
+		}
 	}
 
 	//how to work out regional party id
