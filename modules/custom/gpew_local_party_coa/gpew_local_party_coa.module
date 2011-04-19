@@ -207,7 +207,7 @@ function gpew_local_party_coa_send_notifications($changes){
 	$query = "
 		SELECT party.id as party_id, party.display_name
 		FROM civicrm_contact AS party
-		WHERE party.id IN ($party_ids_imploded)
+		WHERE 1 $party_id_where
 	";
 	
 	$result = CRM_Core_DAO::executeQuery( $query, $params );	
