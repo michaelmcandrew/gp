@@ -184,7 +184,12 @@ function gpew_local_party_coa_send_notifications($changes){
 	// get all emails for parties
 	$party_ids = array($old['party']['local'], $old['party']['regional'], $new['party']['local'], $new['party']['regional']);
 	$party_ids = array_unique(array_filter($party_ids));
-	$party_ids_imploded = implode($party_ids,', ');
+	if(count($party_ids)) {
+		$party_ids_imploded = implode($party_ids,', ');
+		$party_id_where =  " AND party.id IN ($party_ids_imploded) ";
+	} else {
+		$party_id_where = "";
+	}
 	
 	$params = array();
 	$query = "
@@ -192,7 +197,7 @@ function gpew_local_party_coa_send_notifications($changes){
 		FROM civicrm_contact AS party
 		JOIN civicrm_relationship ON party.id = civicrm_relationship.contact_id_b
 		JOIN civicrm_email AS email ON email.contact_id = civicrm_relationship.contact_id_a
-		WHERE party.id IN ($party_ids_imploded) AND relationship_type_id=19 AND email.is_primary AND civicrm_relationship.is_active
+		WHERE 1 $party_id_where AND relationship_type_id=19 AND email.is_primary AND civicrm_relationship.is_active
 	";
 	
 	$result = CRM_Core_DAO::executeQuery( $query, $params );	
