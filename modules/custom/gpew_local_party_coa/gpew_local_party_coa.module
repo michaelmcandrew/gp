@@ -188,7 +188,7 @@ function gpew_local_party_coa_send_notifications($changes){
 		$party_ids_imploded = implode($party_ids,', ');
 		$party_id_where =  " AND party.id IN ($party_ids_imploded) ";
 	} else {
-		$party_id_where = "";
+		$party_id_where = " AND 0 ";
 	}
 	
 	$params = array();
