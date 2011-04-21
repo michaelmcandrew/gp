@@ -6,12 +6,8 @@
 
 
 function gpew_local_party_coa_civicrm_pre( $op, $objectName, $id, &$params ) {
-	//find out if this is an edit of a contact (and return if it is not)
-	//don't process this twice from the contact profile - http://forum.civicrm.org/index.php/topic,19363.0.html
-	if(isset($params['edit']['civicrm_dummy_field'])){
-		return;
-	};
 
+	//find out if this is an edit of a contact (and return if it is not)
 	if($objectName!='Individual') {
 		return;
 	};
@@ -19,7 +15,12 @@ function gpew_local_party_coa_civicrm_pre( $op, $objectName, $id, &$params ) {
 	if($op!='edit') {
 		return;
 	}
-	
+
+	//don't process this twice from the contact profile - http://forum.civicrm.org/index.php/topic,19363.0.html
+	if(isset($params['edit']['civicrm_dummy_field'])){
+		return;
+	};
+
 	//only send COA if they are a current member
 	require_once 'api/v2/Membership.php';
 	$contactParams=array(
