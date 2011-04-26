@@ -49,7 +49,7 @@ define ('CIVICRM_GPEW_DD_MANDATE_FREQUENCY', 'payment_frequency_37');
 /**
  * class to parse contact csv files
  */
-class CustomImport_Parser_DDPayment extends CustomImport_Parser_DD
+class CustomImport_Parser_DDPaymentPaper extends CustomImport_Parser_DD
 {
 		//DB object containing all candidates
 	    protected $candidate;
@@ -64,22 +64,22 @@ class CustomImport_Parser_DDPayment extends CustomImport_Parser_DD
 		function import(){
 			$this->getCanditates();
 			while($this->candidate->fetch()){
+				
 				$this->initCurrent();
 				$this->parseCandidate();
 //				print_r($this->current);
 			}
+//			print_r($this->report);
 		}
 		function initCurrent(){
 //			print_r($this->candidate);
+			$this->current=array();
 			unset($this->currentContributionArray);
 			unset($this->currentMembershipArray);
-			unset($this->currentMembershipArray);
-			$this->current=array();
-			$this->current['tgp']=$this->candidate->urn_0;
-			$this->current['frequency']=$this->candidate->frequency_10;
-			$this->current['amount']=$this->candidate->dd_amount_11;
-			$this->current['date']=$this->RapiDataToDate($this->candidate->dd_date_12);
-			$this->current['source']=$this->candidate->source_13;
+			$this->current['tgp']=$this->candidate->reference;
+			$this->current['frequency']='unknown';
+			$this->current['amount']=$this->candidate->amount;
+			$this->current['date']=$this->RapiDataToDate($this->candidate->date);
 		}
 		
 	
@@ -91,11 +91,12 @@ class CustomImport_Parser_DDPayment extends CustomImport_Parser_DD
 					$this->addReportLine('warning', "Not able to import payment for {$this->getCurrent('tgp')} (no matching payment integration reference).");
 				}
 				if($this->searchForTGP() == 'multiple'){
-					$this->addReportLine('warning', "Not able to import payment for {$this->getCurrent('tgp')} (multiple matching payment integration references).");
+					$this->addReportLine('warning', "Not able to import payment for {$this->getCurrent('tgp')} (multiple matching payment integration reference).");
 				}
 				return;
 			}
-			
+//			print_r($this->currentContactArray);
+			$this->current['frequency']=$this->current['tgp_info']->payment_frequency_37; //set the payment frequency from the payment integration record
 			$this->current['contact_id'] = $this->currentContactArray['contact_id'];
 			
 			//work out if this is should be added to a membership
@@ -105,7 +106,7 @@ class CustomImport_Parser_DDPayment extends CustomImport_Parser_DD
 			$this->currentContributionArray['contribution_type_id'] = $this->current['is_membership_contribution'] ? 2 : 1 ;
 			$this->currentContributionArray['contact_id'] = $this->currentContactArray['contact_id'];
 			$this->currentContributionArray['total_amount'] = $this->current['amount'];
-			$this->currentContributionArray['source'] = 'Rapidata DD: '.$this->current['frequency'];
+			$this->currentContributionArray['source'] = 'Paper DD: '.$this->current['frequency'];
 			$this->currentContributionArray['receive_date'] = $this->current['date']->format('Y-m-d');
 			$this->currentContributionArray['contribution_status_id']=1;
 			$this->currentContributionArray['payment_instrument_id'] = 7;
@@ -123,6 +124,8 @@ class CustomImport_Parser_DDPayment extends CustomImport_Parser_DD
 			} else {
 				$this->addReportLine('note', "Ready to add contribution of {$this->currentContributionArray['total_amount']} to {$this->getContactLink()}");
 			}
+			
+			$this->current['frequency']=$this->current['tgp_info']->payment_frequency_37; //set the payment frequency from the payment integration record
 			
 			// if this is not a membership contribution, nothing else to do - return
 			if(!$this->current['is_membership_contribution']){
@@ -148,7 +151,7 @@ class CustomImport_Parser_DDPayment extends CustomImport_Parser_DD
 				'Quarterly'=>'+3 MONTH'					
 			);
 
-
+			
 			$potentialEndDate = clone $this->current['date'];
 			$potentialEndDate->modify($freqTrans[$this->current['frequency']]);
 

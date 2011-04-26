@@ -217,10 +217,10 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 				$contactText[]=$this->getContactLink($contact);
 			}
 			$contactsText=implode(', ', $contactText);
-			$this->addReportLine('warning', "More than one contacts could be assigned TGP number {$this->getCurrent('tgp')}: {$contactsText} (using fields: {$searchedFields}).  Please investigate and add manually.");
+			$this->addReportLine('warning', "More than one contacts could be assigned payment integration reference {$this->getCurrent('tgp')}: {$contactsText} (using fields: {$searchedFields}).  Please investigate and add manually.");
 			$this->multiplePossibleContacts = TRUE;
 		} elseif(count($searchResult)==0) {
-			$this->addReportLine('info', "No contact found for TGP number {$this->getCurrent('tgp')} (using fields: {$searchedFields}).");
+			$this->addReportLine('info', "No contact found for payment integration reference {$this->getCurrent('tgp')} (using fields: {$searchedFields}).");
 			return FALSE;
 		}
 		
@@ -278,7 +278,7 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 			$contact_result=civicrm_contact_add($contact_params);
 			
 			if($contact_result['is_error']) {
-				$this->addReportLine('warning', "Failed to add the contact with TGP number: {$this->getCurrent('tgp')}.");
+				$this->addReportLine('warning', "Failed to add the contact with payment integration reference: {$this->getCurrent('tgp')}.");
 				//TODO: If this fails, really we should abort the whole process.  In practice, it is unlikely to fail.
 			} else {
 				$this->currentContactArray=$contact_result; //TODO check that this is as you would expect, i.e. not nested in a result key.
@@ -288,10 +288,10 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 			$location_params['contact_id'] = $contact_result['contact_id'];
 			$location_result=civicrm_location_add($location_params);
 			if($location_result['is_error']) {
-				$this->addReportLine('warning', "Could not add location information for contact with TGP number: {$this->getCurrent('tgp')}.");
+				$this->addReportLine('warning', "Could not add location information for contact with payment integration reference: {$this->getCurrent('tgp')}.");
 			}						
 		} else {
-			$this->addReportLine('note', "Ready to add contact with TGP {$this->getCurrent('tgp')}.");
+			$this->addReportLine('note', "Ready to add contact with payment integration reference {$this->getCurrent('tgp')}.");
 		}
 	}
 	
@@ -306,7 +306,7 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 				CIVICRM_GPEW_DD_MANDATE_FREQUENCY."='{$this->getCurrent('frequency')}'";				
 			$updateResult = CRM_Core_DAO::executeQuery( $query, $params );
 		} else {
-			$this->addReportLine('note', "Ready to add TGP {$this->getCurrent('tgp')} to contact {$this->getContactLink()}.");
+			$this->addReportLine('note', "Ready to add payment integration reference {$this->getCurrent('tgp')} to contact {$this->getContactLink()}.");
 		}
 	}
 
@@ -322,12 +322,12 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 		if(!$this->test){
 			$result=civicrm_group_contact_add($params); //TODO test this code!			
 			if($result['is_error']) {
-				$this->addReportLine('warning', "Failed to add contact with URN {$contact['ConfirmationReference']} to young greens group");
+				$this->addReportLine('warning', "Failed to add contact with payment integration reference {$contact['ConfirmationReference']} to young greens group");
 			} else {
-				$this->addReportLine('note', "Contact with URN {$contact['ConfirmationReference']} added to young greens group");
+				$this->addReportLine('note', "Contact with payment integration reference {$contact['ConfirmationReference']} added to young greens group");
 			}
 		} else {
-			$this->addReportLine('note', "Ready to add TGP {$this->getCurrent('tgp')} to young green groups.");
+			$this->addReportLine('note', "Ready to add contact with payment integration reference {$this->getCurrent('tgp')} to young green groups.");
 		}
 	}	
 
@@ -339,12 +339,12 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 		if(!$this->test){
 			$result=civicrm_group_contact_add($params); //TODO test this code!			
 			if($result['is_error']) {
-				$this->addReportLine('warning', "Failed to add contact with URN {$contact['ConfirmationReference']} to young greens group");
+				$this->addReportLine('warning', "Failed to add contact with payment integration reference {$contact['ConfirmationReference']} to young greens group");
 			} else {
-				$this->addReportLine('note', "Contact with URN {$contact['ConfirmationReference']} added to young greens group");
+				$this->addReportLine('note', "Contact with payment integration reference {$contact['ConfirmationReference']} added to young greens group");
 			}
 		} else {
-			$this->addReportLine('note', "Ready to add TGP {$this->getCurrent('tgp')} to young green groups.");
+			$this->addReportLine('note', "Ready to add payment integration reference {$this->getCurrent('tgp')} to young green groups.");
 		}
 	}
 
@@ -366,7 +366,7 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 			$params['end_date']=$enddate->format('Y-m-d');
 			$result=civicrm_membership_contact_create($params); 
 			if($result['is_error']) {
-				$this->addReportLine('warning', "Failed to add membership for {$this->getContactLink()} (with TGP {$this->getCurrent('tgp')}).");
+				$this->addReportLine('warning', "Failed to add membership for {$this->getContactLink()} (with payment integration reference {$this->getCurrent('tgp')}).");
 			} else {
 				
 				//add custom data to membership to say that it is paid by direct debit
@@ -378,11 +378,11 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 				$result = CRM_Core_DAO::executeQuery( $query, $params );
 				
 
-				$this->addReportLine('note', "Membership added for contact TGP {$this->getContactLink()} (with TGP {$this->getCurrent('tgp')}).");
+				$this->addReportLine('note', "Membership added for contact {$this->getContactLink()} (with payment integration reference {$this->getCurrent('tgp')}).");
 				
 			}
 		} else {
-			$this->addReportLine('note', "Ready to add membership to {$this->getContactLink()} (with TGP {$this->getCurrent('tgp')}).");
+			$this->addReportLine('note', "Ready to add membership to {$this->getContactLink()} (with payment integration reference {$this->getCurrent('tgp')}).");
 		}
 		
 	}

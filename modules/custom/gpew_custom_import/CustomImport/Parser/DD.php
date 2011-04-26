@@ -113,29 +113,35 @@ class CustomImport_Parser_DD extends CustomImport_Parser_Custom
 		}
 		
 		function searchForTGP() {
-			$contactParams=array('custom_16'=>$this->getCurrent('tgp'));
+			if($this->getCurrent('tgp')==''){
+				$this->addReportLine('warning', "Payment integration reference was blank.");
+				return 'none';
+			}
+			$contactParams=array(
+				'custom_16'=>$this->getCurrent('tgp'),
+			);
 			require_once "api/v2/Contact.php";
 			$searchResult=civicrm_contact_search($contactParams);
 			
 			if(count($searchResult)==1) {
 				$this->currentContactArray=current($searchResult);
 				$this->getContactLink($searchResult);
-				$this->addReportLine('info', "{$this->getCurrent('tgp')} (already) matched to one CiviCRM contact {$this->getContactLink(current($searchResult))}");
+				$this->addReportLine('info', "Payment integration reference {$this->getCurrent('tgp')} found in one CiviCRM contact {$this->getContactLink(current($searchResult))}");
 				$TGPQueryParams[1] = array( $this->currentContactArray['civicrm_value_external_identifiers_5_id'], 'Integer');
-//				print_r($TGPQueryParams);
 				$TGPQuery = CRM_Core_DAO::executeQuery("SELECT * FROM civicrm_value_external_identifiers_5 WHERE id=%1", $TGPQueryParams);
 				$TGPQuery->fetch();
-				$this->current['is_membership_tgp']=TRUE;
+				$this->current['is_membership_tgp']=$TGPQuery->is_membership_payment_55;
+				$this->current['tgp_info']=$TGPQuery;
 				return 'one';
 			} elseif(count($searchResult)>1) {
 				foreach($searchResult as $contact){
 					$contactText[]=$this->getContactLink($contact);
 				}
 				$contactsText=implode(', ', $contactText);
-				$this->addReportLine('warning', "More than one contacts have TGP number {$this->getCurrent('tgp')} ({$contactsText}).");
+				$this->addReportLine('warning', "More than one contacts have payment integration reference {$this->getCurrent('tgp')} ({$contactsText}).");
 				return 'more than one';
 			} elseif(count($searchResult)==0) {
-				$this->addReportLine('info', "No contact has TGP number {$this->getCurrent('tgp')}.");
+				$this->addReportLine('info', "No contact has payment integration reference {$this->getCurrent('tgp')}.");
 				return 'none';
 			}
 

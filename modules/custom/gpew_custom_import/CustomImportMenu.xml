@@ -8,6 +8,14 @@
      <adminGroup>CiviReport</adminGroup>
   </item>
   <item>
+     <path>civicrm/import/ddpaymentpaper</path>
+     <title>Paper direct debit payment import</title>
+     <page_callback>CustomImport_DDPaymentPaper_Controller</page_callback>
+     <page_arguments></page_arguments>
+     <access_arguments>edit contributions</access_arguments>
+     <adminGroup>CiviReport</adminGroup>
+  </item>
+  <item>
      <path>civicrm/import/ddmandate</path>
      <title>Direct debit mandate import</title>
      <page_callback>CustomImport_DDMandate_Controller</page_callback>
