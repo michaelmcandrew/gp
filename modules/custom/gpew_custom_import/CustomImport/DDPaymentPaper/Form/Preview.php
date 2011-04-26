@@ -61,8 +61,8 @@ class CustomImport_DDPaymentPaper_Form_Preview extends CRM_Core_Form {
         $qfKey = CRM_Utils_Request::retrieve( 'qfKey', 'String', $form );
         if ( CRM_Utils_Rule::qfKey( $qfKey ) ) $path .= "&qfKey=$qfKey";
         
-        $previousURL = CRM_Utils_System::url('civicrm/import/ddpayment', $path, false, null, false);
-        $cancelURL   = CRM_Utils_System::url('civicrm/import/ddpayment', 'reset=1');
+        $previousURL = CRM_Utils_System::url('civicrm/import/ddpaymentpaper', $path, false, null, false);
+        $cancelURL   = CRM_Utils_System::url('civicrm/import/ddpaymentpaper', 'reset=1');
         
         $buttons = array(
                          array ( 'type'      => 'back',
