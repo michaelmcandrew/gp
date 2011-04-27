@@ -1,0 +1,7 @@
+name = CiviMaPit
+description = Integrates CiviCRM with MaPit's database and web service that maps postcodes and points to current or past administrative area information and polygons for all the United Kingdom.(see mapit.mysociety.org).
+dependencies[] = civicrm
+package = CiviCRM
+core = 6.x
+version = 0.1
+

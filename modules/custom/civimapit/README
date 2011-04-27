@@ -1,0 +1,8 @@
+A CiviCRM (drupal) module that looks up UK area information from mapit.mysociety.org based on postcode data in CiviCRM.
+
+This module tries to retreive the following data from MaPit
+* Ward
+* Local authority
+* Westminster parliament constituency
+* European region
+* ONS codes for Ward and local authority

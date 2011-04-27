@@ -1,0 +1,107 @@
+<?php
+
+// We can't use the API to write view only fields, and we can't reliably look up column names
+// which means a fair amount of stuff needs to be defined here and/or we need to do a few queries.
+
+
+function civimapit_civicrm_post( $op, $objectName, $objectId, &$objectRef ) {
+
+	if($op!='create' AND $op!='edit'){
+		return;
+	}
+	if($objectName!='Individual' AND $objectName!='Organization' AND $objectName!='Household'){
+		return;
+	}
+	
+	//Get postcode from saved contact.
+	require_once('api/v2/Contact.php');
+	$params = array(
+		'contact_id' => $objectId
+	);
+	$contact = civicrm_contact_get($params);
+	$postcode = $contact[$objectId]['postal_code'];
+
+	// Currently, the module updates custom data attached to contact's primary address.
+	// Could switch / add data associated with addresses as well / instead
+	civimapit_updateContactAreaInfo( $objectId, $postcode );
+}
+
+
+
+function civimapit_updateContactAreaInfo($contactID, $postcode) {
+	
+	//Look up postcode in mapit and return area information
+	$areaData = civimapit_lookupAreaData($postcode, $contactID);
+	if ($areaData == ''){
+		$query = "DELETE FROM `civicrm_value_area_information` WHERE `entity_id`= %1";
+		$params=array( 1 => array( $contactID, 'Integer'));
+		$updateResult = CRM_Core_DAO::executeQuery( $query, $params );
+		$areaData=array(
+		    'ward' => '',
+		    'la' => '',
+		    'ward_ons_code' => '',
+		    'la_ons_code' => '',
+		    'wm_constituency' => '',
+		    'european_region' => ''
+		);
+	}
+			
+	$params = array( );
+	$count = 0;
+	foreach($areaData as $k => $v) {
+		$fieldsToUpdate[]="`{$k}`= %{$count}";
+		$params[$count] = array( (string)$v, 'String');
+		$count++;
+	}
+	
+	$params[$count] = array( $contactID, 'Integer');
+	$query = "REPLACE INTO `civicrm_value_area_information` SET `entity_id`= %{$count}, ".implode(', ',$fieldsToUpdate);
+	$updateResult = CRM_Core_DAO::executeQuery( $query, $params );	
+}
+
+function civimapit_lookupAreaData($postcode, $contactID=null){
+
+	if ($postcode == ''){
+		return;
+	}
+	$mapitResult = json_decode(@file_get_contents("http://mapit.mysociety.org/postcode/".urlencode($postcode)));
+	if ($mapitResult == ''OR count((array)$mapitResult->areas)==0){
+		CRM_Core_Session::setStatus('<br /><span style="color:red">Could not find valid postcode data (using \''.$postcode.'\') for contact with ID <a href="/civicrm/contact/view?reset=1&cid='.$contactID.'">'.$contactID.'</a> - please check your postcode. You could use the <a href="http://mapit.mysociety.org/">mapit api</a> to do that.</span>', true);
+		return;
+	}
+	//Need to calculate Ward and Council using shortcuts because the name for ward and local authority depends on the area this postcode is in
+
+	//If we are in a two tier area, we take the district ward and council, not the county ward and council because we want to retreive electoral wards	
+	if(is_object($mapitResult->shortcuts->ward)){		
+		$wardShortcut=$mapitResult->shortcuts->ward->district;
+		$councilShortcut=$mapitResult->shortcuts->council->district;
+		//If we are in northern Ireland
+		
+	} else {
+		$wardShortcut=$mapitResult->shortcuts->ward;
+		$councilShortcut=$mapitResult->shortcuts->council;
+	}
+	
+
+	$areaData['ward'] = $mapitResult->areas->{$wardShortcut}->name;
+	$areaData['la'] = $mapitResult->areas->{$councilShortcut}->name;
+	$areaData['ward_ons_code'] = $mapitResult->areas->{$wardShortcut}->codes->ons;
+	$areaData['la_ons_code'] = $mapitResult->areas->{$councilShortcut}->codes->ons;
+
+	//Other fields (apart from ward and council) are in general easier to deal with, and should be returned when present
+	$fieldsToReturn = array(
+		'WMC' => 'wm_constituency',
+		'EUR' => 'european_region'
+		);
+
+	foreach($mapitResult->areas as $area) {
+		if(in_array($area->type, array_keys($fieldsToReturn))){
+			$areaData[$fieldsToReturn[$area->type]]=$area->name;
+		}
+	}
+	
+	return $areaData;
+}
+
+
+
