@@ -1,3 +1,3 @@
 <?php
-define('CIVICRM_CONFDIR', '/var/www/gp/sites');
+define('CIVICRM_CONFDIR', '/var/www/drupal.green/sites');
 ?>
