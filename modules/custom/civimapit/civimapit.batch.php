@@ -33,9 +33,18 @@ require_once('CRM/Core/DAO.php');
 $params=array();
 $result = CRM_Core_DAO::executeQuery( $query, $params );
 while($result->fetch()){
-	print_r($result);
+//	print_r($result);
 	civimapit_updateContactAreaInfo($result->contact_id,$result->postal_code);
-	gpew_setparty_set_party($result->contact_id);
+
+
+	$params=array();
+	$params[1] = array( $result->contact_id, 'Integer');
+	$civicrm_value_gpew_party_information = CRM_Core_DAO::executeQuery( "SELECT * FROM civicrm_value_gpew_party_information WHERE entity_id=%1", $params );
+	$civicrm_value_gpew_party_information->fetch();		
+	
+	$party_ids=gpew_setparty_get_party_ids($result->contact_id, $civicrm_value_gpew_party_information->override_local_party, NULL, $civicrm_value_gpew_party_information->local_party_id);
+	gpew_setparty_set_party($result->contact_id, $party_ids);
+
 	if($result->tagged){
 		$params = array(
 			'contact_id' => $result->contact_id,
