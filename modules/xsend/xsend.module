@@ -1,0 +1,107 @@
+<?php
+// $Id: xsend.module,v 1.8.2.2 2010/06/18 05:14:26 heshanmw Exp $
+
+/**
+ * @file
+ * Enables the user to override the default PHP file transfer.
+ * @author Heshan Wanigasooriya <heshanmw at gmail dor com>
+ * @category file system
+ * @copyright Heshan Wanigasooriya
+ * @see #603488 patch by grendzy
+ */
+
+/**
+ * Implementation of hook_menu_alter().
+ * Override the default system/files menu handler.
+ */
+function xsend_menu_alter(&$items) {
+  $items['system/files']['page callback'] = 'xsend_file_transfer';
+}
+
+/**
+ * Implementation of hook_menu().
+ */
+function xsend_menu() {
+  $items = array();
+
+  $items['admin/settings/file-system/x-send'] = array(
+    'title' => 'X-Send File Settings',
+    'description' => 'Control how files may transfer to the users.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('xsend_admin_settings'),
+    'access arguments' => array('administer site configuration'),
+  );
+  return $items;
+}
+
+/**
+ * Transfer a private file with the X-Sendfile header.
+ * This is adapted from file_download().
+ * @see file_download()
+ */
+function xsend_file_transfer() {
+//  exit;
+//  return drupal_not_found();
+  if (variable_get('file_transfer_handler', "file_transfer_default") == 'file_transfer_default') {
+    $args = func_get_args();
+    call_user_func_array('file_download', $args);
+    exit();
+  }
+
+  // Merge remainder of arguments from GET['q'], into relative file path.
+  $args = func_get_args();
+  $filepath = implode('/', $args);
+
+  if (file_exists(file_create_path($filepath))) {
+    $headers = module_invoke_all('file_download', $filepath);
+    if (in_array(-1, $headers)) {
+      return drupal_access_denied();
+    }
+    if (count($headers)) {
+//      drupal_set_header('X-Sendfile: '. realpath(file_create_path($filepath)));
+      foreach ($headers as $header) {
+        // To prevent HTTP header injection, we delete new lines that are
+        // not followed by a space or a tab.
+        // See http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
+        $header = preg_replace('/\r?\n(?!\t| )/', '', $header);
+        drupal_set_header($header);
+      }
+      //http://www.slavefarm.com/system/files/imagecache/image_large/Levihs/1496799182.jpg
+//      $header_xsend = 'X-Sendfile: '. realpath(file_create_path($filepath));
+//      $header_xsend = preg_replace('/\r?\n(?!\t| )/', '', $header_xsend);
+//      drupal_set_header($header_xsend);
+//      header('X-Sendfile: '. realpath(file_create_path($filepath)));
+//      header($header_xsend);
+//      header("Content-type: application/octet-stream");
+//      header('Content-Disposition: attachment; filename="test.jpg"');
+      header('X-Sendfile: '. realpath(file_create_path($filepath)));
+      exit();
+    }
+  }
+  return drupal_not_found();
+}
+
+/**
+ * menu call back for admin settings
+ */
+function xsend_admin_settings() {
+  $form = array();
+  if(!in_array('mod_xsendfile', apache_get_modules())) {
+    drupal_set_message('X-send file module for apache2 is not installed in your system. Untill you correctly install it do not enable this module.', 'error');
+  }
+  else {
+    $form['settings_general'] = array(
+        '#type' => 'fieldset',
+        '#title' => 'Fast private file transfer settings',
+        '#collapsible' => TRUE,
+    );
+    $form['settings_general']['file_transfer_handler'] = array(
+        '#type' => 'radios',
+        '#title' => 'Xsend private file transfer support',
+        '#default_value' => variable_get('file_transfer_handler', "file_transfer_default"),
+        '#options' => array("file_transfer_default"=>t('Disabled'), "file_transfer_xsendfile"=>t('Enabled - files are transferred by Drupal.')),
+        '#description' => 'Enable X-send files support.'
+    );
+    return system_settings_form($form);
+  }
+}

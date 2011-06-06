@@ -1,0 +1,23 @@
+<?php
+// $Id: xsend.install,v 1.2 2009/09/22 19:29:05 heshanmw Exp $
+
+/**
+ * @file
+ * Enables the user to override the default PHP file transfer.
+ * @author Heshan Wanigasooriya <heshanmw at gmail dor com>
+ * @category file system
+ * @copyright
+ */
+
+
+/**
+ * Implementation of hook_install().
+ */
+function xsend_install() {
+  if(!in_array('mod_xsendfile', apache_get_modules())) {
+    drupal_set_message('X-send file module for apache2 is not installed in your system. See the readme for instructions.', 'error');
+  }
+  else {
+    drupal_set_message('X-send file module is installed in your system. Follow the instructions carefully to success rest of isntalling.');
+  }
+}

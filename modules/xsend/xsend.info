@@ -1,0 +1,12 @@
+; $Id: xsend.info,v 1.2 2009/09/22 19:29:05 heshanmw Exp $
+name = X-send File
+description = Enables you to transfer file faster and securly.
+package = File System
+core = 6.x
+
+; Information added by drupal.org packaging script on 2010-06-18
+version = "6.x-2.4"
+core = "6.x"
+project = "xsend"
+datestamp = "1276838410"
+

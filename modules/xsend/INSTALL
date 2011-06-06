@@ -1,0 +1,37 @@
+// $Id: INSTALL,v 1.2 2009/10/30 02:23:43 heshanmw Exp $
+
+REQUIREMENTS
+------------------------------------
+ - Apache2
+ - X-send file module installed
+
+
+INSTALL INSTRUCTIONS FOR MODULE
+-------------------------------------
+Install X-send file
+ - Download the mod_xsendfile.c from http://tn123.ath.cx/mod_xsendfile/
+ - Compile and install
+   apxs -cia mod_xsendfile.c
+ - Restart apache
+
+Install X-send file module
+ - Change your site file system to private (http://sitename/admin/settings/file-system)
+ - Follow standerd Drupal installation for module as below.
+ - Extract the module and copy module to sites/all/modules
+ - Enable the module
+ - Go to settings and set the path to Drupal installation directory.
+ - Enable the X-send support.
+ - ** Importent
+ - I tested only files directory as a subdirectory senario, if your files
+directory not in a sub directory then you do not need to add 
+"Absolute path to Drupal installation directory" settings, keep it blank. If your
+in a subdirectory then you need to add correct path to it with leading slash "/".
+ - go to .htaccess file and add following lines to the top of the file
+ - XSendFile on
+ - XSendFileAllowAbove on
+ - Go to files directory
+ - open the .htaccess file and add following lines to top of it
+ - Deny from all
+
+Thats all!!
+Good Luck!!
