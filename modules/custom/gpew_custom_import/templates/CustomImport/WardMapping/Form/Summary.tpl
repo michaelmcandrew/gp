@@ -38,7 +38,16 @@
     </p>
 </div>    
 
-<h3>Warnings</h3>
+<h3>Report</h3>
+<table class="report">
+{foreach from=$final_report item=line}
+	{if $line.type eq 'warning'}
+		<tr><td style="color:red">{$line.type}</td><td style="color:red">{$line.message}</td></tr>
+	{else}
+		<tr><td>{$line.type}</td><td>{$line.message}</td></tr>
+	{/if}	
+{/foreach}
+</table>
 
  
 <div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl" location="bottom"}</div>
