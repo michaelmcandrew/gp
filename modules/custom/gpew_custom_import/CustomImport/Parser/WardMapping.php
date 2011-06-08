@@ -68,6 +68,7 @@ class CustomImport_Parser_WardMapping extends CustomImport_Parser_Custom
 	}
 			
 	function getWards() {
+		// get all wards from the temp table that has just been created as the keys of an array (called $this->ward)
 		$params = array();
 		$this->ward = CRM_Core_DAO::executeQuery("SELECT * FROM {$this->db_table}", $params);
 	//	echo $this->db_table;
@@ -80,11 +81,12 @@ class CustomImport_Parser_WardMapping extends CustomImport_Parser_Custom
 	}
 	
 	function wardsValid(){
+		//this function checks to see if all the wards in the import file are valid, i.e. if they appear in the civicrm_gpew_ons table in CiviCRM
 		
+		// get all wards from the temp table that has just been created as the keys of an array (called $this->ward)
 		$this->getWards();
 		
-		// get all wards from the database and put add them as the keys of an array
-
+		// get all the wards that exist in CiviCRM
 		$params=array();
 		$query="
 			SELECT code
@@ -94,30 +96,30 @@ class CustomImport_Parser_WardMapping extends CustomImport_Parser_Custom
 		
 		$WardMappingResult = CRM_Core_DAO::executeQuery( $query, $params );
 		while($WardMappingResult->fetch()){
-			$allWards[$WardMappingResult->code]=1;
+			$remainingWardsInCivi[$WardMappingResult->code]=1;
 		}
-		$allWardsForValidCheck=$allWards;
-		// go through all wards in the file
+		$allWardsInCivi=$remainingWardsInCivi;
 		
+		//foreach ward in CiviCRM
 		while($this->ward->fetch()){
 			
-			// if the ward code in the file is present in the list of all ward codes, remove it.
-			
-			if(array_key_exists($this->ward->ons_code, $allWards)){
-				unset($allWards[$this->ward->ons_code]);
+			// if the ward code in the file is present in the list of all ward codes from Civi, remove it from 
+			if(array_key_exists($this->ward->ons_code, $remainingWardsInCivi)){
+				unset($remainingWardsInCivi[$this->ward->ons_code]);
 			}
-			if(!array_key_exists($this->ward->ons_code, $allWardsForValidCheck)){
+			// if the ward code is not in the list of all ward codes from Civi, add it to non existent wards. 
+			if(!array_key_exists($this->ward->ons_code, $allWardsInCivi)){
 				$nonExistentWards[$this->ward->ons_code] = 1;
 			}
 		}
 		
-		// by this point, if the ward file contains all the wards in the database, the array $allWards should be empty.  If not, the code below reports which wards are missing
-		
-		if(count($allWards)){
-			foreach($allWards as $ons_code => $void){
+		// by this point, if the ward file contains all the wards in the database, the array $allWardsInCivi should be empty.  If not, the code below reports which wards are missing
+		if(count($remainingWardsInCivi)){
+			foreach($remainingWardsInCivi as $ons_code => $void){
 				$this->addReportLine('warning', "Ward code $ons_code missing from import file.");
 			}	
-		}		
+		}
+		// if there were any files in the ward file that weren't in the database they will be mentioned here.
 		if(count($nonExistentWards)){
 			foreach($nonExistentWards as $ons_code => $void){
 				$this->addReportLine('warning', "Ward code $ons_code is invalid (does not exist in postcode - ward mapping file).");
@@ -131,8 +133,7 @@ class CustomImport_Parser_WardMapping extends CustomImport_Parser_Custom
 		
 		$this->getWards();
 		
-		// get all local parties from the database and put add them as the keys of an arrays (with names as values - useful later)
-		
+		// get all local parties from the database and store them as the keys of an arrays (with names as values - useful later)
 		$params=array();
 		$query="
 			SELECT id, display_name
@@ -181,6 +182,7 @@ class CustomImport_Parser_WardMapping extends CustomImport_Parser_Custom
 	
 	function import(){
 
+		//check for wards / local parties that are either not specified in the import, or are not valid (i.e. don't exist in CiviCRM)
 		$this->wardsValid();
 		$this->localPartiesValid();
 
@@ -204,14 +206,13 @@ class CustomImport_Parser_WardMapping extends CustomImport_Parser_Custom
 					$this->ward->local_party_contact_id!='NULL' &&
 					!array_key_exists($this->ward->local_party_contact_id, $this->nonExistentPartyIds) &&
 					!array_key_exists($this->ward->ons_code, $this->nonExistentWards)
-						 //TODO add another condition here to see if the local party id for 
 				){
-					$updateQueryList[]="UPDATE civicrm_gpew_ward_local_party SET local_party_contact_id = {$this->ward->local_party_contact_id} WHERE ward_ons_code='{$this->ward->ons_code}'";
-				}
-				
-			}
-			foreach($updateQueryList as $updateQuery){
-				CRM_Core_DAO::executeQuery($updateQuery,$params);
+					$params=array();
+					$params[1] = array( $this->ward->ons_code, 'String');
+					$params[2] = array( $this->ward->local_party_contact_id, 'Integer');
+					$query = "INSERT INTO civicrm_gpew_ward_local_party SELECT %1, %2 ON DUPLICATE KEY UPDATE local_party_contact_id = %2";
+					$result = CRM_Core_DAO::executeQuery( $query, $params );	
+				}				
 			}
 		}
 	}
