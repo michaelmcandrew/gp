@@ -117,8 +117,11 @@ class CustomImport_Parser_DD extends CustomImport_Parser_Custom
 				$this->addReportLine('warning', "Payment integration reference was blank.");
 				return 'none';
 			}
+			$TGPQueryParams[1] = array( $this->getCurrent('tgp'), 'String');
+			$TGPQuery = CRM_Core_DAO::executeQuery("SELECT * FROM civicrm_value_external_identifiers_5 WHERE direct_debit_reference_16=%1", $TGPQueryParams);
+			$TGPQuery->fetch();			
 			$contactParams=array(
-				'custom_16'=>$this->getCurrent('tgp'),
+				'contact_id'=>$TGPQuery->entity_id
 			);
 			require_once "api/v2/Contact.php";
 			$searchResult=civicrm_contact_search($contactParams);
@@ -127,9 +130,6 @@ class CustomImport_Parser_DD extends CustomImport_Parser_Custom
 				$this->currentContactArray=current($searchResult);
 				$this->getContactLink($searchResult);
 				$this->addReportLine('info', "Payment integration reference {$this->getCurrent('tgp')} found in one CiviCRM contact {$this->getContactLink(current($searchResult))}");
-				$TGPQueryParams[1] = array( $this->currentContactArray['civicrm_value_external_identifiers_5_id'], 'Integer');
-				$TGPQuery = CRM_Core_DAO::executeQuery("SELECT * FROM civicrm_value_external_identifiers_5 WHERE id=%1", $TGPQueryParams);
-				$TGPQuery->fetch();
 				$this->current['is_membership_tgp']=$TGPQuery->is_membership_payment_55;
 				$this->current['tgp_info']=$TGPQuery;
 				return 'one';
