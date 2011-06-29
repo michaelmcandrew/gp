@@ -36,9 +36,9 @@ function gpew_capitation_civicrm_post( $op, $objectName, $objectId, &$objectRef 
 	gpew_capitation_capitate($objectRef->id);
 }
 
-//rework this function so that it takes contribution id and asks for itself (using the API) the contact id and the total amount
-
-function gpew_capitation_capitate($contribution_id, $time_period='annual', $membership_fee='look_up'){
+function gpew_capitation_capitate($contribution_id, $membership_fee='look_up', $update_party=TRUE){
+	
+	//if the time period has not been set, look it up.  The fall back is that it should be annually
 	
 	require_once 'api/v2/Contribute.php';
 	$params = array('contribution_id'=>$contribution_id);        
@@ -47,20 +47,23 @@ function gpew_capitation_capitate($contribution_id, $time_period='annual', $memb
 	$contact_id = $contribution['contact_id']; 
     
 	//check what membership type the member has already been set, or needs to be looked up
-	if(!is_numeric($membership_fee)){
+	if($membership_fee=='look_up'){
 		$membership_fee=gpew_capitation_lookup_membership_fee($contact_id);
 	}
 	
+	//set default time period
+	$time_period = gpew_capitation_get_membership_payment_frequency($contact_id);
+	
 	//account for membership fee payments covering less that a year
 	$time_period_factors = array(
-		'annual'=>1,
-		'half-yearly'=>2,
-		'monthly'=>12,
-		'quarterly'=>3					
+		'Annually'=>1,
+		'Half-yearly'=>2,
+		'Monthly'=>12,
+		'Quarterly'=>3					
 	);
 	
 	if(in_array($time_period, array_keys($time_period_factors))){
-		$membership_fee = $membership_fee / $time_period_factors[$time_period]; 		
+		$membership_fee = round($membership_fee / $time_period_factors[$time_period], 2); 		
 	}
 	
 	//initialise capitation array
@@ -70,13 +73,12 @@ function gpew_capitation_capitate($contribution_id, $time_period='annual', $memb
 		'capitatable_amount' => 0,
 		'extra_amount' => 0,
 		'national_amount' => 0,
-		'local_contact_id' => 0,
 		'local_amount' => 0,
- 		'regional_contact_id' => 0,
 		'regional_amount' => 0
 	);
 
 	//calculate capitation amounts
+	
 	if($total_amount > $membership_fee){
 		$capitation['extra_amount'] = $capitation['total_amount'] - $membership_fee;
 		$capitation['capitatable_amount'] = $membership_fee;
@@ -88,7 +90,7 @@ function gpew_capitation_capitate($contribution_id, $time_period='annual', $memb
 	$capitation['national_amount'] = $capitation['capitatable_amount'] - ($capitation['local_amount'] + $capitation['regional_amount']);
 	
 	//assign local and regional party
-
+	
 //	API can return custom data :)
 
 	// require_once 'api/v2/Contact.php';
@@ -99,21 +101,22 @@ function gpew_capitation_capitate($contribution_id, $time_period='annual', $memb
 	// 	);
 	// $result=civicrm_contact_get($params);
 	// $party_ids=current($result);
-	
-	require_once 'CRM/Core/BAO/CustomValueTable.php';
-	$params = array(
-		'entityID' => $contact_id,
-		'custom_51' => 1,
-		'custom_52' => 1,
-		);
-		
-	$result=CRM_Core_BAO_CustomValueTable::getValues($params);
-	$party_ids=$result;
-	
-	
-	//set this based on the contacts current local and regional party
-	$capitation['local_contact_id'] = $party_ids['custom_51'];
-	$capitation['regional_contact_id'] = $party_ids['custom_52'];	
+	if($update_party==TRUE){
+		require_once 'CRM/Core/BAO/CustomValueTable.php';
+		$params = array(
+			'entityID' => $contact_id,
+			'custom_51' => 1,
+			'custom_52' => 1,
+			);
+
+		$result=CRM_Core_BAO_CustomValueTable::getValues($params);
+		$party_ids=$result;
+
+
+		//set this based on the contacts current local and regional party
+		$capitation['local_contact_id'] = $party_ids['custom_51'];
+		$capitation['regional_contact_id'] = $party_ids['custom_52'];			
+	}
 	
 	$labelTranslation = array (
 		'national_amount' => 'national_party_5',
@@ -134,7 +137,10 @@ function gpew_capitation_capitate($contribution_id, $time_period='annual', $memb
 		}
 	}
 	$params[$count] = array( $contribution_id, 'Integer');
-	$query = "REPLACE INTO `".GPEW_CAPITATION_TABLE."` SET `entity_id`= %{$count}, ".implode(', ',$fieldsToUpdate);
+	$query = "INSERT INTO ".GPEW_CAPITATION_TABLE." SET `entity_id`= %{$count}, ".implode(', ',$fieldsToUpdate)." ON DUPLICATE KEY UPDATE `entity_id`= %{$count}, ".implode(', ',$fieldsToUpdate);
+	// print_r(date('c')."\n");
+	// print_r($params);
+	// print_r($query);	
 	$updateResult = CRM_Core_DAO::executeQuery( $query, $params );
 	
 }
@@ -151,7 +157,22 @@ function gpew_capitation_is_current_member($contact_id){
 	return TRUE;
 }
 	
+function gpew_capitation_get_membership_payment_frequency($contact_id) {
+	$params[1] = array( $contact_id, 'Integer');
+	$query = "
+		SELECT civicrm_membership_custom.membership_payment_frequency_63 AS freq
+		FROM civicrm_membership
+		JOIN civicrm_value_membership_information_9 AS civicrm_membership_custom ON civicrm_membership_custom.entity_id=civicrm_membership.id
+		WHERE civicrm_membership.contact_id=%1
+	";
+	$result = CRM_Core_DAO::executeQuery( $query, $params );
+	$result->fetch();
+	return $result->freq;
+}
+
+
 function gpew_capitation_lookup_membership_fee($contact_id) {
+	//todo - need to account for lower wage memberships
 	require_once 'api/v2/Membership.php';
 	$params = array( 'contact_id' => $contact_id);
   	$result = civicrm_membership_contact_get($params);
