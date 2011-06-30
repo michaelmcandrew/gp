@@ -371,10 +371,24 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 				
 				//add custom data to membership to say that it is paid by direct debit
 				$params[1]=array( $result['id'], 'Integer');
+				$freqTrans2=array(
+					'Annually'=>'Annually',
+					'Half Yearly'=>'Half-yearly',
+					'Monthly'=>'Monthly',
+					'Quarterly'=>'Quarterly'					
+				);
+				
+				$params[2]=array( $freqTrans2[$this->getCurrent('frequency')], 'String');
 				$query = "
 					INSERT INTO civicrm_value_membership_information_9
-					SET pays_membership_by_direct_debit_54 = 1, entity_id = %1
-					ON DUPLICATE KEY UPDATE pays_membership_by_direct_debit_54 = 1;";				
+						SET
+							pays_membership_by_direct_debit_54 = 1,
+							membership_payment_frequency_63 = %2,
+							entity_id = %1
+					ON DUPLICATE KEY
+						UPDATE
+							pays_membership_by_direct_debit_54 = 1
+							membership_payment_frequency_63 = %2;";				
 				$result = CRM_Core_DAO::executeQuery( $query, $params );
 				
 
