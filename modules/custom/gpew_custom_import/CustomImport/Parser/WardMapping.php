@@ -212,7 +212,13 @@ class CustomImport_Parser_WardMapping extends CustomImport_Parser_Custom
 					$params[2] = array( $this->ward->local_party_contact_id, 'Integer');
 					$query = "INSERT INTO civicrm_gpew_ward_local_party SELECT %1, %2 ON DUPLICATE KEY UPDATE local_party_contact_id = %2";
 					$result = CRM_Core_DAO::executeQuery( $query, $params );	
-				}				
+				} elseif($this->ward->local_party_contact_id=='NULL') {
+					$params=array();
+					$params[1] = array( $this->ward->ons_code, 'String');
+					$query = "DELETE FROM civicrm_gpew_ward_local_party WHERE ward_ons_code=%1";
+					$result = CRM_Core_DAO::executeQuery( $query, $params );	
+					
+				}		
 			}
 		}
 	}
