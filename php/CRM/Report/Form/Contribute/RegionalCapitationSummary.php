@@ -321,13 +321,13 @@ class CRM_Report_Form_Contribute_RegionalCapitationSummary extends CRM_Report_Fo
                 }
             }
         }
-		
-		
-         $select[] = "sum(value_capitation_4_civireport.regional_capitation_11) as regional_capitation";
-         $this->_columnHeaders["regional_capitation"]['type']  = MONEY;
-         $this->_columnHeaders["regional_capitation"]['title'] = 'Regional Capitation';
+				
+        $select[] = "sum(value_capitation_4_civireport.regional_capitation_11) as regional_capitation";
+        $this->_columnHeaders["regional_capitation"]['type']  = MONEY;
+        $this->_columnHeaders["regional_capitation"]['title'] = 'Regional Capitation';
 
-        $this->_select = "SELECT " . implode( ', ', $select );
+
+        $this->_select = "SELECT " . implode( ', ', $select ) . " ";
     }
 
     static function formRule( $fields, $files, $self ) {  

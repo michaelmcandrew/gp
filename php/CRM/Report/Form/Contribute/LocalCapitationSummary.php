@@ -222,6 +222,7 @@ class CRM_Report_Form_Contribute_LocalCapitationSummary extends CRM_Report_Form 
     function select( ) {
         $select = array( );
         $this->_columnHeaders = array( );
+
         foreach ( $this->_columns as $tableName => $table ) {
             if ( array_key_exists('group_bys', $table) ) {
                 foreach ( $table['group_bys'] as $fieldName => $field ) {
