@@ -37,7 +37,7 @@
 require_once 'CRM/Report/Form.php';
 require_once 'CRM/Contribute/PseudoConstant.php';
 
-class CRM_Report_Form_Contribute_LocalCapitationDetail extends CRM_Report_Form {
+class CRM_Report_Form_Contribute_CapitationDetail extends CRM_Report_Form {
     protected $_addressField = false;
 
     protected $_emailField   = false;
