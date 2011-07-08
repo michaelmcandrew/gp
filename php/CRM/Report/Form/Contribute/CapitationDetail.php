@@ -50,7 +50,7 @@ class CRM_Report_Form_Contribute_LocalCapitationDetail extends CRM_Report_Form {
     function __construct( ) {
 	
 		//get selects for local and regional parties
-		$lps[0]=$rps[0]='- select party -';
+		$lps['']=$rps['']='- select party -';
 		$lpq = CRM_Core_DAO::executeQuery( "SELECT id, display_name FROM `civicrm_contact` WHERE `contact_sub_type` = 'Local_Party'", array() );		
 		while($lpq->fetch()){
 			$lps[$lpq->id]=$lpq->display_name;
@@ -213,6 +213,11 @@ class CRM_Report_Form_Contribute_LocalCapitationDetail extends CRM_Report_Form {
 							'title' => ts( 'Local party' ),
 							'operatorType' => CRM_Report_Form::OP_SELECT,
 							'options' => $lps,
+						),
+						'region_9' => array(
+							'title' => ts( 'Regional party' ),
+							'operatorType' => CRM_Report_Form::OP_SELECT,
+							'options' => $rps,
 						)
 					)
 		        );
