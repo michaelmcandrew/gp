@@ -13,6 +13,9 @@ define('GPEW_CAPITATION_LOCAL_CONTACT_ID', 'local_party_10');
 define('GPEW_CAPITATION_REGIONAL_AMOUNT', 'regional_capitation_11');
 define('GPEW_CAPITATION_LOCAL_AMOUNT', 'local_capitation_12');
 
+define('GPEW_CAPITATION_LOW_WAGE_SINGLE', 10.50);
+define('GPEW_CAPITATION_LOW_WAGE_JOINT', 13);
+
 //TODO: Check if the contact has local party information, or update their local party information regardless each time this hook is fired.  This is needed short term because we aren't sure whether the contact has decent local party information.
 
 function gpew_capitation_civicrm_post( $op, $objectName, $objectId, &$objectRef ) {
@@ -69,7 +72,6 @@ function gpew_capitation_capitate($contribution_id, $membership_fee='look_up', $
 	//initialise capitation array
 	$capitation = array(
 		'total_amount' => $total_amount,
-		'membership_fee' => $membership_fee,
 		'capitatable_amount' => 0,
 		'extra_amount' => 0,
 		'national_amount' => 0,
@@ -79,10 +81,32 @@ function gpew_capitation_capitate($contribution_id, $membership_fee='look_up', $
 
 	//calculate capitation amounts
 	
+	//if the membership payment is larger than the membership fee, then there is an extra donation.
 	if($total_amount > $membership_fee){
 		$capitation['extra_amount'] = $capitation['total_amount'] - $membership_fee;
 		$capitation['capitatable_amount'] = $membership_fee;
-	} else {
+	} elseif($total_amount < $membership_fee){
+	//if the membership payment is less than the membership fee, then presume it is low wage with an extra donation
+	
+		//retreive the appropriate low wage membership fee (depends on whether it is single or joint)
+		echo $membership_type = gpew_capitation_get_membership_type($contact_id);
+		if($membership_type == 1){
+			$membership_fee = GPEW_CAPITATION_LOW_WAGE_SINGLE;
+		}elseif($membership_type == 10){
+			$membership_fee = GPEW_CAPITATION_LOW_WAGE_JOINT;
+		}
+		//make the appropriate adjustment for the time period
+		if(in_array($time_period, array_keys($time_period_factors))){
+			$membership_fee = round($membership_fee / $time_period_factors[$time_period], 2); 		
+		}
+		if($capitation['total_amount'] > $membership_fee){
+			$capitation['extra_amount'] = $capitation['total_amount'] - $membership_fee;
+			$capitation['capitatable_amount'] = $membership_fee;
+		}else{
+			$capitation['capitatable_amount'] = $capitation['total_amount'];
+		}
+		
+	} else{
 		$capitation['capitatable_amount'] = $capitation['total_amount'];	
 	}
 	$capitation['local_amount'] = round($capitation['capitatable_amount'] * GPEW_CAPITATION_LOCAL_CAP_PERCENT, 2);
@@ -91,16 +115,6 @@ function gpew_capitation_capitate($contribution_id, $membership_fee='look_up', $
 	
 	//assign local and regional party
 	
-//	API can return custom data :)
-
-	// require_once 'api/v2/Contact.php';
-	// $params = array(
-	// 	'contact_id' => $contact_id,
-	// 	'return_'.GPEW_CAPITATION_LOCAL_PARTY_CUSTOM_FIELD => 1,
-	// 	'return_'.GPEW_CAPITATION_REGIONAL_PARTY_CUSTOM_FIELD => 1
-	// 	);
-	// $result=civicrm_contact_get($params);
-	// $party_ids=current($result);
 	if($update_party==TRUE){
 		require_once 'CRM/Core/BAO/CustomValueTable.php';
 		$params = array(
@@ -170,6 +184,18 @@ function gpew_capitation_get_membership_payment_frequency($contact_id) {
 	return $result->freq;
 }
 
+function gpew_capitation_get_membership_type($contact_id) {
+	$params[1] = array( $contact_id, 'Integer');
+	$query = "
+		SELECT membership_type_id
+		FROM civicrm_membership
+		WHERE civicrm_membership.contact_id=%1
+	";
+	$result = CRM_Core_DAO::executeQuery( $query, $params );
+	$result->fetch();
+	return $result->membership_type_id;
+}
+
 
 function gpew_capitation_lookup_membership_fee($contact_id) {
 	//todo - need to account for lower wage memberships
@@ -177,7 +203,7 @@ function gpew_capitation_lookup_membership_fee($contact_id) {
 	$params = array( 'contact_id' => $contact_id);
   	$result = civicrm_membership_contact_get($params);
 	// just get first membership for now, i.e. don't worry about the edge case when someone will have more than one membership
-	$memebership=current(current($result));
+	$membership=current(current($result));
 	$params = array ( 'id' => $membership['membership_type_id'] );
 	$membership_type=current(civicrm_membership_types_get($params));
 	return $membership_type['minimum_fee'];
