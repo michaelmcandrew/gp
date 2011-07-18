@@ -167,7 +167,7 @@ class CRM_Report_Form_Contribute_CapitationDetail extends CRM_Report_Form {
 		'operatorType' => CRM_Report_Form::OP_MULTISELECT,
 		'options' => CRM_Contribute_PseudoConstant::contributionType( ),
 		'default' => array( 2 ),
-		'no_display'=>TRUE
+		'no_display'=>FALSE
 	),
 	// 'contribution_status_id' => array(
 	// 	'title' => ts( 'Contribution Status' ),
