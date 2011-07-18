@@ -62,7 +62,7 @@ function gpew_capitation_capitate($contribution_id, $membership_fee='look_up', $
 		'Annually'=>1,
 		'Half-yearly'=>2,
 		'Monthly'=>12,
-		'Quarterly'=>3					
+		'Quarterly'=>4					
 	);
 	
 	if(in_array($time_period, array_keys($time_period_factors))){
@@ -89,7 +89,7 @@ function gpew_capitation_capitate($contribution_id, $membership_fee='look_up', $
 	//if the membership payment is less than the membership fee, then presume it is low wage with an extra donation
 	
 		//retreive the appropriate low wage membership fee (depends on whether it is single or joint)
-		echo $membership_type = gpew_capitation_get_membership_type($contact_id);
+		$membership_type = gpew_capitation_get_membership_type($contact_id);
 		if($membership_type == 1){
 			$membership_fee = GPEW_CAPITATION_LOW_WAGE_SINGLE;
 		}elseif($membership_type == 10){
