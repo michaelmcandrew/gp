@@ -187,7 +187,7 @@ WHERE  inst.report_id = %1";
                             $value =  CRM_Utils_Date::customFormat( $value,'%Y-%m-%d' );
                         }
                     } else if ( CRM_Utils_Array::value( 'type', $form->_columnHeaders[$v] ) == 1024 ) {
-                        $value =  CRM_Utils_Money::format( $value );
+                        $value =  round( $value, 2);
                     }
                     $displayRows[$v] = '"'. $value .'"'; 
                 } else {
