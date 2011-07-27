@@ -313,7 +313,7 @@ $coaText
 	}
 	
 	$email['from']=$email['reply-to']="office@greenparty.org.uk";
-	$email['subject']="Member has updated contact details / moved party";
+	$email['subject']="Member's details have been updated";
 	
 	require_once('CRM/Utils/Mail.php');
 	
