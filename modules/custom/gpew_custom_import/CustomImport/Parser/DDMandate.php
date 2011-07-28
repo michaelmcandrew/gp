@@ -387,7 +387,7 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 							entity_id = %1
 					ON DUPLICATE KEY
 						UPDATE
-							pays_membership_by_direct_debit_54 = 1
+							pays_membership_by_direct_debit_54 = 1,
 							membership_payment_frequency_63 = %2;";				
 				$result = CRM_Core_DAO::executeQuery( $query, $params );
 				
