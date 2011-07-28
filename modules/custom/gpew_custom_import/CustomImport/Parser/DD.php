@@ -120,27 +120,28 @@ class CustomImport_Parser_DD extends CustomImport_Parser_Custom
 			$TGPQueryParams[1] = array( $this->getCurrent('tgp'), 'String');
 			$TGPQuery = CRM_Core_DAO::executeQuery("SELECT * FROM civicrm_value_external_identifiers_5 WHERE direct_debit_reference_16=%1", $TGPQueryParams);
 			$TGPQuery->fetch();			
-			$contactParams=array(
-				'contact_id'=>$TGPQuery->entity_id
-			);
-			require_once "api/v2/Contact.php";
-			$searchResult=civicrm_contact_search($contactParams);
 			
-			if(count($searchResult)==1) {
+			if($TGPQuery->N==1) {
+				
+				$TGPQuery->fetch();			
+				$contactParams=array(
+					'contact_id'=>$TGPQuery->entity_id
+				);
+				require_once "api/v2/Contact.php";
+				$searchResult=civicrm_contact_search($contactParams);
+				
 				$this->currentContactArray=current($searchResult);
 				$this->getContactLink($searchResult);
 				$this->addReportLine('info', "Payment integration reference {$this->getCurrent('tgp')} found in one CiviCRM contact {$this->getContactLink(current($searchResult))}");
 				$this->current['is_membership_tgp']=$TGPQuery->is_membership_payment_55;
 				$this->current['tgp_info']=$TGPQuery;
+				
 				return 'one';
-			} elseif(count($searchResult)>1) {
-				foreach($searchResult as $contact){
-					$contactText[]=$this->getContactLink($contact);
-				}
+			} elseif($TGPQuery->N>1) {
 				$contactsText=implode(', ', $contactText);
-				$this->addReportLine('warning', "More than one contacts have payment integration reference {$this->getCurrent('tgp')} ({$contactsText}).");
+				$this->addReportLine('warning', "More than one contacts have payment integration reference {$this->getCurrent('tgp')}.");
 				return 'more than one';
-			} elseif(count($searchResult)==0) {
+			} elseif($TGPQuery->N==0) {
 				$this->addReportLine('info', "No contact has payment integration reference {$this->getCurrent('tgp')}.");
 				return 'none';
 			}

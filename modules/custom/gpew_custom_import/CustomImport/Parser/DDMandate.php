@@ -119,19 +119,19 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 	function isValidCandidate() {
 	        $valid = TRUE;
 	        if($this->getCurrent('start_date') ==''){
-	                $this->addReportLine('warning', "{$this->getCurrent('tgp')} has no valid start date.");
+	                $this->addReportLine('warning', "{$this->getCurrent('tgp')} has no valid start date (not imported).");
 	                $valid = FALSE;
 	        }
 	        if($this->getCurrent('account_details_validated')=='FALSE'){
-	                $this->addReportLine('warning', "{$this->getCurrent('tgp')} not imported: AccountDetailsValidated is FALSE");
+	                $this->addReportLine('warning', "{$this->getCurrent('tgp')}: AccountDetailsValidated is FALSE (not imported).");
 	                $valid = FALSE;
 	        }
 	        if($this->getCurrent('start_date') > new DateTime('+100 days')){
-	                $this->addReportLine('warning', "{$this->getCurrent('tgp')} not imported: start date more than 100 days in the future.");
+	                $this->addReportLine('warning', "{$this->getCurrent('tgp')}: start date more than 100 days in the future (not imported).");
 	                $valid = FALSE;
 	        }
 	        if($contact['IsTestData']=='TRUE'){
-	                $this->addReportLine('warning', "{$this->getCurrent('tgp')} not imported: is test data.");
+	                $this->addReportLine('warning', "{$this->getCurrent('tgp')}: is test data (not imported).");
 	                $valid = FALSE;
 	        }               
 	        return $valid;
