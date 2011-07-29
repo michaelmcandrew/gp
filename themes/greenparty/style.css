@@ -457,8 +457,10 @@ body#groups #pri h2, body#groups #pri .node a { color: #008db8; }
 .node table#attachments td { padding: 1em; }
 
 /* Forums */
-#forum, #forum table { width: 100%; }
-#forum th { padding: .5em 1em; vertical-align: baseline; }
+#forum { width: 100%; }
+#forum table { width: 460px; }
+#forum { overflow: hidden; }
+#forum th { padding: .5em; vertical-align: baseline; }
 #forum td { padding: .5em; vertical-align: top; }
 #forum table td.forum { background-position: 7px 7px; padding-left: 30px; }
 #forum .links { margin: 1em 0; padding: 5px 0; border-top: 1px dotted #d6d6d6; border-bottom: 1px dotted #d6d6d6; }
