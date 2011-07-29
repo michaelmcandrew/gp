@@ -1,0 +1,19 @@
+Index: mimemail.module
+===================================================================
+--- mimemail.module	(revision 2127)
++++ mimemail.module	(working copy)
+@@ -207,6 +207,14 @@
+ 
+   $engine = variable_get('mimemail_engine', 'mimemail') .'_mailengine';
+   
++  // Backward compatabile mail_alter call to work with legacy modules doing mail_alter's
++  //  - doesn't support passing all the variables used here (e.g. attachements)
++  //  - should also provide a hook_mimemail_alter for full mimemail support
++  foreach (module_implements('mail_alter') AS $module) {
++    $function = $module .'_mail_alter';
++    $function($mailkey, $recipient, $subject, $body, $sender, $headers);
++  }
++  
+   if (!function_exists($engine)) {
+     return false;
+   }
