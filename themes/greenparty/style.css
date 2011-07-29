@@ -476,6 +476,9 @@ div.comment .comment-title { clear: left; }
 div.comment .content { margin-top: 5px; }
 
 .profile .picture { margin-top: 35px; }
+#forum td.created, #forum td.posts, #forum td.topics, #forum td.last-reply, #forum td.replies, #forum td.pager {
+    white-space: normal;
+}
 
 /* Views general styles */
 .block-views { margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px dotted #d6d6d6; }
