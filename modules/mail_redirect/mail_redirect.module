@@ -1,0 +1,151 @@
+<?php
+// $Id: mail_redirect.module,v 1.6 2010/05/02 22:49:05 ptalindstrom Exp $   
+
+/* TODO New hook_mail implementation
+   Because of changes to drupal_mail function, you need to move the variables
+   setup and string replace commands into the hook_mail implementation and then
+   call drupal_mail with the name of the module which contains this
+   implementation, the mailkey, the recipient, the language of the user the mail
+   goes to and some arbitrary parameters. */
+
+
+/* redirect any system generated email to your configured email domain
+*    usage:
+*       - in your test site's settings.php set:
+*       $conf = array('mail_redirect_domain' => "mydomain.com");
+* 
+*   result:
+*       - input $to:    john_smith@about.com
+*       - output $to:   john_smith@mydomain.com
+* 
+*   See README.txt for additional details on test setup
+* 
+*/
+
+      
+/**
+ * Implementation of hook_help().
+ */    
+function mail_redirect_help($path='', $arg) {
+  switch ($path) {
+    case 'admin/modules#description':
+      return t('Redirects ALL system generated email to a test mail domain. Works with any mail generated
+      by drupal_mail() or (with included patch applied) any module that uses mimemail. Used for testing 
+      mail functions on test sites with real email addresses in the db. Be sure to add: 
+      $conf = array(\'mail_redirect_domain\' => "mydomain.com"); in your settings.php');
+  }
+}
+
+
+/**
+* Implementation of hook_menu()
+*/
+function mail_redirect_menu() {
+  $items = array();
+
+  $items['admin/settings/mail_redirect'] = array(
+    'title' => 'Mail Redirect',
+    'description' => 'Settings for Mail Redirect module.',
+    'access arguments' => array('administer site configuration'), 
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('mail_redirect_admin_settings'), 
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  return $items;
+}
+
+// System Admin Form - callback for menu item listed above
+function mail_redirect_admin_settings() {
+  // system settings     
+  $form['mail_redirect_domain'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Redirect Mail Domain'),
+    '#default_value' => variable_get('mail_redirect_domain', null),
+    '#description' => t("Set the redirect mail domain to that of your catch-all mail test server. See README.txt for more info."),
+  );       
+
+  return system_settings_form($form);
+}
+
+/* 
+* Implement mail_alter hook to replace domain of all email addresses
+* redirect any system generated email to your configured email domain
+* 
+*   shows a msg to indicate whenever an email has been redirected.
+*/
+function mail_redirect_mail_alter(&$message) {
+
+  $mydomain = 'thirdsectordesign.org';
+  
+  if ($mydomain != 'NA') {
+    drupal_set_message(t("The following TO address or list: %to has been redirected to the following TEST DOMAIN: %mydomain",
+      array('%to' => $message['to'], '%mydomain' => $mydomain), 'status'));
+    
+    /* need to handle RFC2822 formats for $message['to']:
+    *    user@example.com
+    *    user@example.com, anotheruser@example.com
+    *    User <user@example.com>
+    *    User <user@example.com>, Another User <anotheruser@example.com>
+    */ 
+        
+    if (stristr($message['to'], ",")) {      // then we have a list
+      $tos = split(",", $message['to']);
+      array_walk($tos, '_mail_redirect_trim_array_values');
+    }
+    else $tos = (array)$message['to'];            
+   
+    foreach ($tos as $key => $to) { 
+      if (stristr($to, "<")) {
+		$tos[$key] = preg_replace('^(.*)<((.+)@.+)>^', "$1<gpcatch+$3@$mydomain>", $to);   	
+	  } else {
+		$tos[$key] = preg_replace('^((.+)@.+)^', "gpcatch+$2@$mydomain", $to);
+      }
+	}
+    
+    $message['to'] = join(",", $tos);
+  }
+}
+
+/**
+ * Implementation of hook_requirements(). 
+ *    - To add to note if mail redirect is defined
+ *    - also does check if mimemail has been patched
+ */
+function mail_redirect_requirements($phase) {
+  $requirements = array();
+  if ($phase == 'runtime') {
+    if (stristr(variable_get('mail_redirect_domain', null), ".")) {
+      $mimenote = "";
+      $msg = "Site mail is being redirected to <strong>". variable_get('mail_redirect_domain', null) ."</strong>";
+      $severity = REQUIREMENT_WARNING;
+      // check if mimemail module is installed and if it has been patched
+      if (module_exists("mimemail")) {
+        $mimenote = "Mimemail is being used on your site, ";
+        $mimemail_code = file_get_contents(drupal_get_path('module', 'mimemail') . "/mimemail.module");
+        if (stristr($mimemail_code, "module_implements('mail_alter')")) {
+          $mimenote .= "and it has been patched to work with Mail Redirect";
+          $severity = REQUIREMENT_WARNING;
+        }
+        else {
+          $mimenote .= "BUT it has NOT been patched to work with Mail Redirect";
+          $severity = REQUIREMENT_ERROR;
+        }
+      }
+    }
+    else {
+      $msg = "Mail redirect is installed but your mail is not set to be redirected.";
+      $severity = REQUIREMENT_ERROR;
+    }  
+    $requirements['mail_redirect_status'] = array(
+      'title' => 'Mail Redirect',
+      'value' => $msg ."<br>". $mimenote,
+      'severity' => $severity,
+    );
+  }
+  return $requirements;
+}
+
+function _mail_redirect_trim_array_values(&$value) {
+  $value = trim($value);
+}

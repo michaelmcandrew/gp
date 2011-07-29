@@ -1,0 +1,45 @@
+<?php
+// $Id: mail_redirect.install,v 1.1 2009/10/20 21:26:11 ptalindstrom Exp $  
+
+function mail_redirect_install() {
+
+  // set system weight so that mail_redirect runs after other modules
+  db_query("UPDATE {system} SET weight = 20 WHERE name = 'mail_redirect'");
+  
+  // warn users that they need to still set mail_redirect_domain for this module to do anything
+  
+  if (stristr(variable_get('mail_redirect_domain', null), ".")) {
+    $mimenote = "";
+    $msg = "<strong>mail_redirect: </strong>Site mail is now being redirected to <strong>". variable_get('mail_redirect_domain', null) ."</strong>";
+    $severity = 'status';
+    // check if mimemail module is installed and if it has been patched
+    if (module_exists("mimemail")) {
+      $mimenote = "<strong>mail_redirect: </strong>Mimemail is being used on your site, ";
+      $mimemail_code = file_get_contents(drupal_get_path('module', 'mimemail') . "/mimemail.module");
+      if (stristr($mimemail_code, "module_implements('mail_alter')")) {
+        $mimenote .= "and it has been patched to work with Mail Redirect";
+        $severity = 'status';
+      }
+      else {
+        $mimenote .= "BUT it has NOT been patched to work with Mail Redirect";
+        $severity = 'error';
+      }
+    }
+  }
+  else {
+    $msg = "<strong>mail_redirect: </strong>Mail redirect is installed but your mail is not being redirected. You need to add 
+      mail_redirect_domain variable either in settings.php or admin page - see README.txt for more info.";
+    $severity = 'error';
+  }
+  
+  drupal_set_message($msg ."<br>". $mimenote, $severity);   
+  
+}
+
+function mail_redirect_uninstall() {  
+
+  variable_del('mail_redirect_domain');
+  drupal_set_message('<strong>mail_redirect:</strong> your <em>mail_redirect_domain</em> variable has been cleared', 'status');
+  
+}
+

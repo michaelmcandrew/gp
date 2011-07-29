@@ -1,0 +1,12 @@
+; $Id: mail_redirect.info,v 1.5 2009/10/20 21:25:12 ptalindstrom Exp $
+name = Mail Redirect
+description = Used for testing mail functions on test sites with real emails addresses in the db. Redirects ALL system generated email to a test mail domain.
+package = Mail
+
+core = 6.x
+; Information added by drupal.org packaging script on 2010-07-14
+version = "6.x-1.2"
+core = "6.x"
+project = "mail_redirect"
+datestamp = "1279067707"
+
