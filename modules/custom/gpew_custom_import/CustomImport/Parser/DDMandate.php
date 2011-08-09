@@ -190,6 +190,7 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 		if($this->wantsToBeAMember() AND !$this->isAMember($this->currentContactArray['contact_id'])){
 			$this->addMembership();
 		} else {
+			//TODO: we probably want to update the membership to say that they pay by direct debit
 			
 			return;
 		}
@@ -276,7 +277,7 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 
 		if(!$this->test){
 			$contact_result=civicrm_contact_add($contact_params);
-			
+						
 			if($contact_result['is_error']) {
 				$this->addReportLine('warning', "Failed to add the contact with payment integration reference: {$this->getCurrent('tgp')}.");
 				//TODO: If this fails, really we should abort the whole process.  In practice, it is unlikely to fail.
@@ -289,7 +290,13 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 			$location_result=civicrm_location_add($location_params);
 			if($location_result['is_error']) {
 				$this->addReportLine('warning', "Could not add location information for contact with payment integration reference: {$this->getCurrent('tgp')}.");
-			}						
+			}
+			
+			//at this point, we should update the contact info again so that the area and party info gets set
+			$contact_result=civicrm_contact_update(civicrm_contact_get($contact_result));
+			
+			
+									
 		} else {
 			$this->addReportLine('note', "Ready to add contact with payment integration reference {$this->getCurrent('tgp')}.");
 		}
@@ -377,6 +384,8 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 					'Monthly'=>'Monthly',
 					'Quarterly'=>'Quarterly'					
 				);
+				
+				//TODO: we should also update the membership to pays by direct debit even if the membership isn't added
 				
 				$params[2]=array( $freqTrans2[$this->getCurrent('frequency')], 'String');
 				$query = "
