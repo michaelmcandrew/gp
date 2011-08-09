@@ -46,6 +46,7 @@ define ('CIVICRM_GPEW_DD_MANDATE_TABLE', 'civicrm_value_external_identifiers_5')
 define ('CIVICRM_GPEW_DD_MANDATE_ID', 'direct_debit_reference_16');
 define ('CIVICRM_GPEW_DD_MANDATE_FREQUENCY', 'payment_frequency_37');
 
+class arbitraryClass {};
 
 /**
  * class to parse contact csv files
@@ -292,8 +293,11 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 				$this->addReportLine('warning', "Could not add location information for contact with payment integration reference: {$this->getCurrent('tgp')}.");
 			}
 			
+			$object=new arbitraryClass;
+			
 			//at this point, we should update the contact info again so that the area and party info gets set
-			$contact_result=civicrm_contact_update(civicrm_contact_get($contact_result));
+			civimapit_civicrm_post( 'edit', 'Individual', $contact_result['contact_id'], $object );
+			gpew_setparty_civicrm_post( 'edit', 'Individual', $contact_result['contact_id'], $object );
 			
 			
 									
