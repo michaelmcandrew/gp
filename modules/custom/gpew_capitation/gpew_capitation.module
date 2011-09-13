@@ -14,7 +14,7 @@ define('GPEW_CAPITATION_REGIONAL_AMOUNT', 'regional_capitation_11');
 define('GPEW_CAPITATION_LOCAL_AMOUNT', 'local_capitation_12');
 
 define('GPEW_CAPITATION_LOW_WAGE_SINGLE', 10.50);
-define('GPEW_CAPITATION_LOW_WAGE_JOINT', 13);
+define('GPEW_CAPITATION_LOW_WAGE_JOINT', 14);
 
 //TODO: Check if the contact has local party information, or update their local party information regardless each time this hook is fired.  This is needed short term because we aren't sure whether the contact has decent local party information.
 
