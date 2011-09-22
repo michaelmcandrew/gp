@@ -11,9 +11,14 @@ require_once('CRM/Core/DAO.php');
 ini_set('memory_limit', '1000M');
 
 $query = "
-SELECT cc.id, contact_id
-FROM civicrm_contribution AS cc
-WHERE cc.contribution_type_id=2
+	SELECT
+		cc.id, cc.contact_id
+	FROM `civicrm_membership` AS cm
+	JOIN `civicrm_membership_payment` AS cmp
+		ON cm.id=cmp.membership_id
+	JOIN `civicrm_contribution` AS cc
+		ON cc.id=cmp.contribution_id
+	WHERE  cm.membership_type_id=10;
 ";
 
 
@@ -29,3 +34,4 @@ while($result->fetch()){
 
 echo "Done.\n";
 ?>
+
