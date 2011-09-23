@@ -71,10 +71,9 @@ class CustomImport_Parser_DDPayment extends CustomImport_Parser_DD
 		}
 		function initCurrent(){
 //			print_r($this->candidate);
+			$this->current=array();
 			unset($this->currentContributionArray);
 			unset($this->currentMembershipArray);
-			unset($this->currentMembershipArray);
-			$this->current=array();
 			$this->current['tgp']=$this->candidate->urn_0;
 			$this->current['frequency']=$this->candidate->frequency_10;
 			$this->current['amount']=$this->candidate->dd_amount_11;
@@ -124,6 +123,8 @@ class CustomImport_Parser_DDPayment extends CustomImport_Parser_DD
 				$this->addReportLine('note', "Ready to add contribution of {$this->currentContributionArray['total_amount']} to {$this->getContactLink()}");
 			}
 			
+
+
 			// if this is not a membership contribution, nothing else to do - return
 			if(!$this->current['is_membership_contribution']){
 				return;

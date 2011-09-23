@@ -49,7 +49,7 @@ define ('CIVICRM_GPEW_DD_MANDATE_FREQUENCY', 'payment_frequency_37');
 /**
  * class to parse contact csv files
  */
-class CustomImport_Parser_DDPaymentPaper extends CustomImport_Parser_DD
+class CustomImport_Parser_SOPayment extends CustomImport_Parser_DD
 {
 		//DB object containing all candidates
 	    protected $candidate;
@@ -104,7 +104,7 @@ class CustomImport_Parser_DDPaymentPaper extends CustomImport_Parser_DD
 			$this->currentContributionArray['contribution_type_id'] = $this->current['is_membership_contribution'] ? 2 : 1 ;
 			$this->currentContributionArray['contact_id'] = $this->currentContactArray['contact_id'];
 			$this->currentContributionArray['total_amount'] = $this->current['amount'];
-			$this->currentContributionArray['source'] = 'Paper DD: '.$this->current['frequency'];
+			$this->currentContributionArray['source'] = 'Standing order: '.$this->current['frequency'];
 			$this->currentContributionArray['receive_date'] = $this->current['date']->format('Y-m-d');
 			$this->currentContributionArray['contribution_status_id']=1;
 			$this->currentContributionArray['payment_instrument_id'] = 7;
