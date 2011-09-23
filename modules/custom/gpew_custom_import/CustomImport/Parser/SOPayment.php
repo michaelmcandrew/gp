@@ -70,15 +70,13 @@ class CustomImport_Parser_SOPayment extends CustomImport_Parser_DD
 			}
 		}
 		function initCurrent(){
-//			print_r($this->candidate);
 			$this->current=array();
 			unset($this->currentContributionArray);
 			unset($this->currentMembershipArray);
-			$this->current['tgp']=$this->candidate->reference;
+			$this->current['tgp']=$this->candidate->bank_reference;
 			$this->current['frequency']='unknown';
-			$this->current['amount']=$this->candidate->amount;
+			$this->current['amount']=$this->candidate->credit;
 			$this->current['date']=$this->RapiDataToDate($this->candidate->date);
-
 		}
 		
 	

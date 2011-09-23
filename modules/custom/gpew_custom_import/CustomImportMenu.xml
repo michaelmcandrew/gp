@@ -17,7 +17,7 @@
   </item>
   <item>
      <path>civicrm/import/sopayment</path>
-     <title>Paper direct debit payment import</title>
+     <title>Standing order payment import</title>
      <page_callback>CustomImport_SOPayment_Controller</page_callback>
      <page_arguments></page_arguments>
      <access_arguments>edit contributions</access_arguments>
