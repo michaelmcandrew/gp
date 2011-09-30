@@ -23,6 +23,7 @@ function gpew_new_member_add_groups_civicrm_post( $op, $objectName, $objectId, &
 	require_once "api/v2/GroupContact.php";
 
 	$params=array('contact_id'=>$objectRef->contact_id, 'group_id'=>37);
+	$params=array('contact_id'=>$objectRef->contact_id, 'group_id'=>14);
 	civicrm_group_contact_add($params); 	
 }
 
