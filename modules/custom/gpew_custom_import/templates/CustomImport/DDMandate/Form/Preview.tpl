@@ -100,6 +100,9 @@ function verify( ) {
 	{if $line.type eq 'warning'}
 		<tr><td style="color:red">{$line.type}</td><td style="color:red">{$line.message}</td></tr>
 	{/if}	
+	{if $line.type eq 'interesting'}
+		<tr><td style="color:green">{$line.type}</td><td style="color:green">{$line.message}</td></tr>
+	{/if}	
 {/foreach}
 </table>
 
@@ -109,6 +112,8 @@ function verify( ) {
 {foreach from=$report item=line}
 	{if $line.type eq 'warning'}
 		<tr><td style="color:red">{$line.type}</td><td style="color:red">{$line.message}</td></tr>
+	{elseif $line.type eq 'interesting'}
+		<tr><td style="color:green">{$line.type}</td><td style="color:green">{$line.message}</td></tr>	
 	{else}
 		<tr><td>{$line.type}</td><td>{$line.message}</td></tr>
 	{/if}	

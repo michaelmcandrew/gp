@@ -86,15 +86,19 @@ class CustomImport_Parser_DD extends CustomImport_Parser_Custom
 			return $DateTime;
 		}
 		
-		function isAMember($contact_id){
+		function isAMember($contact_id, $return_id=FALSE){
 			require_once 'api/v2/Membership.php';
+			
 			$params = array( 'contact_id' => $contact_id);
 		  	$result = civicrm_membership_contact_get($params);
+
 			if(!is_array(current($result))){
 				return FALSE;
+			} elseif($return_id){
+				return current(array_keys(current($result)));
+			}else{
+				return TRUE;
 			}
-			return TRUE;
-
 		}
 		
 		function getCurrent($var){

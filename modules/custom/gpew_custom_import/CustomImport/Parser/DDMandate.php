@@ -89,7 +89,7 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 		$this->current['address_line_2']=$this->candidate->addressline_6;
 		$this->current['address_line_3']=$this->candidate->addressline_7;
 		$this->current['city']=$this->combineFields(array($this->candidate->town_12,$this->candidate->county_13));
-		$this->current['postcode']=$this->candidate->postcode_14;
+		$this->current['postal_code']=$this->candidate->postcode_14;
 		$this->current['email']=$this->candidate->email_16;				
 		$this->current['phone_home']=$this->candidate->hometelephone_17;				
 		$this->current['phone_mobile']=$this->candidate->mobiletelephone_18;				
@@ -152,7 +152,7 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 
 		// try and find a contact for this TGP number
 		$searchFieldSets=array(
-			array('first_name','last_name','postcode'),
+			array('first_name','last_name','postal_code'),
 			array('first_name','last_name','email'),
 		);
 		foreach($searchFieldSets as $searchFieldSet){
@@ -165,13 +165,27 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 		if($this->multiplePossibleContacts){
 			return;
 		}
+				
 		
 		if(!is_array($this->currentContactArray)){
-			// you couldn't find a contact! add the person to CiviCRM
+			//'i could not find the person and want to do some more looser searching and report what i find but not do anything';
+			$searchFieldSets=array(
+				array('last_name','postal_code'),
+				array('last_name','email'),
+			);
+			foreach($searchFieldSets as $searchFieldSet){
+				$this->SearchForContact($searchFieldSet, 'interesting');
+				unset($this->currentContactArray);
+			}
 			$this->addContactFromMandate();
+			$this->contact_was_added_to_civicrm=TRUE;
 		}
 		
 		$this->addTGPToMandate();
+		if(!$this->contact_was_added_to_civicrm==TRUE){
+			//if the contact wasn't added to CiviCRM, we must have updated an already existing contact.  Therefore, we need to do some updating
+			$this->updateDetails();
+		}
 
 		//if this is for real, we need to say whether or not this is intended as a membership payment
 		if(!$this->test){
@@ -188,12 +202,14 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 				SET is_membership_payment_55= %3 WHERE entity_id = %1 AND direct_debit_reference_16 = %2";				
 			$result = CRM_Core_DAO::executeQuery( $query, $params );
 		}
-		if($this->wantsToBeAMember() AND !$this->isAMember($this->currentContactArray['contact_id'])){
-			$this->addMembership();
-		} else {
-			//TODO: we probably want to update the membership to say that they pay by direct debit
-			
-			return;
+		if($this->wantsToBeAMember()){
+			if($this->isAMember($this->currentContactArray['contact_id'])){
+				$membership_id=$this->isAMember($this->currentContactArray['contact_id'], TRUE);
+				$this->updateCustomMembershipData($membership_id, $this->getCurrent('frequency'));
+				//set there membership status to DD pending				
+			}else{
+				$this->addMembership();
+			}
 		}
 		if($this->couldBeYoungGreen()){
 			$this->addToYoungGreens();
@@ -201,7 +217,7 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 	}	
 	
 	
-	function SearchForContact($fields) {
+	function SearchForContact($fields, $message='info') {
 		foreach($fields as $field){
 			if(is_array($field)){
 				$params[$field[0]]=$this->getCurrent($field[1]);				
@@ -213,7 +229,7 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 		$searchedFields=implode(', ',array_keys($params));
 		if(count($result)==1) {
 			$this->currentContactArray=current($result);
-			$this->addReportLine('info', "Match found for {$this->getCurrent('tgp')}: {$this->getContactLink(current($result))} (using fields: {$searchedFields}).");
+			$this->addReportLine($message, "Match found for {$this->getCurrent('tgp')}: {$this->getContactLink(current($result))} (using fields: {$searchedFields}).");
 		} elseif(count($result)>1) {
 			foreach($result as $contact){
 				$contactText[]=$this->getContactLink($contact);
@@ -256,7 +272,7 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 			'supplemental_address_1'=>$this->getCurrent('address_line_2'),
 			'supplemental_address_2'=>$this->getCurrent('address_line_3'),
 			'city'=>$this->getCurrent('city'),
-			'postal_code'=>$this->getCurrent('postcode')
+			'postal_code'=>$this->getCurrent('postal_code')
 		);
 		
 		$location_params['email'][]=array(
@@ -381,45 +397,99 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 			} else {
 				
 				//add custom data to membership to say that it is paid by direct debit
-				$params[1]=array( $result['id'], 'Integer');
-				$freqTrans2=array(
-					'Annually'=>'Annually',
-					'Half Yearly'=>'Half-yearly',
-					'Monthly'=>'Monthly',
-					'Quarterly'=>'Quarterly'					
-				);
-				
-				//TODO: we should also update the membership to pays by direct debit even if the membership isn't added
-				
-				$params[2]=array( $freqTrans2[$this->getCurrent('frequency')], 'String');
-				$query = "
-					INSERT INTO civicrm_value_membership_information_9
-						SET
-							pays_membership_by_direct_debit_54 = 1,
-							membership_payment_frequency_63 = %2,
-							entity_id = %1
-					ON DUPLICATE KEY
-						UPDATE
-							pays_membership_by_direct_debit_54 = 1,
-							membership_payment_frequency_63 = %2;";				
-				$result = CRM_Core_DAO::executeQuery( $query, $params );
-				
-
+				$this->updateCustomMembershipData($result['id'], $this->getCurrent('frequency'));
 				$this->addReportLine('note', "Membership added for contact {$this->getContactLink()} (with payment integration reference {$this->getCurrent('tgp')}).");
 				
 			}
 		} else {
 			$this->addReportLine('note', "Ready to add membership to {$this->getContactLink()} (with payment integration reference {$this->getCurrent('tgp')}).");
+			$this->updateCustomMembershipData($result['id'], $this->getCurrent('frequency'));
+			
 		}
 		
 	}
 	
-	
-	
-	
-		
-		
+	function updateCustomMembershipData($membership_id, $frequency) {
+		if(!$this->test){
+			$params[1]=array( $membership_id, 'Integer');
+			$freqTrans=array(
+				'Annually'=>'Annually',
+				'Half Yearly'=>'Half-yearly',
+				'Monthly'=>'Monthly',
+				'Quarterly'=>'Quarterly'					
+			);
 
+			//TODO: we should also update the membership to pays by direct debit even if the membership isn't added
+
+			$params[2]=array( $freqTrans[$frequency], 'String');
+			$query = "
+				INSERT INTO civicrm_value_membership_information_9
+					SET
+						pays_membership_by_direct_debit_54 = 1,
+						membership_payment_frequency_63 = %2,
+						entity_id = %1
+				ON DUPLICATE KEY
+					UPDATE
+						pays_membership_by_direct_debit_54 = 1,
+						membership_payment_frequency_63 = %2;";				
+			$result = CRM_Core_DAO::executeQuery( $query, $params );
+			$result = CRM_Core_DAO::executeQuery( 'UPDATE civicrm_membership SET status_id=9, is_override=1 WHERE id = %1', $params );
+			$this->addReportLine('note', "Membership for {$this->getContactLink()} updated to DD pending with status overridden.");			
+		}else{
+			$this->addReportLine('note', "Ready to update membership for {$this->getContactLink()} to DD pending with status overridden.");
+		}
+	}
+	
+	function updateDetails(){
+		if(!$this->test){
+			return;
+		}
+		// print_r($this->currentContactArray);
+		// print_r($this->current);
+		// exit;
+		if($this->current['postal_code']!=$this->currentContactArray['postal_code']){ //the postcode has changed
+			if($this->currentContactArray['address_id']>0){
+				$address_params[1]=array( $this->currentContactArray['address_id'], 'Integer');
+				$address_params[2]=array( $this->current['address_line_1'], 'String');
+				$address_params[3]=array( $this->current['address_line_2'], 'String');
+				$address_params[4]=array( $this->current['address_line_3'], 'String');
+				$address_params[5]=array( $this->current['city'], 'String');
+				$address_params[6]=array( $this->current['postal_code'], 'String');
+				
+				CRM_Core_DAO::executeQuery( '
+				UPDATE civicrm_address
+				SET
+					street_address=%2,
+					supplemental_address_1=%3,
+					supplemental_address_2=%4,
+					city=%5,
+					postal_code=%6,
+					country_id=NULL
+				WHERE id=%1', $address_params);
+			}//update address
+		}
+		if($this->current['email']!=$this->currentContactArray['email']){ //there in another email
+			$email_params=array();
+			$email_params[1]=array( $this->current['email'], 'String');
+			$email_params[2]=array( $this->currentContactArray['contact_id'], 'Integer');
+			$result = CRM_Core_DAO::executeQuery( 'SELECT email FROM civicrm_email WHERE contact_id = %2 AND email = %1', $email_params );
+			if($result->N==0){
+				CRM_Core_DAO::executeQuery( "INSERT INTO civicrm_email (contact_id, email) VALUES (%2, %1)", $email_params );
+			}
+		}
+
+		//if any of the phone numbers from rapidata are not there
+		$phones=array('phone_home','phone_mobile');
+		foreach($phones as $phone){
+			$phone_params=array();
+			$phone_params[1]=array( $this->current[$phone], 'String');
+			$phone_params[2]=array( $this->currentContactArray['contact_id'], 'Integer');
+			$result = CRM_Core_DAO::executeQuery( 'SELECT phone FROM civicrm_phone WHERE contact_id = %2 AND phone = %1', $phone_params );
+			if($result->N==0){
+				CRM_Core_DAO::executeQuery( "INSERT INTO civicrm_phone (contact_id, phone) VALUES (%2, %1)", $phone_params );
+			}
+		}
+	}
 }
 
 
