@@ -38,6 +38,15 @@
  * Check option lists for Email Greetings, Postal Greetings and Addressee 
  */
 
+//define a nice root
+
+//bootstrap Drupal
+
+//bootstrap CiviCRM
+define( 'DRUP_ROOT', '/var/www/drupal.green' );
+define( 'CIVICRM_CONFDIR', DRUP_ROOT.'/sites' );
+
+
 class CRM_UpdateGreeting {
     
     function __construct() 
@@ -55,7 +64,8 @@ class CRM_UpdateGreeting {
 
     function initialize( ) 
     {
-        require_once '../civicrm.config.php';
+		require_once CIVICRM_CONFDIR.'/all/modules/civicrm/civicrm.config.php';
+		require_once CIVICRM_CONFDIR.'/default/civicrm.settings.php';
         require_once 'CRM/Core/Config.php';
         require_once 'CRM/Utils/Request.php';
         require_once 'CRM/Core/PseudoConstant.php';
