@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -61,20 +61,28 @@ function civicrm_invoke( ) {
     plugin_init( );
 
     $user = JFactory::getUser( );
-    require_once 'CRM/Core/BAO/UFMatch.php';
-    CRM_Core_BAO_UFMatch::synchronize( $user, false, 'Joomla', 'Individual', true );
+
+    /* bypass synchronize if running upgrade 
+     * to avoid any serious non-recoverable error 
+     * which might hinder the upgrade process. 
+     */
+    require_once 'CRM/Utils/Array.php';
+    if ( CRM_Utils_Array::value( 'task', $_REQUEST ) != 'civicrm/upgrade' ) {
+        require_once 'CRM/Core/BAO/UFMatch.php';
+        CRM_Core_BAO_UFMatch::synchronize( $user, false, 'Joomla', 'Individual', true );
+    }
 
     require_once 'CRM/Utils/System/Joomla.php';
     CRM_Utils_System_Joomla::addHTMLHead( null, true );
 
     if ( isset( $_GET['task'] ) ) { 
         $args = explode( '/', trim( $_GET['task'] ) );
-        CRM_Core_Invoke::invoke( $args );
     } else {
         $_GET['task'] = 'civicrm/dashboard';
         $_GET['reset'] = 1;
-        $args = array( 'civicrm', 'dashboard' ); CRM_Core_Invoke::invoke( $args );
+        $args = array( 'civicrm', 'dashboard' );
     }
+    CRM_Core_Invoke::invoke( $args );
 }
 
 

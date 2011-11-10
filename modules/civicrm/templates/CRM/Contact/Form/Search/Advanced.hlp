@@ -1,6 +1,6 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.3                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2010                                |
  +--------------------------------------------------------------------+
@@ -36,3 +36,15 @@
     <p>{ts}Contacts with any of the checked privacy options are EXCLUDED from your search results by default. EXAMPLE: If you check 'Do not phone', and search for contacts with an address in a specific city - then contacts in that city who have 'Do not phone' selected as a privacy option will be excluded from the search results.{/ts}</p>
     <p>{ts}If you want to FIND (include) contacts with a particular privacy option set, then check 'Include contacts who have these privacy option(s)'.{/ts}</p>
 {/htxt}
+
+{htxt id="id-display-results"}
+    <p>{ts}Advanced Search returns your results as Contact records by default. However, you may want to get another record type instead. For example, you may want to see all the Contribution records which match your search criteria.{/ts}</p>
+{/htxt}
+
+{htxt id="id-search-views"}
+    <p>{ts}You can modify the columns displayed in your search results by creating a Profile containing a different set of contact fields and then selecting that Profile here. For example you may want to include columns for Gender and Date of Birth, while eliminating Country.{/ts} {docURL page="Profiles FAQ's, How Do I...."}</p>
+{/htxt}
+
+{htxt id="id-search-operator"}
+    <p>{ts}Use the Search Operator to determine whether your criteria are combined with AND statements, or combined with OR statements. For example, you may want to find all individuals who are in the Volunteers group AND who have a Volunteer Training activity recorded for them. In this case use the AND operator. If you need to find everyone who is in the Volunteers group OR has a Volunteer Training activity recorded, use the OR operator.{/ts}</p>
+{/htxt}   

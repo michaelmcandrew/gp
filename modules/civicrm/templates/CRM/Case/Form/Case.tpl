@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -71,7 +71,7 @@
 {if $form.activity_details.html}
     <tr class="crm-case-form-block-activity_details">
         <td class="label">{$form.activity_details.label}{help id="id-details" file="CRM/Case/Form/Case.hlp"}</td>
-        <td class="view-value">{$form.activity_details.html|crmReplace:class:huge40}</td>
+        <td class="view-value">{if $defaultWysiwygEditor eq 0}{$form.activity_details.html|crmStripAlternatives|crmReplace:class:huge40}{else}{$form.activity_details.html|crmStripAlternatives}{/if}</td>
     </tr>
 {/if}
 
@@ -123,7 +123,7 @@ cj("select[multiple]").crmasmSelect({
     </tr>
 {/if}
 
-<tr class="crm-case-form-block-tag_set"><td colspan="2">{include file="CRM/common/Tag.tpl"}</td></tr>	     
+<tr class="crm-case-form-block-tag_set"><td colspan="2">{include file="CRM/common/Tag.tpl" tagsetType='case'}</td></tr>	     
 
 </table>
 {/if}	

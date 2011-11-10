@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.1                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2009                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2009
+ * @copyright CiviCRM LLC (c) 2004-2011
  * @copyright DharmaTech  (c) 2009
  * $Id$
  *
@@ -36,7 +36,6 @@
 
 require_once 'CRM/Report/Form.php';
 require_once 'CRM/Core/DAO.php';
-require_once 'api/v2/Group.php';
 
 /**
  *  Generate a walk list
@@ -51,9 +50,7 @@ class Engage_Report_Form_List extends CRM_Report_Form {
      *
      */
     const 
-        CG_CONSTITUENT_INDIVIDUAL_TABLE = 'civicrm_value_core_info',
         CF_CONSTITUENT_TYPE_NAME = 'constituent_type',
-        CF_PRIMARY_LANG_NAME     = 'primary_language',
         CF_OTHER_NAME_NAME       = 'other_name',
         CG_VOTER_INFO_TABLE      = 'civicrm_value_voter_info',
         CF_PARTY_REG_NAME        = 'party_registration',
@@ -96,6 +93,21 @@ class Engage_Report_Form_List extends CRM_Report_Form {
      *  @var boolean
      */
     protected $_voterInfoField   = false;
+     
+    protected $_contributionField   = false; 
+
+    /**
+     *  Constituent individual table name has changed
+     *  between versions of civicrm. Populate this field
+     *  dynamically to ensure backward compatability
+     */
+    protected $_constituentIndividualTable  = false;
+    
+    /**
+     * Langauage field might be primary or secondary
+     * depending on version...
+     */
+    protected $_langaugeName  = false;
 
     protected $_summary      = null;
 
@@ -162,6 +174,25 @@ class Engage_Report_Form_List extends CRM_Report_Form {
     protected $_vhCol;
 
     function __construct( ) {
+        // Find the invidual constituent table (varies between versions) 
+        $query = "SELECT table_name FROM civicrm_custom_group g"
+          . " JOIN civicrm_custom_field f ON g.id = f.custom_group_id"
+          . " WHERE column_name='". self::CF_CONSTITUENT_TYPE_NAME ."' AND"
+          . " ( g.table_name = 'civicrm_value_core_info' OR g.table_name "
+          . " = 'civicrm_value_constituent_info' )";
+        $dao = CRM_Core_DAO::executeQuery( $query );
+        $dao->fetch( );
+        $this->_constituentIndividualTable = $dao->table_name;
+
+        // Find the language field name (varies between versions - either
+        // primary_langauge or secondary_language) 
+        $query = "SELECT column_name FROM civicrm_custom_field"
+          . " WHERE column_name = 'primary_language' OR"
+          . " column_name = 'secondary_language'";
+        $dao = CRM_Core_DAO::executeQuery( $query );
+        $dao->fetch( );
+        $this->_languageName = $dao->column_name;
+
         //  Find the Voter Info custom data group
         $query = "SELECT id, table_name FROM civicrm_custom_group"
             . " WHERE table_name='". self::CG_VOTER_INFO_TABLE ."'";
@@ -171,14 +202,14 @@ class Engage_Report_Form_List extends CRM_Report_Form {
         $this->_voterInfoTable = $dao->table_name;
 
         //  From Voter Info custom data group get Party Registration info
-        $query = "SELECT column_name, option_group_ID"
+        $query = "SELECT column_name, option_group_id"
             . " FROM civicrm_custom_field"
             . " WHERE custom_group_id={$voterInfoID}"
             . " AND column_name='". self::CF_PARTY_REG_NAME ."'";
         $dao = CRM_Core_DAO::executeQuery( $query );
         $dao->fetch( );        
         $this->_partyCol = $dao->column_name;
-        $partyOptGrp = $dao->option_group_ID;
+        $partyOptGrp = $dao->option_group_id;
         $query = "SELECT label, value"
             . " FROM civicrm_option_value"
             . " WHERE option_group_id={$partyOptGrp}";
@@ -188,7 +219,7 @@ class Engage_Report_Form_List extends CRM_Report_Form {
         }
 
         //  From Voter Info custom data group get Voter History info
-        $query = "SELECT column_name, option_group_ID"
+        $query = "SELECT column_name, option_group_id"
             . " FROM civicrm_custom_field"
             . " WHERE custom_group_id={$voterInfoID}"
             . " AND column_name='". self::CF_VOTER_HISTORY_NAME ."'";
@@ -205,7 +236,7 @@ SELECT ov.label, ov.value FROM civicrm_option_value ov
 WHERE ov.option_group_id = (
     SELECT cf.option_group_id FROM civicrm_custom_field cf
     WHERE  cf.custom_group_id = (
-        SELECT cg.id FROM civicrm_custom_group cg WHERE cg.table_name='". self::CG_CONSTITUENT_INDIVIDUAL_TABLE ."' ) AND cf.column_name='" . self::CF_CONSTITUENT_TYPE_NAME . "'
+        SELECT cg.id FROM civicrm_custom_group cg WHERE cg.table_name='". $this->_constituentIndividualTable ."' ) AND cf.column_name='" . self::CF_CONSTITUENT_TYPE_NAME . "'
 )";
         $dao = CRM_Core_DAO::executeQuery( $query );
         while ( $dao->fetch() ) {
@@ -223,13 +254,13 @@ WHERE ov.option_group_id = (
         $query = "
 SELECT column_name 
 FROM   civicrm_custom_field 
-WHERE custom_group_id={$demoTableID} AND column_name = '" . self::CF_PRIMARY_LANG_NAME . "' LIMIT 1";
+WHERE custom_group_id={$demoTableID} AND column_name = '" . $this->_languageName . "' LIMIT 1";
         $dao = CRM_Core_DAO::executeQuery( $query );
         $dao->fetch( );
         $this->_demoLangCol = $dao->column_name;
 
         // ** Core Info ** //
-        $query = "SELECT id, table_name FROM civicrm_custom_group WHERE table_name='" . self::CG_CONSTITUENT_INDIVIDUAL_TABLE . "'";
+        $query = "SELECT id, table_name FROM civicrm_custom_group WHERE table_name='" . $this->_constituentIndividualTable . "'";
         $dao = CRM_Core_DAO::executeQuery( $query );
         $dao->fetch( );
         $coreInfoTableID = $dao->id;
@@ -352,7 +383,7 @@ ORDER BY ov.label
         }
     }
 
-    function whereGroupClause( $clause ) {
+    function engageWhereGroupClause( $clause ) {
         $smartGroupQuery = ""; 
         require_once 'CRM/Contact/DAO/Group.php';
         require_once 'CRM/Contact/BAO/SavedSearch.php';
@@ -412,10 +443,9 @@ ORDER BY ov.label
         //var_dump($this->_params);
         $this->_columnHeaders = array( );
         foreach ( $this->_columns as $tableName => $table ) {
-            //echo "select: table name $tableName<br>";
             if ( array_key_exists('fields', $table) ) {
-                foreach ( $table['fields'] as $fieldName => $field ) {
-                    //echo "&nbsp;&nbsp;&nbsp;field name $fieldName<br>";
+                foreach ( $table['fields'] as $fieldName => $field ) {             
+                    
                     //var_dump($this->_params['fields'][$fieldName]);
                     if ( CRM_Utils_Array::value( 'required', $field ) ||
                          CRM_Utils_Array::value( $fieldName, $this->_params['fields'] ) ) {
@@ -433,11 +463,13 @@ ORDER BY ov.label
                             $this->_coreField = true;
                         } else if ( $tableName == $this->_voterInfoTable ) {
                             $this->_voterInfoField = true;
-                        }
-                        
+                        } else if ( $tableName == "civicrm_contribution_cont" ) {
+                            $this->_contributionField = true;
+                        }    
+                                            
                         $select[] = "{$table['alias']}.{$fieldName} as {$tableName}_{$fieldName}";
                         $this->_columnHeaders["{$tableName}_{$fieldName}"]['title'] = $field['title'];
-                        $this->_columnHeaders["{$tableName}_{$fieldName}"]['type']  = $field['type'];
+                        $this->_columnHeaders["{$tableName}_{$fieldName}"]['type']  = CRM_Utils_Array::value('type',$field);
                     }
                 }
             }
@@ -450,9 +482,21 @@ ORDER BY ov.label
      *  Generate FROM clause for SQL SELECT
      */
     protected function from( ) {
-        $this->_from =
-            " FROM civicrm_contact AS {$this->_aliases['civicrm_contact']} ";
 
+      $this->_from =
+            " FROM civicrm_contact AS {$this->_aliases['civicrm_contact']} ";
+        if ( $this->_contributionField ) {
+            //store in a temp table max receive date & relevant contribution _value - described as 'group by trick' here http://dev.mysql.com/doc/refman/5.1/en/example-maximum-column-group-row.html
+            //there doesn't appear to be any efficient way to do this without using the temp table
+            //as we want to use the latest receive date & the latest value (not the max value)
+            //and we want to join this against contact_id     
+            $query = "create temporary table civicrm_maxconts SELECT * FROM ( SELECT  `receive_date` ,`total_amount`, contact_id  FROM `civicrm_contribution` ORDER BY receive_date DESC) as maxies group by contact_id;";
+            $dao = CRM_Core_DAO::executeQuery( $query );
+            //apparently it is faster to create & then index http://mysqldump.azundris.com/archives/80-CREATE-TEMPORARY-TABLE.html
+            $query = "alter table civicrm_maxconts add index (contact_id);";
+            $dao = CRM_Core_DAO::executeQuery($query );
+    				$this->_from .=	"LEFT JOIN civicrm_maxconts cont_civireport ON contact_civireport.id = cont_civireport.contact_id ";
+        }
         if ( $this->_addressField ) {
             $this->_from .= "LEFT JOIN civicrm_address {$this->_aliases['civicrm_address']} ON {$this->_aliases['civicrm_contact']}.id = {$this->_aliases['civicrm_address']}.contact_id AND {$this->_aliases['civicrm_address']}.is_primary = 1\n";
         }

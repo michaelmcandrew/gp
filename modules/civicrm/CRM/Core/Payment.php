@@ -1,9 +1,9 @@
 <?php  
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -88,20 +88,37 @@ abstract class CRM_Core_Payment {
      * @static  
      *  
      */  
-    static function &singleton( $mode = 'test', $component, &$paymentProcessor, &$paymentForm = null ) {
-        if ( self::$_singleton === null ) {
-            $config       = CRM_Core_Config::singleton( );
-            $paymentClass = "CRM_{$component}_" . $paymentProcessor['class_name'];
-            
-            $classPath = str_replace( '_', '/', $paymentClass ) . '.php';
-            require_once($classPath);
-            self::$_singleton = eval( 'return ' . $paymentClass . '::singleton( $mode, $paymentProcessor );' );
+    static function &singleton( $mode = 'test', &$paymentProcessor, &$paymentForm = null, $force = false ) 
+    {
+        // make sure paymentProcessor is not empty
+        // CRM-7424
+        if ( empty( $paymentProcessor ) ) {
+            return CRM_Core_DAO::$_nullObject;
+        }
 
+        $cacheKey = "{$mode}_{$paymentProcessor['id']}_".(int)isset( $paymentForm );
+        if ( !isset( self::$_singleton[$cacheKey] ) || $force ) {
+            $config = CRM_Core_Config::singleton( );
+            require_once 'CRM/Core/Extensions.php';
+            $ext = new CRM_Core_Extensions();
+            if ( $ext->isExtensionKey( $paymentProcessor['class_name'] ) ) {
+                $paymentClass = $ext->keyToClass( $paymentProcessor['class_name'], 'payment' );
+                require_once( $ext->classToPath( $paymentClass ) );
+            } else {                
+                $paymentClass = "CRM_Core_" . $paymentProcessor['class_name'];
+                require_once( str_replace( '_', DIRECTORY_SEPARATOR , $paymentClass ) . '.php' );
+            }
+            
+            //load the object.
+            self::$_singleton[$cacheKey] = eval( 'return ' . $paymentClass . '::singleton( $mode, $paymentProcessor );' );
+            
+            //load the payment form for required processor.
             if ( $paymentForm !== null ) {
-                self::$_singleton->setForm( $paymentForm );
+                self::$_singleton[$cacheKey]->setForm( $paymentForm );
             }
         }
-        return self::$_singleton;
+        
+        return self::$_singleton[$cacheKey];
     }
     
     /**
@@ -177,6 +194,17 @@ abstract class CRM_Core_Payment {
         return false;
     }
 
+    /**
+     * Function to check whether the method is present for the payment processor  
+     *
+     * @param  object $paymentObject Object of the payment processor.
+     * @return boolean
+     * @public
+     */
+    static function isCancelSupported( &$paymentObject ) 
+    {
+        return method_exists( CRM_Utils_System::getClassName( $paymentObject ), 'cancelSubscription' );
+    }
 }
 
 

@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -82,7 +82,7 @@ class CRM_Contact_Form_Search_Custom_FullText
     
         if ( ! $this->_table ) {
             $this->_table   = CRM_Utils_Request::retrieve( 'table', 'String',
-                                                          CRM_Core_DAO::$_nullObject );
+                                                           CRM_Core_DAO::$_nullObject );
             if ( $this->_table ) {
                 $formValues['table'] = $this->_table;
             }
@@ -383,7 +383,8 @@ AND     {$tableValues['id']} IS NOT NULL
         $tables = 
             array( 'civicrm_contact' => array( 'id' => 'id',
                                                'fields' => array( 'sort_name' => null,
-                                                                  'nick_name'    => null ) ),
+                                                                  'nick_name'    => null,
+                                                                  'display_name' => null, ) ),
                    'civicrm_address' => array( 'id' => 'contact_id',
                                                'fields' => array( 'street_address' => null,
                                                                   'city' => null,
@@ -423,7 +424,7 @@ INNER JOIN civicrm_contact c ON ca.source_contact_id = c.id
 LEFT JOIN  civicrm_email e ON e.contact_id = c.id
 LEFT JOIN  civicrm_option_group og ON og.name = 'activity_type'
 LEFT JOIN  civicrm_option_value ov ON ( ov.option_group_id = og.id ) 
-WHERE      c.sort_name LIKE {$this->_text} OR
+WHERE      (c.sort_name LIKE {$this->_text} OR c.display_name LIKE {$this->_text}) OR
            ( e.email LIKE {$this->_text}    AND 
              ca.activity_type_id = ov.value AND
              ov.name IN ('Inbound Email', 'Email') )
@@ -439,7 +440,7 @@ INNER JOIN civicrm_contact c ON cat.target_contact_id = c.id
 LEFT  JOIN civicrm_email e ON cat.target_contact_id = e.contact_id
 LEFT  JOIN civicrm_option_group og ON og.name = 'activity_type'
 LEFT  JOIN civicrm_option_value ov ON ( ov.option_group_id = og.id ) 
-WHERE      c.sort_name LIKE {$this->_text} OR
+WHERE      (c.sort_name LIKE {$this->_text} OR c.display_name LIKE {$this->_text}) OR
            ( e.email LIKE {$this->_text}    AND 
              ca.activity_type_id = ov.value AND
              ov.name IN ('Inbound Email', 'Email') )
@@ -457,7 +458,7 @@ LEFT  JOIN civicrm_option_group og ON og.name = 'activity_type'
 LEFT  JOIN civicrm_option_value ov ON ( ov.option_group_id = og.id )
 WHERE      caa.activity_id = ca.id
 AND        caa.assignee_contact_id = c.id
-AND        c.sort_name LIKE {$this->_text}  OR
+AND        (c.sort_name LIKE {$this->_text} OR c.display_name LIKE {$this->_text})  OR
            ( e.email LIKE {$this->_text} AND
              ca.activity_type_id = ov.value AND
              ov.name IN ('Inbound Email', 'Email') )
@@ -491,7 +492,7 @@ SELECT SQL_CALC_FOUND_ROWS 'Case', c.id, c.sort_name, cc.id, DATE(cc.start_date)
 FROM      civicrm_case cc 
 LEFT JOIN civicrm_case_contact ccc ON cc.id = ccc.case_id
 LEFT JOIN civicrm_contact c ON ccc.contact_id = c.id
-WHERE     c.sort_name LIKE {$this->_text}
+WHERE     (c.sort_name LIKE {$this->_text} OR c.display_name LIKE {$this->_text})
           AND (cc.is_deleted = 0 OR cc.is_deleted IS NULL)
 {$this->_limitClause}
 ";
@@ -539,7 +540,8 @@ WHERE     cc.id = {$this->_textID}
 SELECT     distinct cc.id 
 FROM       civicrm_contribution cc
 INNER JOIN civicrm_contact c ON cc.contact_id = c.id
-WHERE      c.sort_name LIKE {$this->_text}
+WHERE      (c.sort_name LIKE {$this->_text} OR
+           c.display_name LIKE {$this->_text})
 ";
         $tables = 
             array( 'civicrm_contribution' => array( 'id'     => 'id',
@@ -582,7 +584,7 @@ WHERE      c.sort_name LIKE {$this->_text}
 SELECT     distinct cp.id 
 FROM       civicrm_participant cp
 INNER JOIN civicrm_contact c ON cp.contact_id = c.id
-WHERE      c.sort_name LIKE {$this->_text}
+WHERE      (c.sort_name LIKE {$this->_text} OR c.display_name LIKE {$this->_text})
 ";
         $tables = 
             array( 'civicrm_participant' => array( 'id'     => 'id',
@@ -623,7 +625,7 @@ WHERE      c.sort_name LIKE {$this->_text}
 SELECT     distinct cm.id 
 FROM       civicrm_membership cm
 INNER JOIN civicrm_contact c ON cm.contact_id = c.id
-WHERE      c.sort_name LIKE {$this->_text}
+WHERE      (c.sort_name LIKE {$this->_text} OR c.display_name LIKE {$this->_text})
 ";
         $tables = 
             array( 'civicrm_membership' => array( 'id'     => 'id',
@@ -674,8 +676,8 @@ WHERE      c.sort_name LIKE {$this->_text}
                     ts( 'Tables' ),
                     $tables );
         
-        $form->assign( 'csID', $this->_formValues['customSearchID'] );
-
+        $form->assign( 'csID', CRM_Utils_Array::value( 'customSearchID', $this->_formValues ) );
+                
         /**
          * You can define a custom title for the search form
          */
@@ -708,6 +710,8 @@ WHERE      c.sort_name LIKE {$this->_text}
         $dao = CRM_Core_DAO::executeQuery( $sql );
         
         $activityTypes = CRM_Core_PseudoConstant::activityType( true, true );
+        require_once 'CRM/Event/PseudoConstant.php';
+        $roleIds = CRM_Event_PseudoConstant::participantRole( );
         while ( $dao->fetch( ) ) {
             $row = array( );
             foreach ( $this->_tableFields as $name => $dontCare ) {
@@ -718,12 +722,20 @@ WHERE      c.sort_name LIKE {$this->_text}
                                                                    $activityTypes );
                 }
             }
+            if ( isset( $row['participant_role'] ) ) {
+                $participantRole =  explode( CRM_Core_DAO::VALUE_SEPARATOR, $row['participant_role'] );
+                $viewRoles = array();
+                foreach ( $participantRole as $k => $v ) {
+                    $viewRoles[] = $roleIds[$v];  
+                }
+                $row['participant_role'] = implode( ', ', $viewRoles );
+            }
             $summary[$dao->table_name][] = $row;
         }
 
         $summary['Count'] = array( );
         foreach ( array_keys($summary) as $table ) {
-            $summary['Count'][$table] = $this->_foundRows[$table];
+            $summary['Count'][$table] = CRM_Utils_Array::value( $table, $this->_foundRows );
         }
 
         if ( ! $this->_table ) {
@@ -852,15 +864,12 @@ INSERT INTO {$this->_tableName}
 ( table_name, contact_id, sort_name, participant_id, event_title, participant_fee_level, participant_fee_amount, 
 participant_register_date, participant_source, participant_status, participant_role )
    SELECT  'Participant', c.id, c.sort_name, cp.id, ce.title, cp.fee_level, cp.fee_amount, cp.register_date, cp.source, 
-           participantStatus.label, participant_role.label 
+           participantStatus.label, cp.role_id
      FROM  {$this->_entityIDTableName} ct
 INNER JOIN civicrm_participant cp ON cp.id = ct.entity_id
 LEFT JOIN  civicrm_contact c ON cp.contact_id = c.id
 LEFT JOIN  civicrm_event ce ON ce.id = cp.event_id
 LEFT JOIN  civicrm_participant_status_type participantStatus ON participantStatus.id = cp.status_id
-LEFT JOIN  civicrm_option_group option_group_participantRole ON option_group_participantRole.name = 'participant_role'
-LEFT JOIN  civicrm_option_value participant_role 
-           ON ( participant_role.option_group_id = option_group_participantRole.id AND participant_role.value = cp.role_id )
 {$this->_limitRowClause}
 ";
             break;

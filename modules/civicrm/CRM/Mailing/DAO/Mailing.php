@@ -1,9 +1,9 @@
 <?php
 /*
 +--------------------------------------------------------------------+
-| CiviCRM version 3.2                                                |
+| CiviCRM version 3.4                                                |
 +--------------------------------------------------------------------+
-| Copyright CiviCRM LLC (c) 2004-2010                                |
+| Copyright CiviCRM LLC (c) 2004-2011                                |
 +--------------------------------------------------------------------+
 | This file is a part of CiviCRM.                                    |
 |                                                                    |
@@ -27,7 +27,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -85,6 +85,12 @@ class CRM_Mailing_DAO_Mailing extends CRM_Core_DAO
      * @var int unsigned
      */
     public $id;
+    /**
+     * Which site is this mailing for
+     *
+     * @var int unsigned
+     */
+    public $domain_id;
     /**
      * FK to the header component.
      *
@@ -223,11 +229,53 @@ class CRM_Mailing_DAO_Mailing extends CRM_Core_DAO
      */
     public $scheduled_id;
     /**
+     * Date and time this mailing was scheduled.
+     *
+     * @var datetime
+     */
+    public $scheduled_date;
+    /**
+     * FK to Contact ID who approved this mailing
+     *
+     * @var int unsigned
+     */
+    public $approver_id;
+    /**
+     * Date and time this mailing was approved.
+     *
+     * @var datetime
+     */
+    public $approval_date;
+    /**
+     * The status of this mailing. Values: none, approved, rejected
+     *
+     * @var int unsigned
+     */
+    public $approval_status_id;
+    /**
+     * Note behind the decision.
+     *
+     * @var longtext
+     */
+    public $approval_note;
+    /**
      * Is this mailing archived?
      *
      * @var boolean
      */
     public $is_archived;
+    /**
+     * In what context(s) is the mailing contents visible (online viewing)
+     *
+     * @var enum('User and User Admin Only', 'Public Pages')
+     */
+    public $visibility;
+    /**
+     * The campaign for which this mailing has been initiated.
+     *
+     * @var int unsigned
+     */
+    public $campaign_id;
     /**
      * class constructor
      *
@@ -248,6 +296,7 @@ class CRM_Mailing_DAO_Mailing extends CRM_Core_DAO
     {
         if (!(self::$_links)) {
             self::$_links = array(
+                'domain_id' => 'civicrm_domain:id',
                 'header_id' => 'civicrm_mailing_component:id',
                 'footer_id' => 'civicrm_mailing_component:id',
                 'reply_id' => 'civicrm_mailing_component:id',
@@ -256,6 +305,8 @@ class CRM_Mailing_DAO_Mailing extends CRM_Core_DAO
                 'msg_template_id' => 'civicrm_msg_template:id',
                 'created_id' => 'civicrm_contact:id',
                 'scheduled_id' => 'civicrm_contact:id',
+                'approver_id' => 'civicrm_contact:id',
+                'campaign_id' => 'civicrm_campaign:id',
             );
         }
         return self::$_links;
@@ -274,6 +325,11 @@ class CRM_Mailing_DAO_Mailing extends CRM_Core_DAO
                     'name' => 'id',
                     'type' => CRM_Utils_Type::T_INT,
                     'required' => true,
+                ) ,
+                'domain_id' => array(
+                    'name' => 'domain_id',
+                    'type' => CRM_Utils_Type::T_INT,
+                    'FKClassName' => 'CRM_Core_DAO_Domain',
                 ) ,
                 'header_id' => array(
                     'name' => 'header_id',
@@ -398,9 +454,46 @@ class CRM_Mailing_DAO_Mailing extends CRM_Core_DAO
                     'type' => CRM_Utils_Type::T_INT,
                     'FKClassName' => 'CRM_Contact_DAO_Contact',
                 ) ,
+                'scheduled_date' => array(
+                    'name' => 'scheduled_date',
+                    'type' => CRM_Utils_Type::T_DATE + CRM_Utils_Type::T_TIME,
+                    'title' => ts('Mailing Scheduled Date') ,
+                ) ,
+                'approver_id' => array(
+                    'name' => 'approver_id',
+                    'type' => CRM_Utils_Type::T_INT,
+                    'FKClassName' => 'CRM_Contact_DAO_Contact',
+                ) ,
+                'approval_date' => array(
+                    'name' => 'approval_date',
+                    'type' => CRM_Utils_Type::T_DATE + CRM_Utils_Type::T_TIME,
+                    'title' => ts('Mailing Approved Date') ,
+                ) ,
+                'approval_status_id' => array(
+                    'name' => 'approval_status_id',
+                    'type' => CRM_Utils_Type::T_INT,
+                    'title' => ts('Approval Status') ,
+                ) ,
+                'approval_note' => array(
+                    'name' => 'approval_note',
+                    'type' => CRM_Utils_Type::T_LONGTEXT,
+                    'title' => ts('Approval Note') ,
+                ) ,
                 'is_archived' => array(
                     'name' => 'is_archived',
                     'type' => CRM_Utils_Type::T_BOOLEAN,
+                ) ,
+                'visibility' => array(
+                    'name' => 'visibility',
+                    'type' => CRM_Utils_Type::T_ENUM,
+                    'title' => ts('Visibility') ,
+                    'default' => 'User and User Admin Only',
+                    'enumValues' => 'User and User Admin Only,Public Pages',
+                ) ,
+                'campaign_id' => array(
+                    'name' => 'campaign_id',
+                    'type' => CRM_Utils_Type::T_INT,
+                    'FKClassName' => 'CRM_Campaign_DAO_Campaign',
                 ) ,
             );
         }
@@ -414,8 +507,7 @@ class CRM_Mailing_DAO_Mailing extends CRM_Core_DAO
      */
     function getTableName()
     {
-        global $dbLocale;
-        return self::$_tableName . $dbLocale;
+        return self::$_tableName;
     }
     /**
      * returns if this table needs to be logged
@@ -472,5 +564,53 @@ class CRM_Mailing_DAO_Mailing extends CRM_Core_DAO
             }
         }
         return self::$_export;
+    }
+    /**
+     * returns an array containing the enum fields of the civicrm_mailing table
+     *
+     * @return array (reference)  the array of enum fields
+     */
+    static function &getEnums()
+    {
+        static $enums = array(
+            'visibility',
+        );
+        return $enums;
+    }
+    /**
+     * returns a ts()-translated enum value for display purposes
+     *
+     * @param string $field  the enum field in question
+     * @param string $value  the enum value up for translation
+     *
+     * @return string  the display value of the enum
+     */
+    static function tsEnum($field, $value)
+    {
+        static $translations = null;
+        if (!$translations) {
+            $translations = array(
+                'visibility' => array(
+                    'User and User Admin Only' => ts('User and User Admin Only') ,
+                    'Public Pages' => ts('Public Pages') ,
+                ) ,
+            );
+        }
+        return $translations[$field][$value];
+    }
+    /**
+     * adds $value['foo_display'] for each $value['foo'] enum from civicrm_mailing
+     *
+     * @param array $values (reference)  the array up for enhancing
+     * @return void
+     */
+    static function addDisplayEnums(&$values)
+    {
+        $enumFields = & CRM_Mailing_DAO_Mailing::getEnums();
+        foreach($enumFields as $enum) {
+            if (isset($values[$enum])) {
+                $values[$enum . '_display'] = CRM_Mailing_DAO_Mailing::tsEnum($enum, $values[$enum]);
+            }
+        }
     }
 }

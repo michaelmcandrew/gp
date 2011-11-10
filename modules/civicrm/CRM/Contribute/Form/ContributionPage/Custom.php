@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -49,13 +49,25 @@ class CRM_Contribute_Form_ContributionPage_Custom extends CRM_Contribute_Form_Co
      */
     public function buildQuickForm()
     {
-        require_once "CRM/Core/BAO/UFGroup.php";
-        require_once "CRM/Contact/BAO/ContactType.php";
+        require_once 'CRM/Core/BAO/UFGroup.php';
+        require_once 'CRM/Contact/BAO/ContactType.php';
         $types    = array_merge( array( 'Contact', 'Individual','Contribution','Membership'),
                                  CRM_Contact_BAO_ContactType::subTypes( 'Individual' ) );
         
-        $profiles = CRM_Core_BAO_UFGroup::getProfiles( $types ); 
+        $profiles        = CRM_Core_BAO_UFGroup::getProfiles( $types );
+        $profileId       = CRM_Core_DAO::getFieldValue( 'CRM_Core_DAO_UFGroup', 'on_behalf_organization', 'id', 'name' );
         
+        $excludeTypes    = array( 'Organization', 'Household', 'Participant', 'Activity' );
+        
+        $excludeProfiles = CRM_Core_BAO_UFGroup::getProfiles( $excludeTypes );
+        $excludeProfiles[$profileId] = CRM_Core_BAO_UFGroup::getTitle( $profileId );
+        
+        foreach ( $excludeProfiles as $key => $value ) {
+            if ( in_array( $value, $profiles ) ) {
+                unset( $profiles[$key] );
+            }
+        }
+                                
         if ( empty( $profiles ) ) {
             $this->assign( 'noProfile', true );
         }
@@ -86,7 +98,8 @@ class CRM_Contribute_Form_ContributionPage_Custom extends CRM_Contribute_Form_Co
             
         require_once 'CRM/Core/BAO/UFJoin.php';
 
-        $ufJoinParams = array( 'entity_table' => 'civicrm_contribution_page',  
+        $ufJoinParams = array( 'module'       => 'CiviContribute',
+                               'entity_table' => 'civicrm_contribution_page',  
                                'entity_id'    => $this->_id );
         list( $defaults['custom_pre_id'],
               $defaults['custom_post_id'] ) = 
@@ -138,6 +151,7 @@ class CRM_Contribute_Form_ContributionPage_Custom extends CRM_Contribute_Form_Co
         }
 
         $transaction->commit( ); 
+        parent::endPostProcess( );
     }
 
     /** 
@@ -177,7 +191,7 @@ class CRM_Contribute_Form_ContributionPage_Custom extends CRM_Contribute_Form_Co
             $membershipEnable = true;
         }
         
-        require_once "CRM/Core/BAO/UFField.php";
+        require_once 'CRM/Core/BAO/UFField.php';
         if ( $fields['custom_pre_id'] ) {
             $preProfileType  = CRM_Core_BAO_UFField::getProfileType( $fields['custom_pre_id'] );
         }

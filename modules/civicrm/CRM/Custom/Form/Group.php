@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -125,7 +125,18 @@ class CRM_Custom_Form_Group extends CRM_Core_Form
     static function formRule( $fields, $files, $self) 
     {
         $errors = array();
-
+        
+        //validate group title as well as name.
+        $title  = $fields['title'];
+        $name   = CRM_Utils_String::munge( $title, '_', 64 );
+        $query  = 'select count(*) from civicrm_custom_group where ( name like %1 OR title like %2 ) and id != %3';
+        $grpCnt = CRM_Core_DAO::singleValueQuery( $query, array( 1 => array( $name,           'String'  ),
+                                                                 2 => array( $title,          'String'  ),
+                                                                 3 => array( (int)$self->_id, 'Integer' ) ) );
+        if ( $grpCnt ) {
+            $errors['title'] = ts( 'Custom group \'%1\' already exists in Database.', array( 1 => $title ) );
+        }
+        
         if ( CRM_Utils_Array::value(1, $fields['extends']) ) {
             if ( !$self->_isGroupEmpty ) {
                 $updates = array_diff($self->_subtypes, array_intersect($self->_subtypes, $fields['extends'][1]));
@@ -204,10 +215,6 @@ class CRM_Custom_Form_Group extends CRM_Core_Form
         
         //title
         $this->add('text', 'title', ts('Set Name'), $attributes['title'], true);
-        $this->addRule( 'title',
-                        ts( 'Name already exists in Database.' ),
-                        'objectExists',
-                        array( 'CRM_Core_DAO_CustomGroup', $this->_id, 'title' ) );   
         
         //Fix for code alignment, CRM-3058
         require_once "CRM/Contribute/PseudoConstant.php";
@@ -216,13 +223,16 @@ class CRM_Custom_Form_Group extends CRM_Core_Form
         require_once "CRM/Contact/BAO/Relationship.php";
         require_once 'CRM/Core/OptionGroup.php';
         require_once 'CRM/Contact/BAO/ContactType.php';
+        require_once 'CRM/Campaign/PseudoConstant.php';
         $contactTypes = array( 'Contact', 'Individual', 'Household', 'Organization' );
         $this->assign( 'contactTypes', json_encode($contactTypes) );
               
         $sel1 = array( "" => "- select -" ) + CRM_Core_SelectValues::customGroupExtends( );
         $sel2 = array( );
-        $activityType    = CRM_Core_PseudoConstant::activityType( false, true );
+        $activityType = CRM_Core_PseudoConstant::activityType( false, true, false, 'label', true );
+        
         $eventType       = CRM_Core_OptionGroup::values( 'event_type' );
+        $campaignTypes   = CRM_Campaign_PseudoConstant::campaignType( );
         $membershipType  = CRM_Member_BAO_MembershipType::getMembershipTypes( false );
         $participantRole = CRM_Core_OptionGroup::values( 'participant_role' );
         $relTypeInd      = CRM_Contact_BAO_Relationship::getContactRelationshipType( null, 'null', null, 'Individual' );
@@ -249,6 +259,7 @@ class CRM_Custom_Form_Group extends CRM_Core_Form
 
         $sel2['Event']                = $eventType;
         $sel2['Activity']             = $activityType;
+        $sel2['Campaign']             = $campaignTypes;
         $sel2['Membership']           = $membershipType;
         $sel2['ParticipantRole']      = $participantRole;
         $sel2['ParticipantEventName'] = 
@@ -260,6 +271,8 @@ class CRM_Custom_Form_Group extends CRM_Core_Form
         $sel2['Individual']           = CRM_Contact_BAO_ContactType::subTypePairs( 'Individual', false, null );
         $sel2['Household' ]           = CRM_Contact_BAO_ContactType::subTypePairs( 'Household', false, null );
         $sel2['Organization']         = CRM_Contact_BAO_ContactType::subTypePairs( 'Organization', false, null );
+
+        CRM_Core_BAO_CustomGroup::getExtendedObjectTypes( $sel2 );
 
         foreach ( $sel2 as $main => $sub ) {
             if ( !empty($sel2[$main]) ) {
@@ -480,8 +493,8 @@ class CRM_Custom_Form_Group extends CRM_Core_Form
         if ($this->_action & CRM_Core_Action::UPDATE) {
             CRM_Core_Session::setStatus(ts('Your custom field set \'%1 \' has been saved.', array(1 => $group->title)));
         } else {
-            $url = CRM_Utils_System::url( 'civicrm/admin/custom/group/field', 'reset=1&action=add&gid=' . $group->id);
-            CRM_Core_Session::setStatus(ts('Your custom field set \'%1\' has been added. You can add it custom fields now.',
+            $url = CRM_Utils_System::url( 'civicrm/admin/custom/group/field/add', 'reset=1&action=add&gid=' . $group->id);
+            CRM_Core_Session::setStatus(ts('Your custom field set \'%1\' has been added. You can add custom fields now.',
                                            array(1 => $group->title)));
             $session = CRM_Core_Session::singleton( );
             $session->replaceUserContext($url);

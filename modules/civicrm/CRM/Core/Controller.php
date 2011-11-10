@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -39,7 +39,7 @@
  * for other useful tips and suggestions
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -211,7 +211,7 @@ class CRM_Core_Controller extends HTML_QuickForm_Controller {
         require_once 'CRM/Utils/Request.php';
 
         // also retrieve and store destination in session
-        $this->_destination = CRM_Utils_Request::retrieve( 'destination', 'String', $this,
+        $this->_destination = CRM_Utils_Request::retrieve( 'civicrmDestination', 'String', $this,
                                                            false, null, $_REQUEST );
     }
 
@@ -384,7 +384,14 @@ class CRM_Core_Controller extends HTML_QuickForm_Controller {
             } else {
                 $formName = CRM_Utils_String::getClassName( $name );
             }
-            require_once(str_replace('_', DIRECTORY_SEPARATOR, $className) . '.php');
+            
+            require_once 'CRM/Core/Extensions.php';
+            $ext = new CRM_Core_Extensions( );
+            if ( $ext->isExtensionClass( $className) ) {
+                require_once( $ext->classToPath( $className ) );
+            } else {
+                require_once(str_replace('_', DIRECTORY_SEPARATOR, $className) . '.php');
+            }
             $$stateName = new $className( $stateMachine->find( $className ), $action, 'post', $formName );
             if ( $title ) {
                 $$stateName->setTitle( $title );
@@ -662,7 +669,7 @@ class CRM_Core_Controller extends HTML_QuickForm_Controller {
         }
 
         require_once 'CRM/Core/QuickForm/Action/Upload.php';
-        $action =& new CRM_Core_QuickForm_Action_Upload ( $this->_stateMachine,
+        $action = new CRM_Core_QuickForm_Action_Upload ( $this->_stateMachine,
                                                           $uploadDir,
                                                           $uploadNames );
         $this->addAction('upload' , $action );
@@ -691,7 +698,7 @@ class CRM_Core_Controller extends HTML_QuickForm_Controller {
         }
         
         $this->_destination = $url;
-        $this->set( 'destination', $this->_destination );
+        $this->set( 'civicrmDestination', $this->_destination );
     }
 
 

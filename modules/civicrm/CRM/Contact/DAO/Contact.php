@@ -1,9 +1,9 @@
 <?php
 /*
 +--------------------------------------------------------------------+
-| CiviCRM version 3.2                                                |
+| CiviCRM version 3.4                                                |
 +--------------------------------------------------------------------+
-| Copyright CiviCRM LLC (c) 2004-2010                                |
+| Copyright CiviCRM LLC (c) 2004-2011                                |
 +--------------------------------------------------------------------+
 | This file is a part of CiviCRM.                                    |
 |                                                                    |
@@ -27,7 +27,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -321,12 +321,6 @@ class CRM_Contact_DAO_Contact extends CRM_Core_DAO
      */
     public $deceased_date;
     /**
-     * OPTIONAL FK to civicrm_contact_household record. If NOT NULL, direct mail communications to household rather than individual location.
-     *
-     * @var int unsigned
-     */
-    public $mail_to_household_id;
-    /**
      * Household Name.
      *
      * @var string
@@ -387,7 +381,6 @@ class CRM_Contact_DAO_Contact extends CRM_Core_DAO
     {
         if (!(self::$_links)) {
             self::$_links = array(
-                'mail_to_household_id' => 'civicrm_contact:id',
                 'primary_contact_id' => 'civicrm_contact:id',
                 'employer_id' => 'civicrm_contact:id',
             );
@@ -620,9 +613,13 @@ class CRM_Contact_DAO_Contact extends CRM_Core_DAO
                 'hash' => array(
                     'name' => 'hash',
                     'type' => CRM_Utils_Type::T_STRING,
-                    'title' => ts('Hash') ,
+                    'title' => ts('Contact Hash') ,
                     'maxlength' => 32,
                     'size' => CRM_Utils_Type::MEDIUM,
+                    'export' => true,
+                    'where' => 'civicrm_contact.hash',
+                    'headerPattern' => '',
+                    'dataPattern' => '',
                 ) ,
                 'api_key' => array(
                     'name' => 'api_key',
@@ -682,10 +679,12 @@ class CRM_Contact_DAO_Contact extends CRM_Core_DAO
                 'prefix_id' => array(
                     'name' => 'prefix_id',
                     'type' => CRM_Utils_Type::T_INT,
+                    'title' => ts('Individual Prefix') ,
                 ) ,
                 'suffix_id' => array(
                     'name' => 'suffix_id',
                     'type' => CRM_Utils_Type::T_INT,
+                    'title' => ts('Individual Suffix') ,
                 ) ,
                 'email_greeting_id' => array(
                     'name' => 'email_greeting_id',
@@ -771,6 +770,7 @@ class CRM_Contact_DAO_Contact extends CRM_Core_DAO
                 'gender_id' => array(
                     'name' => 'gender_id',
                     'type' => CRM_Utils_Type::T_INT,
+                    'title' => ts('Gender') ,
                 ) ,
                 'birth_date' => array(
                     'name' => 'birth_date',
@@ -801,16 +801,6 @@ class CRM_Contact_DAO_Contact extends CRM_Core_DAO
                     'headerPattern' => '/^deceased|(d(eceased\s)?date)$/i',
                     'dataPattern' => '',
                     'export' => true,
-                ) ,
-                'mail_to_household_id' => array(
-                    'name' => 'mail_to_household_id',
-                    'type' => CRM_Utils_Type::T_INT,
-                    'title' => ts('Mail to Household ID') ,
-                    'export' => true,
-                    'where' => 'civicrm_contact.mail_to_household_id',
-                    'headerPattern' => '',
-                    'dataPattern' => '',
-                    'FKClassName' => 'CRM_Contact_DAO_Contact',
                 ) ,
                 'household_name' => array(
                     'name' => 'household_name',
@@ -876,10 +866,15 @@ class CRM_Contact_DAO_Contact extends CRM_Core_DAO
                     'dataPattern' => '',
                     'FKClassName' => 'CRM_Contact_DAO_Contact',
                 ) ,
-                'is_deleted' => array(
+                'contact_is_deleted' => array(
                     'name' => 'is_deleted',
                     'type' => CRM_Utils_Type::T_BOOLEAN,
+                    'title' => ts('Contact is in Trash') ,
                     'required' => true,
+                    'export' => true,
+                    'where' => 'civicrm_contact.is_deleted',
+                    'headerPattern' => '',
+                    'dataPattern' => '',
                 ) ,
             );
         }
@@ -893,8 +888,7 @@ class CRM_Contact_DAO_Contact extends CRM_Core_DAO
      */
     function getTableName()
     {
-        global $dbLocale;
-        return self::$_tableName . $dbLocale;
+        return self::$_tableName;
     }
     /**
      * returns if this table needs to be logged

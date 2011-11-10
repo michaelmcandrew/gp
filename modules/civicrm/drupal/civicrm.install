@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -52,4 +52,11 @@ function civicrm_uninstall( ) {
 
     require_once 'CRM/Core/DAO.php';
     CRM_Core_DAO::dropAllTables( );
+}
+
+/**
+ * Update CiviCRM module weight
+ */
+function civicrm_update_6300(&$sandbox) {
+    db_query("UPDATE {system} SET weight = 100 WHERE name = 'civicrm'");
 }

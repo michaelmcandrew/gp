@@ -1,9 +1,9 @@
 <?php
 /*
 +--------------------------------------------------------------------+
-| CiviCRM version 3.2                                                |
+| CiviCRM version 3.4                                                |
 +--------------------------------------------------------------------+
-| Copyright CiviCRM LLC (c) 2004-2010                                |
+| Copyright CiviCRM LLC (c) 2004-2011                                |
 +--------------------------------------------------------------------+
 | This file is a part of CiviCRM.                                    |
 |                                                                    |
@@ -27,7 +27,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -79,7 +79,7 @@ class CRM_Contribute_DAO_ContributionPage extends CRM_Core_DAO
      * @var boolean
      * @static
      */
-    static $_log = false;
+    static $_log = true;
     /**
      * Contribution Id
      *
@@ -315,6 +315,18 @@ class CRM_Contribute_DAO_ContributionPage extends CRM_Core_DAO
      */
     public $created_date;
     /**
+     * 3 character string, value from config setting or input via user.
+     *
+     * @var string
+     */
+    public $currency;
+    /**
+     * The campaign for which we are collecting contributions with this page.
+     *
+     * @var int unsigned
+     */
+    public $campaign_id;
+    /**
      * class constructor
      *
      * @access public
@@ -337,6 +349,7 @@ class CRM_Contribute_DAO_ContributionPage extends CRM_Core_DAO
                 'contribution_type_id' => 'civicrm_contribution_type:id',
                 'payment_processor_id' => 'civicrm_payment_processor:id',
                 'created_id' => 'civicrm_contact:id',
+                'campaign_id' => 'civicrm_campaign:id',
             );
         }
         return self::$_links;
@@ -567,6 +580,19 @@ class CRM_Contribute_DAO_ContributionPage extends CRM_Core_DAO
                     'name' => 'created_date',
                     'type' => CRM_Utils_Type::T_DATE + CRM_Utils_Type::T_TIME,
                     'title' => ts('Contribution Page Created Date') ,
+                ) ,
+                'currency' => array(
+                    'name' => 'currency',
+                    'type' => CRM_Utils_Type::T_STRING,
+                    'title' => ts('Currency') ,
+                    'maxlength' => 3,
+                    'size' => CRM_Utils_Type::FOUR,
+                    'default' => 'UL',
+                ) ,
+                'campaign_id' => array(
+                    'name' => 'campaign_id',
+                    'type' => CRM_Utils_Type::T_INT,
+                    'FKClassName' => 'CRM_Campaign_DAO_Campaign',
                 ) ,
             );
         }

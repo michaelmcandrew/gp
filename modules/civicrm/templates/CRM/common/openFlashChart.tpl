@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,7 +23,7 @@
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
 *}
-<script type="text/javascript" src="{$config->resourceBase}packages/OpenFlashChart/js/json/json2.js"></script>
+<script type="text/javascript" src="{$config->resourceBase}packages/OpenFlashChart/js/json/openflashchart.packed.js"></script>
 <script type="text/javascript" src="{$config->resourceBase}packages/OpenFlashChart/js/swfobject.js"></script>
 {literal}
 <script type="text/javascript">
@@ -39,5 +39,24 @@
     		                 {"wmode": 'transparent'}
     		                );
     }
+  OFC = {};
+  OFC.jquery = {
+  	       name: "jQuery",
+    	       image: function(src) { return "<img src='data:image/png;base64," + $('#'+src)[0].get_img_binary() + "' />"},
+	           popup: function(src) {
+ 		        var img_win = window.open('', 'Save Chart as Image');
+     			img_win.document.write('<html><head><title>Save Chart as Image<\/title><\/head><body>' + OFC.jquery.image(src) + ' <\/body><\/html>'); 
+     			img_win.document.close();
+                       }					
+    	           }   		
+			
+function save_image( divName ) {
+      var divId = {/literal}"{$contriChart}"{literal} ? 'open_flash_chart_'+divName : {/literal}"{$divId}"{literal};
+          if( !divId ) { 
+               divId = 'open_flash_'+divName;
+        }
+      OFC.jquery.popup( divId );
+}
+
 </script>
 {/literal}

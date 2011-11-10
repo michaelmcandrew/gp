@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -76,7 +76,7 @@ class CRM_SMS_Form_Task_SMS extends CRM_Contact_Form_Task {
 
             $this->_contactIds = array( $cid );
             $this->_single     = true;
-            $smsNumbers        = CRM_Contact_BAO_Contact::allPhones( $cid, 'Mobile' );
+            $smsNumbers        = CRM_Contact_BAO_Contact::allPhones( $cid, false, 'Mobile' );
             $this->_emails     = array( );
             $toName = CRM_Core_DAO::getFieldValue( 'CRM_Contact_DAO_Contact',
                                                    $cid,

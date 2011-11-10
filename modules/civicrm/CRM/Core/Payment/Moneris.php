@@ -2,9 +2,9 @@
  
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -30,7 +30,7 @@
  * 
  * @package CRM 
  * @author Alan Dixon
- * @copyright CiviCRM LLC (c) 2004-2010 
+ * @copyright CiviCRM LLC (c) 2004-2011 
  * $Id$ 
  * 
  */ 
@@ -41,6 +41,15 @@ class CRM_Core_Payment_Moneris extends CRM_Core_Payment {
     const
         CHARSET  = 'UFT-8'; # (not used, implicit in the API, might need to convert?)
          
+    /**
+     * We only need one instance of this object. So we use the singleton
+     * pattern and cache the instance in this variable
+     *
+     * @var object
+     * @static
+     */
+    static private $_singleton = null;
+    
     /** 
      * Constructor 
      *
@@ -53,7 +62,7 @@ class CRM_Core_Payment_Moneris extends CRM_Core_Payment {
         $this->_paymentProcessor = $paymentProcessor;
         $this->_processorName    = ts('Moneris');
 
-        if (include_once('Services/mpgClasses.php') === false ) { // require moneris supplied api library
+        if ( (include_once 'Services/mpgClasses.php') === false ) { // require moneris supplied api library
             CRM_Core_Error::fatal( ts( 'Please download and put the Moneris mpgClasses.php file in packages/Services directory to enable Moneris Support.' ) );
         }
 
@@ -66,6 +75,23 @@ class CRM_Core_Payment_Moneris extends CRM_Core_Payment {
             return self::error('Invalid configuration:'.$currencyID.', you must use currency $CAD with Moneris');
             // Configuration error: default currency must be CAD
         }
+    }
+
+    /** 
+     * singleton function used to manage this object 
+     * 
+     * @param string $mode the mode of operation: live or test
+     *
+     * @return object 
+     * @static 
+     * 
+     */ 
+    static function &singleton( $mode, &$paymentProcessor ) {
+        $processorName = $paymentProcessor['name'];
+        if (self::$_singleton[$processorName] === null ) {
+            self::$_singleton[$processorName] = new CRM_Core_Payment_Moneris( $mode, $paymentProcessor );
+        }
+        return self::$_singleton[$processorName];
     }
 
     function doDirectPayment( &$params ) {

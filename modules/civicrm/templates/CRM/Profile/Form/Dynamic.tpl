@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,8 +29,14 @@
 {/if}
 {if ! empty( $fields )}
 {* Wrap in crm-container div so crm styles are used.*}
-{* Replace div id with this logic if you want CMS account create and CMS edit to use CMS theme styles: id="{if $mode eq 4}crm-container{else}crm-profile-block{/if}" *}
-<div id="crm-container" lang="{$config->lcMessages|truncate:2:"":true}" xml:lang="{$config->lcMessages|truncate:2:"":true}">
+{* Replace div id "crm-container" only when profile is not loaded in civicrm container, i.e for profile shown in my account and in profile standalone mode otherwise id should be "crm-profile-block" *}
+
+{if $action eq 1 or $action eq 2 or $action eq 4 }
+    <div id="crm-profile-block">
+{else}
+    <div id="crm-container" lang="{$config->lcMessages|truncate:2:"":true}" xml:lang="{$config->lcMessages|truncate:2:"":true}">
+{/if}
+
     {if $isDuplicate and ( ($action eq 1 and $mode eq 4 ) or ($action eq 2) or ($action eq 8192) ) }
         <div class="crm-submit-buttons"> 
              <span class="crm-button">{$form._qf_Edit_upload_duplicate.html}</span>
@@ -75,7 +81,11 @@
                 {/if}
                 <div class="form-layout-compressed">
             {/if}
-
+            {if $field.help_pre && $action neq 4 && $form.$n.html}
+                <div class="crm-section helprow-{$n}-section" id="helprow-{$n}">
+                    <div class="content description">{$field.help_pre}</div>
+                </div>
+            {/if}
             {if $field.options_per_line}
             	<div class="crm-section editrow_{$n}-section form-item" id="editrow-{$n}">
                     <div class="label">{$form.$n.label}</div>
@@ -116,17 +126,17 @@
                        {if $n|substr:0:3 eq 'im-'}
                          {assign var="provider" value=$n|cat:"-provider_id"}
                          {$form.$provider.html}&nbsp;
-                       {else if $n|substr:0:4 eq 'url-'}
+                       {elseif $n|substr:0:4 eq 'url-'}
                          {assign var="websiteType" value=$n|cat:"-website_type_id"}
                          {$form.$websiteType.html}&nbsp;
                        {/if}
                        {if $n eq 'email_greeting' or  $n eq 'postal_greeting' or $n eq 'addressee'}
                             {include file="CRM/Profile/Form/GreetingType.tpl"}  
                        {elseif ( $n eq 'group' && $form.group ) || ( $n eq 'tag' && $form.tag )}
-            				{include file="CRM/Contact/Form/Edit/TagsAndGroups.tpl" type=$n}
+            				{include file="CRM/Contact/Form/Edit/TagsAndGroups.tpl" type=$n context="profile"}
                        {elseif ( $form.$n.name eq 'image_URL' )}
             	            {$form.$n.html}
-                		    {if $imageURL}
+                		    {if !empty($imageURL)}
                  	 	        <div class="crm-section contact_image-section">
                  	 	            <div class="content">
                  	 	                {include file="CRM/Contact/Page/ContactImage.tpl"}
@@ -135,7 +145,7 @@
                  	        {/if}
             	       {else}
                            {if ( $field.data_type eq 'Date' or
-                                      ( ( ( $n eq 'birth_date' ) or ( $n eq 'deceased_date' ) ) ) ) and $field.is_view neq 1 }
+                                      ( ( ( $n eq 'birth_date' ) or ( $n eq 'deceased_date' ) or ( $n eq 'activity_date_time' ) ) ) ) and $field.is_view neq 1 }
                               {include file="CRM/common/jcalendar.tpl" elementName=$n}  
                		       {else}       
                               {$form.$n.html}
@@ -244,6 +254,7 @@ cj(document).ready(function(){
         var queryString = cj.param(formData); 
         queryString = queryString + '&snippet=5&gid=' + {/literal}"{$profileID}"{literal};
         var postUrl = {/literal}"{crmURL p='civicrm/profile/create' h=0 }"{literal}; 
+        var blockNo = {/literal}{$blockNo}{literal};
         var response = cj.ajax({
            type: "POST",
            url: postUrl,
@@ -252,22 +263,27 @@ cj(document).ready(function(){
            dataType: "json",
            success: function( response ) {
                if ( response.newContactSuccess ) {
-                   cj("#contact").val( response.sortName ).focus( );
-		   if ( typeof(allowMultiClient) != "undefined" ) {
-		      if ( allowMultiClient ) {
-	              	 var newToken = '{"name":"'+response.sortName+'","id":"'+response.contactID+'"},';
-		      	 cj('ul.token-input-list-facebook, div.token-input-dropdown-facebook' ).remove();
-		      	 addMultiClientOption(newToken);
-		      }
-		   }
-                   cj("input[name=contact_select_id]").val( response.contactID );
-                   cj("#contact-success").show( );
-                   cj("#contact-dialog").dialog("close");
+                   cj('#contact_' + blockNo ).val( response.sortName ).focus( );
+                   if ( typeof(allowMultiClient) != "undefined" ) {
+                       if ( allowMultiClient ) {
+                           var newToken = '{"name":"'+response.sortName+'","id":"'+response.contactID+'"},';
+                           cj('ul.token-input-list-facebook, div.token-input-dropdown-facebook' ).remove();
+			   	//we are having multiple instances, CRM-6932
+				eval( 'addMultiClientOption' + blockNo + "( newToken,  blockNo )" );
+                       }
+                   }
+                   cj('input[name="contact_select_id[' + blockNo +']"]').val( response.contactID );
+                   cj('#contact-success-' + blockNo ).show( );
+                   cj('#contact-dialog-' + blockNo ).dialog('close');
+
+		   {/literal}{ if $createCallback}{literal}
+        	       profileCreateCallback( blockNo );
+		   {/literal}{/if}{literal}			     
                }
            }
          }).responseText;
 
-         cj("#contact-dialog").html( response );
+         cj('#contact-dialog-' + blockNo).html( response );
 
         // here we could return false to prevent the form from being submitted; 
         // returning anything other than false will allow the form submit to continue 

@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -88,6 +88,9 @@
              {/if}
              </td>
 	    {/if}
+        <td class="crm-case=caseview-case_subject label">
+            <span class="crm-case-summary-label">{ts}Case Subject{/ts}:</span>&nbsp;{$caseDetails.case_subject}
+        </td>    
         <td class="crm-case-caseview-case_type label">
             <span class="crm-case-summary-label">{ts}Case Type{/ts}:</span>&nbsp;{$caseDetails.case_type}&nbsp;<a href="{crmURL p='civicrm/case/activity' q="action=add&reset=1&cid=`$contactId`&caseid=`$caseId`&selectedChild=activity&atype=`$changeCaseTypeId`"}" title="Change case type (creates activity record)"><span class="icon edit-icon"></span></a>
         </td>
@@ -115,7 +118,7 @@
             <td>{$form.activity_type_id.label}<br />{$form.activity_type_id.html}&nbsp;<input type="button" accesskey="N" value="Go" name="new_activity" onclick="checkSelection( this );"/></td>
 	    {if $hasAccessToAllCases}	
             <td>
-                <span class="crm-button"><div class="icon print-icon"></div><input type="button"  value="Print Case Report" name="case_report_all" onclick="printCaseReport( );"/></span>
+                <span class="crm-button"><div class="icon print-icon"></div><input type="button"  value="{ts}Print Case Report{/ts}" name="case_report_all" onclick="printCaseReport( );"/></span>
             </td> 
         </tr>
         <tr>
@@ -189,11 +192,11 @@
             </td>
           {if $relId neq 'client' and $hasAccessToAllCases}
             <td id ="edit_{$rowNumber}">
-            	<a href="#" title="edit case role" onclick="createRelationship( {$row.relation_type}, {$row.cid}, {$relId}, {$rowNumber}, '{$row.relation}' );return false;">
+            	<a href="#" title="{ts}edit case role{/ts}" onclick="createRelationship( {$row.relation_type}, {$row.cid}, {$relId}, {$rowNumber}, '{$row.relation}' );return false;">
             	<div class="icon edit-icon" ></div>
             	</a> &nbsp;&nbsp;
             	<a href="{crmURL p='civicrm/contact/view/rel' q="action=delete&reset=1&cid=`$contactID`&id=`$relId`&caseID=`$caseID`"}" onclick = "if (confirm('{ts}Are you sure you want to remove this person from their case role{/ts}?') ) this.href+='&confirmed=1'; else return false;">
-            	<div class="icon delete-icon" title="remove contact from case role"></div>
+            	<div class="icon delete-icon" title="{ts}remove contact from case role{/ts}"></div>
             	</a>
             	
             </td>
@@ -206,12 +209,12 @@
          {if $relTypeID neq 'client'} 
            <tr>
                <td class="crm-case-caseview-role-relName label">{$relName}</td>
-               <td class="crm-case-caseview-role-relName_{$rowNumber}" id="relName_{$rowNumber}">(not assigned)</td>
+               <td class="crm-case-caseview-role-relName_{$rowNumber}" id="relName_{$rowNumber}">{ts}(not assigned){/ts}</td>
                <td class="crm-case-caseview-role-phone" id="phone_{$rowNumber}"></td>
                <td class="crm-case-caseview-role-email" id="email_{$rowNumber}"></td>
 	       {if $hasAccessToAllCases}               
 	       <td id ="edit_{$rowNumber}">
-	       <a href="#" title="edit case role" onclick="createRelationship( {$relTypeID}, null, null, {$rowNumber}, '{$relName}' );return false;">
+	       <a href="#" title="{ts}edit case role{/ts}" onclick="createRelationship( {$relTypeID}, null, null, {$rowNumber}, '{$relName}' );return false;">
 	       	<div class="icon edit-icon"></div>
 	       </a> 
 	       </td>
@@ -220,7 +223,7 @@
 	       {/if}
            </tr>
          {else}
-           <tr>
+           <tr class="crm-case-caseview-clientrole">
                <td rowspan="{$relName|@count}" class="crm-case-caseview-role-label label">{ts}Client{/ts}</td>
 	   {foreach from=$relName item=client name=clientsRoles}
                {if not $smarty.foreach.clientsRoles.first}</tr>{/if}
@@ -261,31 +264,67 @@ function addClient( ) {
     cj("#dialog").dialog({
         title: "Add Client to the Case",
         modal: true,
-		bgiframe: true,
-		close   : function(event, ui) { cj("#rel_contact").unautocomplete( ); },
-		overlay: { opacity: 0.5, background: "black" },
-		beforeclose: function(event, ui) { cj(this).dialog("destroy"); },
+	bgiframe: true,
+	close  : function(event, ui) { cj("#rel_contact").unautocomplete( ); },
+	overlay: { opacity: 0.5, background: "black" },
 
-		open:function() {
+	open:function() {
 
-			var contactUrl = {/literal}"{crmURL p='civicrm/ajax/rest' q='className=CRM_Contact_Page_AJAX&fnName=getContactList&json=1&context=caseview' h=0 }"{literal};
+		var contactUrl = {/literal}"{crmURL p='civicrm/ajax/rest' q='className=CRM_Contact_Page_AJAX&fnName=getContactList&json=1&context=caseview' h=0 }"{literal};
 
-			cj("#rel_contact").autocomplete( contactUrl, {
-				width: 260,
-				selectFirst: false,
-	                        matchContains: true 
-			});
+		cj("#rel_contact").autocomplete( contactUrl, {
+			width: 260,
+			selectFirst: false,
+                        matchContains: true 
+		});
 			
-			cj("#rel_contact").focus();
-			cj("#rel_contact").result(function(event, data, formatted) {
-				cj("input[id=rel_contact_id]").val(data[1]);
-			});		    
-		
+		cj("#rel_contact").focus();
+		cj("#rel_contact").result(function(event, data, formatted) {
+			cj("input[id=rel_contact_id]").val(data[1]);
+		});
+	},
+
+	buttons: { 
+		"Done": function() {
+
+				if ( ! cj("#rel_contact").val( ) ) {
+					alert('{/literal}{ts escape="js"}Select valid contact from the list{/ts}{literal}.');
+					return false;
+				}
+
+				var postUrl = {/literal}"{crmURL p='civicrm/case/ajax/addclient' h=0 }"{literal};
+				var caseID        = {/literal}"{$caseID}"{literal};
+				var contactID = cj("#rel_contact_id").val( );
+
+				if ( ! contactID ) {
+					alert('{/literal}{ts escape="js"}Select valid contact from the list{/ts}{literal}.');
+					return false;
+				}
+
+
+		                cj.post( postUrl, 
+					 { contactID: contactID, 
+				    	   caseID: caseID, 
+				           key: {/literal}"{crmKey name='civicrm/case/ajax/addclient'}"{literal} },
+		                    	   function( data ) {
+						var resourceBase   = {/literal}"{$config->resourceBase}"{literal};
+					   }, 
+                                           'json'
+				); 
+
+			cj(this).dialog("close"); 
+			cj(this).dialog("destroy");
+	                //due to caching issues we use redirection rather than reload
+	                document.location = {/literal}'{crmURL q="action=view&reset=1&id=$caseID&cid=$contactID&context=$context" h=0 }'{literal};
 		},
 
-		buttons: { "Done": function() { cj(this).dialog("close"); cj(this).dialog("destroy"); }}	
-	}
-	)
+		"Cancel": function() { 
+			cj(this).dialog("close"); 
+			cj(this).dialog("destroy"); 
+		}
+
+	}	
+    })
 }
 
 function createRelationship( relType, contactID, relID, rowNumber, relTypeName ) {
@@ -295,15 +334,12 @@ function createRelationship( relType, contactID, relID, rowNumber, relTypeName )
 		title: "Assign Case Role",
 		modal: true, 
 		bgiframe: true,
-		close   : function(event, ui) { cj("#rel_contact").unautocomplete( ); },
+		close: function(event, ui) { cj("#rel_contact").unautocomplete( ); },
 		overlay: { 
 			opacity: 0.5, 
 			background: "black" 
 		},
-		beforeclose: function(event, ui) {
-            cj(this).dialog("destroy");
-        },
-
+		
 		open:function() {
 			/* set defaults if editing */
 			cj("#rel_contact").val( "" );
@@ -365,7 +401,7 @@ function createRelationship( relType, contactID, relID, rowNumber, relTypeName )
 			   var errorMsg = '{/literal}{ts 1="' + relTypeName + '" 2="' + relTypeAdminLink + '" }The relationship type definition for the %1 case role is not valid. Both sides of the relationship type must be an Individual or a subtype of Individual. You can review and edit relationship types at <a href="%2">Administer >> Option Lists >> Relationship Types</a>{/ts}{literal}.'; 
 
 			   //display error message.
-			   var imageIcon = "<a href='#'  onclick='cj( \"#restmsg\" ).hide( ); return false;'>" + '<div class="icon close-icon"></div>' + '</a>';
+			   var imageIcon = "<a href='#'  onclick='cj( \"#restmsg\" ).hide( ); return false;'>" + '<div class="ui-icon ui-icon-close" style="float:left"></div>' + '</a>';
 			   cj( '#restmsg' ).html( imageIcon + errorMsg  ).show( );
 			}
 
@@ -539,17 +575,14 @@ function addRole() {
 	cj("#addRoleDialog").dialog({
 		title: "Add Role",
 		modal: true,
-		bgiframe: true,
-		close   : function(event, ui) { cj("#role_contact").unautocomplete( ); },
+		bgiframe: true, 
+		close: function(event, ui) { cj("#role_contact").unautocomplete( ); },
 		overlay: { 
 			opacity: 0.5, 
 			background: "black" 
 		},
 
-        beforeclose: function(event, ui) {
-            cj(this).dialog("destroy");
-        },
-
+        
 		open:function() {
 			/* set defaults if editing */
 			cj("#role_contact").val( "" );
@@ -595,9 +628,7 @@ function addRole() {
 				
                /* send synchronous request so that disabling any actions for slow servers*/
 				var postUrl = {/literal}"{crmURL p='civicrm/ajax/relation' h=0 }"{literal}; 
-				cj(this).dialog("close"); 
-				cj(this).dialog("destroy");
-                		var data = 'rel_contact='+ v1 + '&rel_type='+ v2 + '&contact_id='+sourceContact + '&rel_id='+ relID + '&case_id=' + caseID + "&key={/literal}{crmKey name='civicrm/ajax/relation'}{literal}";
+				var data = 'rel_contact='+ v1 + '&rel_type='+ v2 + '&contact_id='+sourceContact + '&rel_id='+ relID + '&case_id=' + caseID + "&key={/literal}{crmKey name='civicrm/ajax/relation'}{literal}";
                 		cj.ajax({ type     : "POST", 
 					  url      : postUrl, 
 					  data     : data, 
@@ -612,11 +643,13 @@ function addRole() {
 			  				     var errorMsg = '{/literal}{ts 1="' + relTypeName + '" 2="' + relTypeAdminLink + '"  }The relationship type definition for the %1 case role is not valid. Both sides of the relationship type must be an Individual or a subtype of Individual. You can review and edit relationship types at <a href="%2">Administer >> Option Lists >> Relationship Types</a>{/ts}{literal}.'; 
 
 			   				     //display error message.
-			   				     var imageIcon = "<a href='#'  onclick='cj( \"#restmsg\" ).hide( ); return false;'>" + '<div class="icon close-icon"></div>' + '</a>';
+			   				     var imageIcon = "<a href='#'  onclick='cj( \"#restmsg\" ).hide( ); return false;'>" + '<div class="ui-icon ui-icon-close" style="float:left"></div>' + '</a>';
 			   				     cj( '#restmsg' ).html( imageIcon + errorMsg  ).show( );  
 							}
 					  	    }
 				       });
+				       cj(this).dialog("close"); 
+				       cj(this).dialog("destroy");
  			},
 
 			"Cancel": function() { 
@@ -641,11 +674,13 @@ function addRole() {
   {ts}Case Tags{/ts}
  </div><!-- /.crm-accordion-header -->
  <div class="crm-accordion-body">
+  {assign var="tagExits" value=0}
   {if $tags}
     <div class="crm-block crm-content-block crm-case-caseview-display-tags">{$tags}</div>
+    {assign var="tagExits" value=1}
   {/if}
 
-  {foreach from=$tagset item=displayTagset}
+  {foreach from=$tagsetInfo_case item=displayTagset}
       {if $displayTagset.entityTagsArray}
           <div class="crm-block crm-content-block crm-case-caseview-display-tagset">
               &nbsp;&nbsp;{$displayTagset.parentName}:
@@ -653,16 +688,17 @@ function addRole() {
                   &nbsp;{$val.name}{if !$smarty.foreach.tagsetList.last},{/if}
               {/foreach}
           </div>
+        {assign var="tagExits" value=1}
       {/if}
   {/foreach}
 
-  {if !tags and !$displayTagset.entityTagsArray }
+  {if !$tagExits }
     <div class="status">
-        {ts}There are no tags currently assigend to this case.{/ts}
+        {ts}There are no tags currently assigned to this case.{/ts}
     </div>
   {/if}
 
-  <div class="crm-submit-buttons"><input type="button" class="form-submit" onClick="javascript:addTags()" value={if $tags || $displayTagset.entityTagsArray}"{ts}Edit Tags{/ts}"{else}"{ts}Add Tags{/ts}"{/if} /></div>
+  <div class="crm-submit-buttons"><input type="button" class="form-submit" onClick="javascript:addTags()" value={if $tagExits}"{ts}Edit Tags{/ts}"{else}"{ts}Add Tags{/ts}"{/if} /></div>
 
  </div><!-- /.crm-accordion-body -->
 </div><!-- /.crm-accordion-wrapper -->
@@ -670,9 +706,12 @@ function addRole() {
     <div id="manageTags">
         <div class="label">{$form.case_tag.label}</div>
         <div class="view-value"><div class="crm-select-container">{$form.case_tag.html}</div>
-        <div style="text-align:left;">{include file="CRM/common/Tag.tpl"}</div>
+        <br/>
+        <div style="text-align:left;">{include file="CRM/common/Tag.tpl" tagsetType='case'}</div>
+        <br/>
+        <div class="clear"></div>
     </div>
-    </div>
+</div>
 
 {literal}
 <script type="text/javascript">
@@ -689,23 +728,10 @@ function addTags() {
     cj("#manageTags").show( );
 
     cj("#manageTags").dialog({
-        title: "Change Case Tags",
+        title: "{/literal}{ts}Change Case Tags{/ts}{literal}",
         modal: true,
-        bgiframe: true,
-        width : 450,
-        overlay: { 
-            opacity: 0.5, 
-            background: "black" 
-        },
-
-        beforeclose: function(event, ui) {
-            cj(this).dialog("destroy");
-        },
-
-        open:function() {
-            /* set defaults if editing */
-        },
-
+        height: 'auto',
+        width: 'auto',
         buttons: { 
             "Save": function() { 
                 var tagsChecked = '';	    
@@ -722,7 +748,7 @@ function addTags() {
                 });
                 
                 var tagList = '';
-                cj("#manageTags input[name^=taglist]").each( function( ) {
+                cj("#manageTags input[name^=case_taglist]").each( function( ) {
                     if ( !tagsChecked ) {
                         tagsChecked = cj(this).val() + '';
                     } else {
@@ -797,7 +823,7 @@ function addTags() {
             {$form.status_id.html}
         </td>
 	<td style="vertical-align: bottom;">
-		<span class="crm-button"><input class="form-submit default" name="_qf_Basic_refresh" value="Search" type="button" onclick="search()"; /></span>
+		<span class="crm-button"><input class="form-submit default" name="_qf_Basic_refresh" value="Search" type="button" onclick="buildCaseActivities( true )"; /></span>
 	</td>
     </tr>
     <tr>
@@ -824,8 +850,19 @@ function addTags() {
   </table>
  </div><!-- /.crm-accordion-body -->
 </div><!-- /.crm-accordion-wrapper -->
-
-  <table id="activities-selector"  class="nestedActivitySelector" style="display:none"></table>
+ 
+  <table id="activities-selector"  class="nestedActivitySelector">
+  <thead><tr>
+  <th class='crm-case-activities-date'>{ts}Date{/ts}</th>
+  <th class='crm-case-activities-subject'>{ts}Subject{/ts}</th>
+  <th class='crm-case-activities-type'>{ts}Type{/ts}</th>
+  <th class='crm-case-activities-with'>{ts}With{/ts}</th>
+  <th class='crm-case-activities-assignee'>{ts}Reporter / Assignee{/ts}</th>
+  <th class='crm-case-activities-status'>{ts}Status{/ts}</th>
+  <th class='crm-case-activities-status' id="nosort">&nbsp;</th>
+  <th class='hiddenElement'>&nbsp;</th>
+  </tr></thead>
+  </table>
 
  </div><!-- /.crm-accordion-body -->
 </div><!-- /.crm-accordion-wrapper -->
@@ -834,68 +871,7 @@ function addTags() {
 
 {literal}
 <script type="text/javascript">
-cj(document).ready(function(){
-
-    var dataUrl = {/literal}"{crmURL p='civicrm/ajax/activity' h=0 q='snippet=4&caseID='}{$caseID}"{literal};
-    dataUrl = dataUrl + '&cid={/literal}{$contactID}{literal}';
-    dataUrl = dataUrl + '&userID={/literal}{$userID}{literal}'    
-
-    {/literal}{if $fulltext}{literal}
-    	dataUrl = dataUrl + '&context={/literal}{$fulltext}{literal}';
-    {/literal}{/if}{literal}
-
-    cj("#activities-selector").flexigrid
-    (
-        {
-            url: dataUrl,
-            dataType: 'json',
-            resizable: false,
-            colModel : [
-
-            {display: 'Date',               name : 'display_date',  width : 100,  sortable : true, align: 'left'},
-            {display: 'Subject',            name : 'subject',       width : 105,  sortable : true, align: 'left'},
-            {display: 'Type',               name : 'type',          width : 100,  sortable : true, align: 'left'},
-            {display: 'With',               name : 'with_contacts', width : 100,  sortable : false,align: 'left'},
-            {display: 'Reporter / Assignee',name : 'reporter',      width : 100,  sortable : true, align: 'left'},
-            {display: 'Status',             name : 'status',        width : 65,   sortable : true, align: 'left'},
-            {display: '',                   name : 'links',         width : 110,  align: 'left'},
-            {name : 'class', hide: true, width: 1}  // this col is use for applying css classes
-            ],
-            usepager: true,
-            useRp: true,
-            rp: 40,
-            width:810,
-            showToggleBtn: false,
-            height: 'auto',
-            nowrap: false,
-            onSuccess:setSelectorClass
-        }
-    );	
-}
-);
-
-function search(com)
-{   
-    var activity_date_low  = cj("#activity_date_low").val();
-    var activity_date_high = cj("#activity_date_high").val();
-
-    var activity_deleted = 0;
-    if ( cj("#activity_deleted:checked").val() == 1 ) {
-        activity_deleted = 1;
-    }
-    cj('#activities-selector').flexOptions({
-	    newp:1, 
-		params:[{name:'reporter_id', value: cj("select#reporter_id").val()},
-			{name:'status_id', value: cj("select#status_id").val()},
-			{name:'activity_type_id', value: cj("select#activity_type_filter_id").val()},
-			{name:'activity_date_low', value: activity_date_low},
-			{name:'activity_date_high', value: activity_date_high},
-			{name:'activity_deleted', value: activity_deleted }
-			]
-		});
-    
-    cj("#activities-selector").flexReload(); 
-}
+var oTable;
 
 function checkSelection( field ) {
     var validationMessage = '';
@@ -953,12 +929,78 @@ function checkSelection( field ) {
     }
 }
 
+cj( function ( ) {
+   buildCaseActivities( false );
+});
+
+function buildCaseActivities( filterSearch ) {
+	if( filterSearch ) {
+	    oTable.fnDestroy();
+ 	}
+	var count   = 0; 
+	var columns = '';
+	var sourceUrl = {/literal}"{crmURL p='civicrm/ajax/activity' h=0 q='snippet=4&caseID='}{$caseID}"{literal};
+            sourceUrl = sourceUrl + '&cid={/literal}{$contactID}{literal}';
+            sourceUrl = sourceUrl + '&userID={/literal}{$userID}{literal}';   
+
+        cj('#activities-selector th').each( function( ) {
+          if ( cj(this).attr('id') != 'nosort' ) {
+	    columns += '{"sClass": "' + cj(this).attr('class') +'"},';
+	  } else {
+	    columns += '{ "bSortable": false },';
+	  }
+	  count++; 
+	});
+
+	columns    = columns.substring(0, columns.length - 1 );
+	eval('columns =[' + columns + ']');
+
+ 	oTable = cj('#activities-selector').dataTable({
+            "bFilter"    : false,
+            "bAutoWidth" : false,
+            "aaSorting"  : [],
+            "aoColumns"  : columns,
+	    	"bProcessing": true,
+            "bJQueryUI": true,
+            "sPaginationType": "full_numbers",
+            "sDom"       : '<"crm-datatable-pager-top"lfp>rt<"crm-datatable-pager-bottom"ip>',	
+            "bServerSide": true,
+            "sAjaxSource": sourceUrl,
+            "iDisplayLength": 50,
+            "fnDrawCallback": function() { setSelectorClass(); },
+            "fnServerData": function ( sSource, aoData, fnCallback ) {
+
+				if ( filterSearch ) {
+				var activity_deleted = 0;
+    				if ( cj("#activity_deleted:checked").val() == 1 ) {
+        			   activity_deleted = 1;
+    			        }
+				aoData.push(	     
+				{name:'status_id', value: cj("select#status_id").val()},
+				{name:'activity_type_id', value: cj("select#activity_type_filter_id").val()},
+				{name:'activity_date_low', value: cj("#activity_date_low").val()},
+				{name:'activity_date_high', value: cj("#activity_date_high").val() },
+				{name:'activity_deleted', value: activity_deleted }
+				);	
+				}		
+				cj.ajax( {
+			 	"dataType": 'json', 
+				"type": "POST", 
+				"url": sSource, 
+				"data": aoData, 
+				"success": fnCallback
+				} ); 
+				}
+     		}); 
+
+}
 
 function setSelectorClass( ) {
     cj("#activities-selector td:last-child").each( function( ) {
        cj(this).parent().addClass(cj(this).text() );
     });
 }
+
 function printCaseReport( ){
  
  	var dataUrl = {/literal}"{crmURL p='civicrm/case/report/print'}"{literal};

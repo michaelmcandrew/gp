@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -168,15 +168,17 @@ class CRM_Admin_Form_Options extends CRM_Admin_Form
         $required = false;
         if ( $this->_gName == 'custom_search' ) {
             $required = true;
-        } elseif ( $this->_gName == 'redaction_rule' ) {
+        } elseif ( $this->_gName == 'redaction_rule' || $this->_gName == 'engagement_index' ) {
             $this->add( 'text', 
                         'value', 
                         ts('Value'), 
                         CRM_Core_DAO::getAttribute( 'CRM_Core_DAO_OptionValue', 'value' ),
                         true );
-            $this->add( 'checkbox', 
-                        'filter', 
-                        ts('Regular Expression?'));
+            if ( $this->_gName == 'redaction_rule' ) {
+                $this->add( 'checkbox', 
+                            'filter', 
+                            ts('Regular Expression?'));
+            }
         }
         if ( $this->_gName == 'participant_listing' ) {
             $this->add('text', 
@@ -228,18 +230,19 @@ class CRM_Admin_Form_Options extends CRM_Admin_Form
         }
         
         //fix for CRM-3552, CRM-4575
-        if ( in_array( $this->_gName, array('email_greeting', 'postal_greeting', 'addressee', 'from_email_address') ) ) {
+        if ( in_array( $this->_gName, array('email_greeting', 'postal_greeting', 'addressee', 'from_email_address', 'case_status', 'encounter_medium') ) ) {
             $this->assign( 'showDefault', true );
             $this->add('checkbox', 'is_default', ts('Default Option?'));
         }
         
-         //get contact type for which user want to create a new greeting/addressee type, CRM-4575
+        //get contact type for which user want to create a new greeting/addressee type, CRM-4575
         if ( in_array( $this->_gName, array( 'email_greeting', 'postal_greeting', 'addressee' ) ) && ! $isReserved ) {
             $values = array( 1 => ts('Individual'), 2 => ts('Household') );
             if ( $this->_gName == 'addressee' ) {
                 $values[] =  ts('Organization'); 
             }
-            $this->add( 'select', 'contactOptions', ts('Contact Type'),array('' => '-select-' ) + $values, true );
+            $values[4] = ts('Multiple Contact Merge');
+            $this->add( 'select', 'contactOptions', ts('Contact Type'), array( '' => '-select-' ) + $values, true );
             $this->assign( 'showContactFilter', true );
         }
         
@@ -342,6 +345,11 @@ class CRM_Admin_Form_Options extends CRM_Admin_Form
                 } else if ( $filter = CRM_Utils_Array::value( 'contactOptions', $params ) )  {
                     $params['filter'] = $filter;
                     $params['reset_default_for'] = array( 'filter' => "0, ". $params['filter'] );
+                }
+                
+                //make sure we should has to have space, CRM-6977
+                if ( $this->_gName == 'from_email_address' ) {
+                    $params['label'] = str_replace( '"<', '" <', $params['label'] );  
                 }
             }
             

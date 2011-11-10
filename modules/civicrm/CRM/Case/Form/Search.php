@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -81,7 +81,7 @@ class CRM_Case_Form_Search extends CRM_Core_Form
      * @var array 
      * @access protected 
      */ 
-    protected $_formValues; 
+    public $_formValues; 
 
     /**
      * the params that are sent to the query
@@ -127,7 +127,7 @@ class CRM_Case_Form_Search extends CRM_Core_Form
      * prefix for the controller
      * 
      */
-    protected $_prefix = "case_";
+    protected $_prefix = 'case_';
 
     protected $_defaults;
 
@@ -140,19 +140,21 @@ class CRM_Case_Form_Search extends CRM_Core_Form
      */ 
     function preProcess( ) 
     { 
+        $this->set( 'searchFormName', 'Search' );
+
         //check for civicase access.
         if ( !CRM_Case_BAO_Case::accessCiviCase( ) ) {
             CRM_Core_Error::fatal( ts( 'You are not authorized to access this page.' ) );
         }
         
-        // Make sure case types have been configured for the component
-        require_once 'CRM/Core/OptionGroup.php';        
-        $caseType = CRM_Core_OptionGroup::values( 'case_type', false, false, false, null, 'label', false );
-        if ( empty( $caseType ) ){
-            $this->assign('notConfigured', 1);
+        //validate case configuration.
+        require_once 'CRM/Case/BAO/Case.php';
+        $configured = CRM_Case_BAO_Case::isCaseConfigured( );
+        $this->assign( 'notConfigured', !$configured['configured'] );
+        if ( !$configured['configured'] ) {
             return;
         }
-
+        
         /** 
          * set the button names 
          */ 
@@ -172,7 +174,7 @@ class CRM_Case_Form_Search extends CRM_Core_Form
         $this->_limit   = CRM_Utils_Request::retrieve( 'limit', 'Positive', $this );
         $this->_context = CRM_Utils_Request::retrieve( 'context', 'String', $this, false, 'search' );
 
-        $this->assign( "context", $this->_context );
+        $this->assign( 'context', $this->_context );
         
         // get user submitted values  
         // get it from controller only if form has been submitted, else preProcess has set this  
@@ -203,11 +205,11 @@ class CRM_Case_Form_Search extends CRM_Core_Form
        
         $this->_queryParams =& CRM_Contact_BAO_Query::convertFormValues( $this->_formValues ); 
         $selector = new CRM_Case_Selector_Search( $this->_queryParams,
-                                                   $this->_action,
-                                                   null,
-                                                   $this->_single,
-                                                   $this->_limit,
-                                                   $this->_context );
+                                                  $this->_action,
+                                                  null,
+                                                  $this->_single,
+                                                  $this->_limit,
+                                                  $this->_context );
  
         $prefix = null;
         if ( $this->_context == 'user' ) {
@@ -238,7 +240,10 @@ class CRM_Case_Form_Search extends CRM_Core_Form
      */
     function buildQuickForm( ) 
     {
-        $this->addElement('text', 'sort_name', ts('Client Name or Email'), CRM_Core_DAO::getAttribute('CRM_Contact_DAO_Contact', 'sort_name') );
+        $this->addElement( 'text', 
+                           'sort_name',
+                           ts('Client Name or Email'),
+                           CRM_Core_DAO::getAttribute('CRM_Contact_DAO_Contact', 'sort_name') );
        
         require_once 'CRM/Case/BAO/Query.php';
         CRM_Case_BAO_Query::buildSearchForm( $this );
@@ -251,19 +256,23 @@ class CRM_Case_Form_Search extends CRM_Core_Form
         if ( is_array( $rows ) ) {
             
             if ( !$this->_single ) {
-                $this->addElement( 'checkbox', 'toggleSelect', null, null, array( 'onclick' => "toggleTaskAction( true ); return toggleCheckboxVals('mark_x_',this);" ) ); 
+                $this->addElement( 'checkbox', 
+                                   'toggleSelect',
+                                   null, 
+                                   null, 
+                                   array( 'onclick' => "toggleTaskAction( true ); return toggleCheckboxVals('mark_x_',this);" ) ); 
 
                 foreach ($rows as $row) { 
                     $this->addElement( 'checkbox', $row['checkbox'], 
                                        null, null, 
-                                       array( 'onclick' => "toggleTaskAction( true ); return checkSelectedBox('" . $row['checkbox'] . "', '" . $this->getName() . "');" )
+                                       array( 'onclick' => "toggleTaskAction( true ); return checkSelectedBox('" . $row['checkbox'] . "');" )
                                        ); 
                 }
             }
 
             $total = $cancel = 0;
             
-            require_once "CRM/Core/Permission.php";
+            require_once 'CRM/Core/Permission.php';
             $permission = CRM_Core_Permission::getPermission( );
             
             require_once 'CRM/Case/Task.php';
@@ -338,14 +347,12 @@ class CRM_Case_Form_Search extends CRM_Core_Form
         if ( ! $this->_force ) {
             if ( array_key_exists('case_owner', $this->_formValues ) && ! $this->_formValues['case_owner'] ) {
                 $this->_formValues['case_owner']  = 0;
-            } else if ( array_key_exists('case_owner', $this->_formValues ) ) {
-                $this->_formValues['case_owner'] = 1;
-            } 
+            }
         }
         
         //only fetch own cases.
         if ( !CRM_Core_Permission::check( 'access all cases and activities' ) ) {
-            $this->_formValues['case_owner'] = 0;
+            $this->_formValues['case_owner'] = 2;
         }
  
         if ( ! CRM_Utils_Array::value( 'case_deleted', $this->_formValues ) ) {
@@ -480,7 +487,7 @@ class CRM_Case_Form_Search extends CRM_Core_Form
         }
               
         $caseFromDate = CRM_Utils_Request::retrieve( 'pstart', 'Date',
-                                                       CRM_Core_DAO::$_nullObject );
+                                                     CRM_Core_DAO::$_nullObject );
         if ( $caseFromDate ) {
             list( $date )= CRM_Utils_Date::setDateDefaults( $caseFromDate );
             $this->_formValues['case_start_date_low'] = $date;
@@ -488,7 +495,7 @@ class CRM_Case_Form_Search extends CRM_Core_Form
         }
 
         $caseToDate= CRM_Utils_Request::retrieve( 'pend', 'Date',
-                                              CRM_Core_DAO::$_nullObject );
+                                                  CRM_Core_DAO::$_nullObject );
         if ( $caseToDate ) { 
             list( $date )= CRM_Utils_Date::setDateDefaults( $caseToDate );
             $this->_formValues['case_start_date_high'] = $date;
@@ -512,13 +519,16 @@ class CRM_Case_Form_Search extends CRM_Core_Form
             if ( CRM_Utils_Request::retrieve( 'all', 'Positive', $session ) ) {
                 $this->_formValues['case_owner'] = 1;
                 $this->_defaults['case_owner']   = 1;
-            }
-            
+            } else {
+                $this->_formValues['case_owner'] = 0;
+                $this->_defaults['case_owner']   = 0;
+			}
+
             $caseOwner = CRM_Utils_Request::retrieve( 'case_owner', 'Boolean',
                                                       CRM_Core_DAO::$_nullObject );
             if ( $caseOwner ) {
-                $this->_formValues['case_owner'] = 0;
-                $this->_defaults['case_owner'] = 0;
+                $this->_formValues['case_owner'] = 2;
+                $this->_defaults['case_owner']   = 2;
             }
         }
     }

@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -355,7 +355,7 @@ class CRM_Core_Block {
             }
             
             // new email (select recipients)
-            $shortCuts = array_merge($shortCuts, array( array( 'path'  => 'civicrm/activity/add',
+            $shortCuts = array_merge($shortCuts, array( array( 'path'  => 'civicrm/activity/email/add',
                                                                'query' => 'atype=3&action=add&reset=1&context=standalone',
                                                                'ref'   => 'new-email',
                                                                'title' => ts('Email') ) ));
@@ -394,7 +394,11 @@ class CRM_Core_Block {
         
         // call links hook to add user defined links
         require_once 'CRM/Utils/Hook.php';
-        CRM_Utils_Hook::links( 'create.new.shorcuts', null, CRM_Core_DAO::$_nullObject, $values );
+        CRM_Utils_Hook::links( 'create.new.shorcuts',
+                               null,
+                               CRM_Core_DAO::$_nullObject,
+                               $values,
+                               CRM_Core_DAO::$_nullObject );
                     
         self::setProperty( self::CREATE_NEW, 'templateValues', array( 'shortCuts' => $values ) );
     }
@@ -487,7 +491,7 @@ class CRM_Core_Block {
         $config = CRM_Core_Config::singleton( );
         
         require_once 'CRM/Event/BAO/Event.php';
-        $info = CRM_Event_BAO_Event::getCompleteInfo( );
+        $info = CRM_Event_BAO_Event::getCompleteInfo( date("Ymd") );
 
         if ( $info ) {
             $session = CRM_Core_Session::singleton( );

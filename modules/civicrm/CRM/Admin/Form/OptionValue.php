@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -162,6 +162,7 @@ class CRM_Admin_Form_OptionValue extends CRM_Admin_Form
             if ( $this->_gName == 'addressee' ) {
                 $values[] =  ts('Organization'); 
             }
+            $values[4] = ts('Multiple Contact Merge');
             $this->add( 'select', 'contactOptions', ts('Contact Type'),array('' => '-select-' ) + $values, true );
         } 
         
@@ -220,7 +221,7 @@ class CRM_Admin_Form_OptionValue extends CRM_Admin_Form
             // store the submitted values in an array
             $params = $this->exportValues();
             $params['option_group_id'] = $this->_gid;
-
+            
             if ($this->_action & CRM_Core_Action::UPDATE ) {
                 $ids['optionValue'] = $this->_id;
             }

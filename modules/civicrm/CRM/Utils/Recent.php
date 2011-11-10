@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -105,10 +105,9 @@ class CRM_Utils_Recent
                          $id, 
                          $type, 
                          $contactId, 
-                         $contactName, 
-                         $imageUrl = null,
-                         $subtype  = null,
-                         $isDeleted = false )
+                         $contactName,
+                         $others   = array( )
+                         )
     {
         self::initialize( );
         $session = CRM_Core_Session::singleton( );
@@ -122,16 +121,23 @@ class CRM_Utils_Recent
             }
         }
 
+        if ( !is_array($others) ) {
+            $others = array( );
+        }
+
         array_unshift( self::$_recent,
                        array( 'title'       => $title,
                               'url'         => $url,
                               'id'          => $id,
                               'type'        => $type,
-                              'subtype'     => $subtype,
                               'contact_id'  => $contactId,
                               'contactName' => $contactName,
-                              'isDeleted'   => $isDeleted,
-                              'image_url'   => $imageUrl ) );
+                              'subtype'     => CRM_Utils_Array::value('subtype',   $others),
+                              'isDeleted'   => CRM_Utils_Array::value('isDeleted', $others, false),
+                              'image_url'   => CRM_Utils_Array::value('imageUrl',  $others),
+                              'edit_url'    => CRM_Utils_Array::value('editUrl',   $others),
+                              'delete_url'  => CRM_Utils_Array::value('deleteUrl', $others),
+                              ) );
         if ( count( self::$_recent ) > self::MAX_ITEMS ) {
             array_pop( self::$_recent );
         }

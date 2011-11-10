@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -40,6 +40,11 @@ require_once 'CRM/Contribute/Form/ContributionBase.php';
  * form for thank-you / success page - 3rd step of online contribution process
  */
 class CRM_Contribute_Form_Contribution_ThankYou extends CRM_Contribute_Form_ContributionBase {
+    /**
+     * membership price set status
+     *
+     */
+    public $_useForMember;
 
     /**
      * Function to set variables up before form is built
@@ -55,12 +60,12 @@ class CRM_Contribute_Form_Contribution_ThankYou extends CRM_Contribute_Form_Cont
         $this->_lineItem = $this->get( 'lineItem' );
         $is_deductible = $this->get('is_deductible');
         $this->assign('is_deductible'        , $is_deductible);
-        $this->assign( 'thankyou_title'      , $this->_values['thankyou_title'] );
+        $this->assign( 'thankyou_title'      , CRM_Utils_Array::value( 'thankyou_title'       , $this->_values ));
         $this->assign( 'thankyou_text'       , CRM_Utils_Array::value( 'thankyou_text'        , $this->_values ));
         $this->assign( 'thankyou_footer'     , CRM_Utils_Array::value( 'thankyou_footer'      , $this->_values ));
         $this->assign( 'max_reminders'       , CRM_Utils_Array::value( 'max_reminders'        , $this->_values ));
         $this->assign( 'initial_reminder_day', CRM_Utils_Array::value( 'initial_reminder_day' , $this->_values )); 
-        CRM_Utils_System::setTitle($this->_values['thankyou_title']);
+        CRM_Utils_System::setTitle( CRM_Utils_Array::value( 'thankyou_title', $this->_values ) );
     }
     
     /**
@@ -99,6 +104,8 @@ class CRM_Contribute_Form_Contribution_ThankYou extends CRM_Contribute_Form_Cont
         
         $this->assign( 'lineItem', $this->_lineItem );
         $this->assign( 'priceSetID', $this->_priceSetId );
+        $this->assign(  'useForMember', $this->get('useForMember'));
+
         $params = $this->_params;
      
         $honor_block_is_active = $this->get( 'honor_block_is_active'); 
@@ -149,6 +156,23 @@ class CRM_Contribute_Form_Contribution_ThankYou extends CRM_Contribute_Form_Cont
 
         $this->buildCustom( $this->_values['custom_pre_id'] , 'customPre' , true );
         $this->buildCustom( $this->_values['custom_post_id'], 'customPost', true );
+        if ( CRM_Utils_Array::value( 'hidden_onbehalf_profile', $params ) ) {
+            require_once 'CRM/Core/BAO/UFJoin.php'; 
+            $ufJoinParams    = array( 'module'       => 'onBehalf',
+                                      'entity_table' => 'civicrm_contribution_page',   
+                                      'entity_id'    => $this->_id );   
+            $OnBehalfProfile = CRM_Core_BAO_UFJoin::getUFGroupIds( $ufJoinParams );
+            $profileId       = $OnBehalfProfile[0];
+
+            $fieldTypes = array( 'Contact', 'Organization' );
+            if ( is_array( $this->_membershipBlock ) && !empty( $this->_membershipBlock ) ) {
+                $fieldTypes = array_merge( $fieldTypes, array( 'Membership' ) );
+            } else {
+                $fieldTypes = array_merge( $fieldTypes, array( 'Contribution' ) );
+            }
+
+            $this->buildCustom( $profileId, 'onbehalfProfile', true, true, $fieldTypes );
+        }
 
         $this->assign( 'trxn_id', 
                        CRM_Utils_Array::value( 'trxn_id',
@@ -162,13 +186,23 @@ class CRM_Contribute_Form_Contribution_ThankYou extends CRM_Contribute_Form_Cont
         require_once "CRM/Core/BAO/CustomGroup.php";
         $removeCustomFieldTypes = array ('Contribution');
         foreach ( $this->_fields as $name => $dontCare ) {
-            $fields[$name] = 1;
+            if ( $name == 'onbehalf' ) {
+                foreach ( $dontCare as $key => $value ) {
+                    $fields['onbehalf'][$key] = 1;
+                }
+            } else {
+                $fields[$name] = 1;
+            }
         }
         $fields['state_province'] = $fields['country'] = $fields['email'] = 1;
         $contact = $this->_params = $this->controller->exportValues( 'Main' );
 
         foreach ($fields as $name => $dontCare ) {
-            if ( isset( $contact[$name] ) ) {
+            if ( $name == 'onbehalf' ) {
+                foreach ( $dontCare as $key => $value ) {
+                    $defaults[$key] = $contact['onbehalf'][$key];
+                }       
+            } else if ( isset( $contact[$name] ) ) {
                 $defaults[$name] = $contact[$name];
                 if ( substr( $name, 0, 7 ) == 'custom_' ) {
                     $timeField = "{$name}_time";

@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -59,6 +59,7 @@ class CRM_Case_Form_ActivityView extends CRM_Core_Form
         $activitySubject =  CRM_Core_DAO::getFieldValue( 'CRM_Activity_DAO_Activity', 
                                                          $activityID,
                                                          'subject' );
+        $type       = CRM_Utils_Request::retrieve('type', 'String', CRM_Core_DAO::$_nullObject ) ;
         
         //check for required permissions, CRM-6264 
         if ( $activityID &&
@@ -68,6 +69,7 @@ class CRM_Case_Form_ActivityView extends CRM_Core_Form
         
         $this->assign('contactID', $contactID );
         $this->assign('caseID', $caseID );
+        $this->assign('type', $type );
 
         require_once 'CRM/Case/XMLProcessor/Report.php';
         $xmlProcessor = new CRM_Case_XMLProcessor_Report( );
@@ -158,12 +160,24 @@ class CRM_Case_Form_ActivityView extends CRM_Core_Form
         
         $title =  $title . $recentContactDisplay .' (' . $activityTypes[$activityTypeID] . ')';
         
+        require_once 'CRM/Case/BAO/Case.php';
+        $recentOther = array( );
+        if ( CRM_Case_BAO_Case::checkPermission( $activityID, 'edit' ) ) {
+            $recentOther['editUrl'] = CRM_Utils_System::url( 'civicrm/case/activity',
+                                                             "reset=1&action=update&id={$activityID}&cid={$recentContactId}&caseid={$caseID}&context=home" );
+        }
+        if ( CRM_Case_BAO_Case::checkPermission( $activityID, 'delete' ) ) {
+            $recentOther['deleteUrl'] = CRM_Utils_System::url( 'civicrm/case/activity',
+                                                               "reset=1&action=delete&id={$activityID}&cid={$recentContactId}&caseid={$caseID}&context=home" );
+        }
+
         CRM_Utils_Recent::add( $title,
                                $url,
                                $activityID,
                                'Activity',
                                $recentContactId,
-                               $recentContactDisplay
+                               $recentContactDisplay,
+                               $recentOther
                                );
         
     }

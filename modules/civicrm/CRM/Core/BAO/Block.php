@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  * add static functions to include some common functionality
@@ -63,7 +63,7 @@ class CRM_Core_BAO_Block
     static function &getValues( $blockName, $params )  
     {
         if ( empty( $params ) ) {
-            return null; 
+            return null;
         }
         eval ('$block = new CRM_Core_BAO_' . $blockName .'( );');
         
@@ -140,7 +140,7 @@ class CRM_Core_BAO_Block
     static function dataExists( $blockFields, &$params ) 
     {
         foreach ( $blockFields as $field ) {
-            if ( CRM_Utils_System::isNull( $params[$field] ) ) {
+            if ( CRM_Utils_System::isNull( CRM_Utils_Array::value( $field, $params ) ) ) {
                 return false;
             }
         }
@@ -178,12 +178,12 @@ class CRM_Core_BAO_Block
      * @access public
      * @static
      */
-    static function getBlockIds ( $blockName, $contactId = null, $entityElements = null )
+    static function getBlockIds ( $blockName, $contactId = null, $entityElements = null, $updateBlankLocInfo = false )
     {
         $allBlocks = array( );
         $name = ucfirst( $blockName );
         if ( $contactId ) {
-            eval ( '$allBlocks = CRM_Core_BAO_' . $name . '::all' . $name . 's( $contactId );');
+            eval ( '$allBlocks = CRM_Core_BAO_' . $name . '::all' . $name . 's( $contactId, $updateBlankLocInfo );');
         } else if ( !empty($entityElements) && $blockName != 'openid' ) {
             eval ( '$allBlocks = CRM_Core_BAO_' . $name . '::allEntity' . $name . 's( $entityElements );');
         }
@@ -220,13 +220,14 @@ class CRM_Core_BAO_Block
             $contactId = $params['contact_id'];
         }
         
-        //get existsing block ids.
-        $blockIds  = self::getBlockIds( $blockName, $contactId, $entityElements );
-
         $updateBlankLocInfo = CRM_Utils_Array::value( 'updateBlankLocInfo', $params, false );
+        
+        //get existsing block ids.
+        $blockIds  = self::getBlockIds( $blockName, $contactId, $entityElements, $updateBlankLocInfo );
 
         //lets allow user to update block w/ the help of id, CRM-6170
         $resetPrimaryId  = null;
+        $primaryId       = false;
         foreach ( $params[$blockName] as  $count => $value ) {
             $blockId = CRM_Utils_Array::value( 'id', $value );
             if ( $blockId  ) {
@@ -240,6 +241,7 @@ class CRM_Core_BAO_Block
             //lets allow to update primary w/ more cleanly.
             if ( !$resetPrimaryId && 
                  CRM_Utils_Array::value( 'is_primary', $value ) ) {
+                $primaryId = true;
                 if ( is_array( $blockIds ) ) {
                     foreach ( $blockIds as $blockId => $blockValue ) {
                         if ( CRM_Utils_Array::value( 'is_primary', $blockValue ) ) {
@@ -261,21 +263,49 @@ class CRM_Core_BAO_Block
                 }
             }
         }
-        
-        foreach ( $params[$blockName] as  $count => $value ) {
+
+        foreach ( $params[$blockName] as $count => $value ) {
             if ( !is_array( $value ) ) continue;
             $contactFields = array( 'contact_id'       => $contactId,
-                                    'location_type_id' => $value['location_type_id'] );
+                                    'location_type_id' => CRM_Utils_Array::value( 'location_type_id', $value ) );
             
             //check for update 
             if ( !CRM_Utils_Array::value( 'id', $value ) && 
                  is_array( $blockIds ) && !empty( $blockIds ) ) {
                 foreach ( $blockIds as $blockId => $blockValue ) {
-                    if ( $blockValue['locationTypeId'] == $value['location_type_id'] ) {
-                        //assigned id as first come first serve basis 
-                        $value['id'] = $blockValue['id'];
-                        unset( $blockIds[$blockId] );
-                        break;
+                    if ( $updateBlankLocInfo ) {
+                        if ( CRM_Utils_Array::value( $count, $blockIds ) ) {
+                            $value['id'] = $blockIds[$count]['id'];
+                            unset( $blockIds[$count] );
+                        }
+                    } else {
+                        if ( $blockValue['locationTypeId'] == $value['location_type_id'] ) {
+                            $valueId = false;
+                            
+                            if ( $blockName == 'phone' ) {
+                                $phoneTypeBlockValue = CRM_Utils_Array::value( 'phoneTypeId', $blockValue );
+                                if ( $phoneTypeBlockValue == $value['phone_type_id'] ) {
+                                    $valueId = true;
+                                }
+                            } else if ( $blockName == 'im' ) {
+                                $providerBlockValue = CRM_Utils_Array::value( 'providerId', $blockValue );
+                                if ( $providerBlockValue== $value['provider_id'] ) {
+                                    $valueId = true;
+                                }
+                            } else {
+                                $valueId = true;
+                            }
+ 	 	 		            
+                            if ( $valueId ) {
+                                //assigned id as first come first serve basis 
+                                $value['id'] = $blockValue['id'];
+                                if ( !$primaryId && CRM_Utils_Array::value( 'is_primary', $blockValue ) ) {
+                                    $value['is_primary'] = $blockValue['is_primary'];
+                                }
+                                unset( $blockIds[$blockId] );
+                                break;
+                            }
+                        }
                     }
                 }
             }
@@ -311,6 +341,16 @@ class CRM_Core_BAO_Block
             eval( '$blocks[] = CRM_Core_BAO_' . $name . '::add( $blockFields );' );
         }
         
+        // we need to delete blocks that were deleted during update
+        if ( $updateBlankLocInfo && !empty( $blockIds ) ) { 
+            foreach( $blockIds as $deleteBlock ) {
+                if ( ! CRM_Utils_Array::value( 'id', $deleteBlock ) ) {
+                    continue;
+                } 
+                self::blockDelete( $name, array( 'id' => $deleteBlock['id'] ) );
+            }
+        }
+
         return $blocks;
     }
     

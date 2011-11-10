@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,14 +23,33 @@
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
 *}
+{if $addProfileBottomAdd OR $addProfileBottom}
+  {if $addProfileBottomAdd}
+    <tr class="crm-event-manage-registration-form-block-additional_custom_post_{$profileBottomNumAdd}">
+      <td scope="row" class="label" width="20%">{$form.additional_custom_post_id_multiple[$profileBottomNumAdd].label}</td>
+      <td>{$form.additional_custom_post_id_multiple[$profileBottomNumAdd].html}	
+          <span class='profile_bottom_add_link'>&nbsp;<a href="javascript:addProfileBottomAdd()">{ts}add profile{/ts}</a></span>
+      </td>
+    </tr>
+  {/if}
+  {if $addProfileBottom}
+     <tr class="crm-event-manage-registration-form-block-custom_post_{$profileBottomNum}">
+       <td scope="row" class="label" width="20%">{$form.custom_post_id_multiple[$profileBottomNum].label}</td>
+       <td>{$form.custom_post_id_multiple[$profileBottomNum].html}
+           <span class='profile_bottom_link'>&nbsp;<a href="javascript:addProfileBottom()">{ts}add profile{/ts}</a></span>
+       </td>
+     </tr>
+  {/if}
+{else}
 {assign var=eventID value=$id}
 <div id="help">
 {ts}If you want to provide an Online Registration page for this event, check the first box below and then complete the fields on this form.{/ts} 
 {help id="id-event-reg"}
 </div>
+<span id="restmsg" class="msgok" style="display:none"></span>
 <div class="crm-block crm-form-block crm-event-manage-registration-form-block">
 <div class="crm-submit-buttons">
-   {include file="CRM/common/formButtons.tpl" location="top"}
+{include file="CRM/common/formButtons.tpl" location="top"}
 </div>
 
     <div id="register">
@@ -106,16 +125,38 @@
             <td>{$form.footer_text.html}
             <div class="description">{ts}Optional footer text for registration screen.{/ts}</div></td>
          </tr>
+	 </table>
+ 	 <table class= "form-layout-compressed">	
          <tr class="crm-event-manage-registration-form-block-custom_pre_id">
             <td scope="row" class="label" width="20%">{$form.custom_pre_id.label}</td>
             <td>{$form.custom_pre_id.html}<br />
             <span class="description">{ts}Include additional fields on this registration form by configuring and selecting a CiviCRM Profile to be included at the top of the page (immediately after the introductory message).{/ts}{help id="event-profile"}</span></td>
-         <tr class="crm-event-manage-registration-form-block-custom_post_id">
-         </tr>
+	 </tr>
+         <tr id="profile_post" class="crm-event-manage-registration-form-block-custom_post_id">
             <td scope="row" class="label" width="20%">{$form.custom_post_id.label}</td>
-            <td>{$form.custom_post_id.html}<br />
-            <span class="description">{ts}Include additional fields on this registration form by configuring and selecting a CiviCRM Profile to be included at the bottom of the page.{/ts}</span></td>
+            <td>{$form.custom_post_id.html}
+	        {if !$profilePostMultiple}
+	          <span class='profile_bottom_link'>&nbsp;<a href="javascript:addProfileBottom()">{ts}add profile{/ts}</a></span>
+		{/if}
+	    <br />
+            <span class="description">{ts}Include additional fields on this registration form by configuring and selecting a CiviCRM Profile to be included at the bottom of the page.{/ts}</span>
+            </td>
         </tr>
+
+         {if $profilePostMultiple}
+         {foreach from=$profilePostMultiple item=profilePostId key=profilePostNum name=profilePostIdName}
+ 	    <tr class='crm-event-manage-registration-form-block-custom_post_multiple'>
+               <td scope="row" class="label" width="20%">{$form.custom_post_id_multiple.$profilePostNum.label}</td>
+               <td>{$form.custom_post_id_multiple.$profilePostNum.html}
+	           {if $smarty.foreach.profilePostIdName.last}
+	             <span class='profile_bottom_link'>&nbsp;<a href="javascript:addProfileBottom()">{ts}add profile{/ts}</a></span>
+                   {/if}
+	       </td>
+             </tr>
+         {/foreach}
+ 	{/if}
+	</table>
+	<table class= "form-layout-compressed">
         <tr id="additional_profile_pre" class="crm-event-manage-registration-form-block-additional_custom_pre_id">
             <td scope="row" class="label" width="20%">{$form.additional_custom_pre_id.label}</td>
             <td>{$form.additional_custom_pre_id.html}<br />
@@ -124,10 +165,24 @@
         </tr>
         <tr id="additional_profile_post" class="crm-event-manage-registration-form-block-additional_custom_post_id">
              <td scope="row" class="label" width="20%">{$form.additional_custom_post_id.label}</td>
-             <td>{$form.additional_custom_post_id.html}<br />
+             <td>{$form.additional_custom_post_id.html}
+	         {if !$profilePostMultipleAdd}<span class='profile_bottom_add_link'><a href="javascript:addProfileBottomAdd()">{ts}add profile{/ts}</a></span>
+		 {/if}<br />
                 <span class="description">{ts}Change this if you want to use a different profile for additional participants.{/ts}</span>
              </td>
         </tr>
+	{if $profilePostMultipleAdd}
+         {foreach from=$profilePostMultipleAdd item=profilePostIdA key=profilePostNumA name=profilePostIdAName}
+ 	    <tr class='crm-event-manage-registration-form-block-additional_custom_post_multiple'>
+               <td scope="row" class="label" width="20%">{$form.additional_custom_post_id_multiple.$profilePostNumA.label}</td>
+               <td>{$form.additional_custom_post_id_multiple.$profilePostNumA.html}
+	           {if $smarty.foreach.profilePostIdAName.last}
+		     <span class='profile_bottom_add_link'>&nbsp;<a href="javascript:addProfileBottomAdd()">{ts}add profile{/ts}</a></span>
+                   {/if}
+	       </td>
+             </tr>
+         {/foreach}
+ 	{/if}
         </table>
         </fieldset>
         </div>
@@ -239,10 +294,11 @@
                </td>
              </tr>
            </table>
+	  </div>
         </fieldset>
         </div>
-    </div>
     </div> {*end of div registration_blocks*}
+    </div>
  <div class="crm-submit-buttons">
       {include file="CRM/common/formButtons.tpl" location="bottom"}
  </div>
@@ -264,6 +320,14 @@ target_element_type ="block"
 field_type          ="radio"
 invert              = 0
 }
+{include file="CRM/common/showHideByFieldValue.tpl" 
+trigger_field_id    ="is_multiple_registrations"
+trigger_value       =""
+target_element_id   ="additional_profile_pre|additional_profile_post" 
+target_element_type ="table-row"
+field_type          ="radio"
+invert              = 0
+}
 {if $form.requires_approval}
 {include file="CRM/common/showHideByFieldValue.tpl" 
     trigger_field_id    ="requires_approval"
@@ -280,8 +344,62 @@ invert              = 0
         if ( !cj(this).attr( 'checked') ) {
             cj("#additional_custom_pre_id").val('');
             cj("#additional_custom_post_id").val('');
-        }
+	    cj(".crm-event-manage-registration-form-block-additional_custom_post_multiple").hide();
+        } else {
+	    cj(".crm-event-manage-registration-form-block-additional_custom_post_multiple").show();
+	}
     });
+    
+    showRuleFields( {/literal}{$ruleFields}{literal} );
+
+    function showRuleFields( ruleFields ) 
+    {	   
+        var errorMsg = '{/literal}{ts 1="' + ruleFields + '"}In order to allow multiple registrations with the same email address, the default "Fuzzy" Dedupe Rule will be used to check for matching contact records and prevent duplicate registrations. This rule currently uses the following fields: %1. First and Last Name will be used to check for matches among the multiple participants being registered.{/ts}{literal}';
+
+        //display error message.
+        var imageIcon = "<a href='#' onclick='cj( \"#restmsg\" ).hide( ); return false;'>" + '<div class="ui-icon ui-icon-close" style="float:left"></div>' + '</a>';
+
+        if ( cj("#allow_same_participant_emails").attr( 'checked' ) ) {
+            cj( '#restmsg' ).html( imageIcon + errorMsg  ).show( );
+        } else {
+            cj( '#restmsg' ).html( imageIcon + errorMsg  ).hide( );
+        }
+    }
+
+    var profileBottomCount = Number({/literal}{$profilePostMultiple|@count}{literal});
+
+    function addProfileBottom( ) {
+      profileBottomCount++;
+      cj('.profile_bottom_link').css('display', 'none');
+      var urlPath = {/literal}"{crmURL p='civicrm/event/manage/registration' h=0 q=$addProfileParams}"{literal};
+      urlPath = urlPath + '&snippet=4&addProfileNum=' + profileBottomCount;
+      cj.ajax({ url     : urlPath,
+                async   : false,
+                global  : false,
+	        success : function ( content ) { 		
+                 cj( "#profile_post" ).parent().append( content );
+                }
+      });   
+    }
+
+
+    var profileBottomCountAdd = Number({/literal}{$profilePostMultipleAdd|@count}{literal});
+    function addProfileBottomAdd( ) {
+      profileBottomCountAdd++;
+      cj('.profile_bottom_add_link').css('display', 'none');
+      var urlPathAdd = {/literal}"{crmURL p='civicrm/event/manage/registration' h=0 q=$addProfileParamsAdd}"{literal};
+      urlPathAdd = urlPathAdd + '&snippet=4&addProfileNumAdd=' + profileBottomCountAdd;
+      cj.ajax({ url     : urlPathAdd,
+                async   : false,
+                global  : false,
+	        success : function ( contentAdd ) { 		
+                 cj( "#additional_profile_post" ).parent().append( contentAdd );
+                }
+      });   
+    }
+
+
     {/literal}
 </script>
 {include file="CRM/common/formNavigate.tpl"}
+{/if}

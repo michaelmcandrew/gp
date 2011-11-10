@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,16 +29,18 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
 
 require_once 'CRM/Core/Form.php';
-require_once "CRM/Custom/Form/CustomData.php";
+require_once 'CRM/Mailing/Info.php';
+require_once 'CRM/Custom/Form/CustomData.php';
 require_once 'CRM/Contact/BAO/GroupNesting.php';
 require_once 'CRM/Core/BAO/Domain.php';
-
+require_once 'CRM/Core/OptionGroup.php';
+   
 /**
  * This class is to build the form for adding Group
  */
@@ -150,7 +152,8 @@ class CRM_Group_Form_Edit extends CRM_Core_Form
      * @access public
      * @return None
      */
-    function setDefaultValues( ) {
+    function setDefaultValues( )
+    {
         $defaults = array( );
 
         if ( isset( $this->_id ) ) {
@@ -178,6 +181,16 @@ class CRM_Group_Form_Edit extends CRM_Core_Form
             }
         }
 
+        if ( !( ( CRM_Core_Permission::check( 'access CiviMail' ) ) || 
+                ( CRM_Mailing_Info::workflowEnabled( ) && CRM_Core_Permission::check( 'create mailings' ) ) ) ) {
+            $groupTypes = CRM_Core_OptionGroup::values( 'group_type', true );
+            if ( $defaults['group_type'][$groupTypes['Mailing List']] == 1 ) {
+                $this->assign( 'freezeMailignList', $groupTypes['Mailing List'] ); 
+            } else {
+                $this->assign( 'hideMailignList', $groupTypes['Mailing List'] ); 
+            }
+        }
+        
         if ( !CRM_Utils_Array::value('parents',$defaults) ) {
             $defaults['parents'] = CRM_Core_BAO_Domain::getGroupId( );
         }
@@ -210,24 +223,17 @@ class CRM_Group_Form_Edit extends CRM_Core_Form
         $this->applyFilter('__ALL__', 'trim');
         $this->add('text', 'title'       , ts('Name') . ' ' ,
                    CRM_Core_DAO::getAttribute( 'CRM_Contact_DAO_Group', 'title' ),true );
-        $this->addFormRule( array( 'CRM_Group_Form_Edit', 'formRule' ), $this );
         
         $this->add('textarea', 'description', ts('Description') . ' ', 
                    CRM_Core_DAO::getAttribute( 'CRM_Contact_DAO_Group', 'description' ) );
 
-        require_once 'CRM/Core/OptionGroup.php';
         $groupTypes = CRM_Core_OptionGroup::values( 'group_type', true );
         $config= CRM_Core_Config::singleton( );
-        if ( (isset( $this->_id ) &&
-             CRM_Utils_Array::value( 'saved_search_id', $this->_groupValues ) ) 
-             || ( $config->userFramework == 'Joomla' ) ) {
+        if ( isset( $this->_id ) &&
+             CRM_Utils_Array::value( 'saved_search_id', $this->_groupValues ) ) {
             unset( $groupTypes['Access Control'] );
         }
         
-        if ( ! CRM_Core_Permission::access( 'CiviMail' ) ) {
-            unset( $groupTypes['Mailing List'] );
-        }
-
         if ( ! empty( $groupTypes ) ) {
             $this->addCheckBox( 'group_type',
                                 ts( 'Group Type' ),
@@ -304,14 +310,15 @@ class CRM_Group_Form_Edit extends CRM_Core_Form
                                  )
                            );
         
+        $doParentCheck = false;
         if ( defined( 'CIVICRM_MULTISITE' ) && CIVICRM_MULTISITE ) {
             $doParentCheck = ($this->_id && CRM_Core_BAO_Domain::isDomainGroup($this->_id)) ? false : true;
-        } else {
-            $doParentCheck = false;
         }
-        if ( $doParentCheck ) {
-            $this->addFormRule( array( 'CRM_Group_Form_Edit', 'formRule' ), $parentGroups );
-        }
+
+        $options = array( 'selfObj'       => $this,
+                          'parentGroups'  => $parentGroups,
+                          'doParentCheck' => $doParentCheck );
+        $this->addFormRule( array( 'CRM_Group_Form_Edit', 'formRule' ), $options );
     }
     
     /**
@@ -323,35 +330,46 @@ class CRM_Group_Form_Edit extends CRM_Core_Form
      * @static
      * @access public
      */
-    static function formRule( $fields, $fileParams, $parentGroups ) 
+    static function formRule( $fields, $fileParams, $options ) 
     {
         $errors = array( );
 
-        $grpRemove = 0;
-        foreach ( $fields as $key => $val ) {
-            if ( substr( $key, 0, 20 ) == 'remove_parent_group_' ) {
-                $grpRemove++;
+        $doParentCheck = $options['doParentCheck'];
+        $self          = &$options['selfObj'];
+
+        if ( $doParentCheck ) {
+            $parentGroups  = $options['parentGroups'];
+
+            $grpRemove = 0;
+            foreach ( $fields as $key => $val ) {
+                if ( substr( $key, 0, 20 ) == 'remove_parent_group_' ) {
+                    $grpRemove++;
+                }
+            }
+            
+            $grpAdd = 0;
+            if ( CRM_Utils_Array::value( 'parents', $fields ) ) {
+                $grpAdd++;
+            }
+            
+            if ( (count($parentGroups) >= 1) && (($grpRemove - $grpAdd) >=  count($parentGroups)) ) {
+                $errors['parents'] = ts( 'Make sure at least one parent group is set.' );
             }
         }
 
-        $grpAdd = 0;
-        if ( CRM_Utils_Array::value( 'parents', $fields ) ) {
-            $grpAdd++;
-        }
-
-        if ( (count($parentGroups) >= 1) && (($grpRemove - $grpAdd) >=  count($parentGroups)) ) {
-            $errors['parents'] = ts( 'Make sure at least one parent group is set.' );
-        }
-        
         // do check for both name and title uniqueness
         if ( CRM_Utils_Array::value( 'title', $fields ) ) {
             $title = trim( $fields['title'] );
             $name  = CRM_Utils_String::titleToVar( $title, 63 );
-            $query  = 'select count(*) from civicrm_group where (name like %1 OR title like %2) AND 
-                       id <> %3';
+            $query  = "
+SELECT count(*)
+FROM   civicrm_group 
+WHERE  (name LIKE %1 OR title LIKE %2) 
+AND    id <> %3
+";
             $grpCnt = CRM_Core_DAO::singleValueQuery( $query, array( 1 => array( $name,  'String' ),
                                                                      2 => array( $title, 'String' ),
-                                                                     3 => array( (int)$parentGroups->_id, 'Integer' ) ) );
+                                                                     3 => array( (int)$self->_id, 'Integer' ) ) );
             if ( $grpCnt ) {
                 $errors['title'] = ts( 'Group \'%1\' already exists.', array( 1 => $fields['title']) );
             }

@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -78,7 +78,7 @@ class CRM_Activity_Form_Task_Batch extends CRM_Activity_Form_Task {
         
         //get the contact read only fields to display.
         require_once 'CRM/Core/BAO/Preferences.php';
-        $readOnlyFields = array_merge( array( 'sort_name' => ts( 'Name' ) ),
+        $readOnlyFields = array_merge( array( 'sort_name' => ts( 'Added By' ), 'target_sort_name' => ts('With Contact') ),
                                        CRM_Core_BAO_Preferences::valueOptions( 'contact_autocomplete_options',
                                                                                true, null, false, 'name', true ) );
         
@@ -146,6 +146,14 @@ class CRM_Activity_Form_Task_Batch extends CRM_Activity_Form_Task {
         $this->assign( 'componentIds', $this->_activityHolderIds );
         $fileFieldExists = false;
         
+        //load all campaigns.
+        if ( array_key_exists( 'activity_campaign_id', $this->_fields ) ) {
+            $this->_componentCampaigns = array( );
+            CRM_Core_PseudoConstant::populate( $this->_componentCampaigns,
+                                               'CRM_Activity_DAO_Activity',
+                                               true, 'campaign_id', 'id', 
+                                               ' id IN ('. implode(' , ',array_values($this->_activityHolderIds)) .' ) ');
+        }
         
         require_once "CRM/Core/BAO/CustomField.php";
         $customFields = CRM_Core_BAO_CustomField::getFields( 'Activity' );
@@ -156,7 +164,7 @@ class CRM_Activity_Form_Task_Batch extends CRM_Activity_Form_Task {
                 if ( $customFieldID = CRM_Core_BAO_CustomField::getKeyID( $name ) ) {
                     $customValue = CRM_Utils_Array::value( $customFieldID, $customFields );
                     if ( CRM_Utils_Array::value( 'extends_entity_column_value', $customValue ) ) {
-                        $entityColumnValue = explode( CRM_Core_BAO_CustomOption::VALUE_SEPERATOR, 
+                        $entityColumnValue = explode( CRM_Core_DAO::VALUE_SEPARATOR,
                                                       $customValue['extends_entity_column_value'] );
                     }
                     if ( CRM_Utils_Array::value ( $typeId, $entityColumnValue ) ||
@@ -226,23 +234,23 @@ class CRM_Activity_Form_Task_Batch extends CRM_Activity_Form_Task {
                     $value['activity_date_time'] = CRM_Utils_Date::processDate( $value['activity_date_time'], $value['activity_date_time_time'] );
                 }
                 
-                if ( $value['activity_status_id'] ) {
+                if ( CRM_Utils_Array::value( 'activity_status_id', $value ) ) {
                     $value['status_id'] = $value['activity_status_id'];
                 }
                 
-                if ( $value['activity_details'] ) {
+                if ( CRM_Utils_Array::value( 'activity_details', $value ) ) {
                     $value['details'] = $value['activity_details'];
                 }
                 
-                if ( $value['activity_duration'] ) {
+                if ( CRM_Utils_Array::value( 'activity_duration', $value ) ) {
                     $value['duration'] = $value['activity_duration'];
                 }
                 
-                if ( $value['activity_location'] ) {
+                if ( CRM_Utils_Array::value( 'activity_location', $value ) ) {
                     $value['location'] = $value['activity_location'];
                 }
                 
-                if ( $value['activity_subject'] ) {
+                if ( CRM_Utils_Array::value( 'activity_subject', $value ) ) {
                     $value['subject'] = $value['activity_subject'];
                 }
                 
@@ -259,9 +267,11 @@ WHERE  id = %1";
                 
                 // Get Conatct ID 
                 $value['source_contact_id'] = $dao->source_contact_id;
+
+                // make call use API 3
+                $value['version'] = 3;
                 
-                require_once 'api/v2/Activity.php';
-                $activityId = civicrm_activity_update( $value );
+                $activityId = civicrm_api('activity', 'update', $value);
                 
                 // add custom field values           
                 if ( CRM_Utils_Array::value( 'custom', $value ) &&

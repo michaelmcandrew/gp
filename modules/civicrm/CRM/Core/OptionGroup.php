@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -77,7 +77,7 @@ class CRM_Core_OptionGroup
                              $localize = false, $condition = null,
                              $valueColumnName = 'label', $onlyActive = true ) 
     {
-        $cacheKey = "CRM_OG_{$name}_{$flip}_{$grouping}_{$localize}_{$condition}_{$valueColumnName}";
+        $cacheKey = "CRM_OG_{$name}_{$flip}_{$grouping}_{$localize}_{$condition}_{$valueColumnName}_{$onlyActive}";
         $cache =& CRM_Utils_Cache::singleton( );
         $var = $cache->get( $cacheKey );
         if ( $var ) {
@@ -178,13 +178,13 @@ WHERE  v.option_group_id = g.id
             // See if $params field is in $names array (i.e. is a value that we need to lookup)
             if ( CRM_Utils_Array::value( $postName, $params ) ) {
                 // params[$postName] may be a Ctrl+A separated value list
-                if ( strpos( $params[$postName], CRM_Core_BAO_CustomOption::VALUE_SEPERATOR ) ) {
+                if ( strpos( $params[$postName], CRM_Core_DAO::VALUE_SEPARATOR ) ) {
                     // eliminate the ^A frm the beginning and end if present
-                    if ( substr( $params[$postName], 0, 1 ) == CRM_Core_BAO_CustomOption::VALUE_SEPERATOR ) {
+                    if ( substr( $params[$postName], 0, 1 ) == CRM_Core_DAO::VALUE_SEPARATOR ) {
                         $params[$postName] = substr( $params[$postName], 1, -1 );
                     }
                 }
-                $postValues = explode(CRM_Core_BAO_CustomOption::VALUE_SEPERATOR, $params[$postName]);
+                $postValues = explode(CRM_Core_DAO::VALUE_SEPARATOR, $params[$postName]);
                 $newValue = array( );
                 foreach ($postValues as $postValue) {
                     if ( ! $postValue ) {
@@ -218,7 +218,7 @@ WHERE  v.option_group_id = g.id
         }
     }
 
-    static function getLabel( $groupName, $value ) 
+    static function getLabel( $groupName, $value, $onlyActiveValue = true ) 
     {
         if ( empty( $groupName ) ||
              empty( $value ) ) {
@@ -231,11 +231,12 @@ FROM   civicrm_option_value v,
        civicrm_option_group g 
 WHERE  v.option_group_id = g.id 
   AND  g.name            = %1 
-  AND  v.is_active       = 1  
   AND  g.is_active       = 1  
   AND  v.value           = %2
 ";
-
+        if ( $onlyActiveValue ) {
+            $query .= " AND  v.is_active = 1 ";
+        }
         $p = array( 1 => array( $groupName , 'String' ),
                     2 => array( $value, 'Integer' ) );
         $dao =& CRM_Core_DAO::executeQuery( $query, $p );
@@ -270,11 +271,36 @@ WHERE  v.option_group_id = g.id
                     2 => array( $label     , $labelType ) );
         $dao =& CRM_Core_DAO::executeQuery( $query, $p );
         if ( $dao->fetch( ) ) {
+            $dao->free( );
             return $dao->value;
         }
+        $dao->free( );
         return null;
     }
 
+    /**
+     * Creates a new option group with the passed in values
+     * @TODO: Should update the group if it already exists intelligently, so multi-lingual is
+     * not messed up. Currently deletes the old group
+     *
+     * @param string $groupName the name of the option group - make sure there is no conflict
+     * @param array  $values    the associative array that has information on the option values
+     *                          the keys of this array are:
+     *                          string 'label'       (required)
+     *                          string 'value'       (required)
+     *                          string 'name'        (optional)
+     *                          string 'description' (optional)
+     *                          int    'weight'      (optional) - the order in which the value are displayed
+     *                          bool   'is_default'  (optional) - is this the default one to display when rendered in form
+     *                          bool   'is_active'   (optional) - should this element be rendered
+     * @param int    $defaultID (reference) - the option value ID of the default element (if set) is returned else 'null'
+     * @param string $groupLabel            - the optional label of the option group else set to group name
+     * 
+     * @access public
+     * @static
+     * @return int   the option group ID
+     *
+     */
     static function createAssoc( $groupName, &$values, &$defaultID, $groupLabel = null ) 
     {
         self::deleteAssoc( $groupName );
@@ -282,7 +308,7 @@ WHERE  v.option_group_id = g.id
             require_once 'CRM/Core/DAO/OptionGroup.php';
             $group = new CRM_Core_DAO_OptionGroup( );
             $group->name        = $groupName;
-            $group->label       = $groupLabel;
+            $group->label       = empty( $groupLabel ) ? $groupName : $groupLabel;
             $group->is_reserved = 1;
             $group->is_active   = 1;
             $group->save( );

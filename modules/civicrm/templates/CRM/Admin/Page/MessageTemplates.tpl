@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -73,7 +73,14 @@
       </div>
     </div>
   </div>
-  
+
+  <div class="crm-section msg_html-section">
+  <h3 class="header-dark">{$form.pdf_format_id.label}</h3>
+    <div class='text'>
+      {$form.pdf_format_id.html}
+    </div>
+  </div>
+    
   <div id="crm-submit-buttons">{$form.buttons.html}</div>
   </fieldset>
 {/if}
@@ -156,7 +163,7 @@
     {/literal}
   </script>
 
-{elseif $action ne 1 and $action ne 2 and $action ne 4}
+{elseif $action ne 1 and $action ne 2 and $action ne 4 and $action ne 8}
   <div class="messages status">
       <img src="{$config->resourceBase}i/Inform.gif" alt="{ts}status{/ts}"/>
       {ts 1=$crmURL}There are no Message Templates entered. You can <a href='%1'>add one</a>.{/ts}

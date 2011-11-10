@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -107,7 +107,15 @@ class CRM_Contact_StateMachine_Search extends CRM_Core_StateMachine {
         }
         $this->_controller->set( 'task', $value );
 
-        return CRM_Contact_Task::getTask( $value );
+        if ( $value ) {
+            $componentMode = $this->_controller->get( 'component_mode' );
+            require_once 'CRM/Contact/Form/Search.php';
+            $modeValue = CRM_Contact_Form_Search::getModeValue( $componentMode );
+            require_once( str_replace('_', DIRECTORY_SEPARATOR, $modeValue['taskClassName'] ) . '.php' );
+            return eval( "return {$modeValue['taskClassName']}::getTask( $value );" );
+        } else {
+            return CRM_Contact_Task::getTask( $value );
+        }
     }
 
     /**

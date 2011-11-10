@@ -196,7 +196,11 @@ $.Autocompleter = function(input, options) {
 		$input.unbind();
 		$(input.form).unbind(".autocomplete");
 	}).bind("input", function() {
-    onChange(0, true);
+        // needed for chinese input? see CRM-6135 and http://plugins.jquery.com/node/14682 
+        // this breaks "delay" though, so lets only use it with chinese minChars setting 
+        if (options.minChars <= 1) { 
+            onChange(0, true); 
+        } 
   });
 	
 	function selectCurrent() {
@@ -393,7 +397,7 @@ $.Autocompleter.defaults = {
 	minChars: 0,
 	delay: 400,
 	matchCase: false,
-	matchSubset: true,
+	matchSubset: false,
 	matchContains: false,
 	cacheLength: 10,
 	max: 100,
@@ -410,7 +414,7 @@ $.Autocompleter.defaults = {
 		return value.replace(new RegExp("(?![^&;]+;)(?!<[^<>]*)(" + term.replace(/([\^\$\(\)\[\]\{\}\*\.\+\?\|\\])/gi, "\\$1") + ")(?![^<>]*>)(?![^&;]+;)", "gi"), "<strong>$1</strong>");
 	},
     scroll: true,
-    scrollHeight: 180
+    scrollHeight: 300
 };
 
 $.Autocompleter.Cache = function(options) {

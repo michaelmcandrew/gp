@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -167,6 +167,7 @@ abstract class CRM_Core_Page_Basic extends CRM_Core_Page {
              ( CRM_Core_Action::VIEW   | 
                CRM_Core_Action::ADD    |
                CRM_Core_Action::UPDATE |
+               CRM_Core_Action::COPY   |
                CRM_Core_Action::DELETE ) ) {
             $this->edit($this->_action, $id);                               // use edit form for view, add or update or delete
         } else {
@@ -274,7 +275,19 @@ abstract class CRM_Core_Page_Basic extends CRM_Core_Page {
     function action( &$object, $action, &$values, &$links, $permission, $forceAction = false ) {
         $values['class'] = '';
         $newAction = $action;
+        $hasDelete = $hasDisable = true;
         
+        if ( in_array( $values['name'] , array( 'encounter_medium', 'case_type', 'case_status' ) ) ) {
+            static $caseCount = null; 
+            require_once 'CRM/Case/BAO/Case.php';
+            if ( !isset( $caseCount ) ) {
+                $caseCount = CRM_Case_BAO_Case::caseCount( null, false );
+            }
+            if ( $caseCount > 0 ) {
+                $hasDelete = $hasDisable = false;
+            }
+        }
+
         if ( !$forceAction ) {
             if ( array_key_exists( 'is_reserved', $object ) && $object->is_reserved ) {
                 $values['class'] = 'reserved';
@@ -289,7 +302,9 @@ abstract class CRM_Core_Page_Basic extends CRM_Core_Page {
             } else {
                 if ( array_key_exists( 'is_active', $object ) ) {
                     if ( $object->is_active ) {
-                        $newAction += CRM_Core_Action::DISABLE;
+                        if ( $hasDisable ) {
+                            $newAction += CRM_Core_Action::DISABLE;
+                        }
                     } else {
                         $newAction += CRM_Core_Action::ENABLE;
                     }
@@ -299,7 +314,7 @@ abstract class CRM_Core_Page_Basic extends CRM_Core_Page {
         
         //CRM-4418, handling edit and delete separately.
         $permissions = array( $permission ); 
-        if ( $permission == CRM_Core_Permission::EDIT ) {
+        if ( $hasDelete && ( $permission == CRM_Core_Permission::EDIT ) ) {
             //previously delete was subset of edit 
             //so for consistency lets grant delete also.
             $permissions[] = CRM_Core_Permission::DELETE;

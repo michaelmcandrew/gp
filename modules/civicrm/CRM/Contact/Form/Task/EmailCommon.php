@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -54,7 +54,8 @@ class CRM_Contact_Form_Task_EmailCommon
     {
         $form->_single  = false;
         $className = CRM_Utils_System::getClassName( $form );
-        if ( $form->_context != 'search' &&
+        if ( property_exists( $form , '_context' ) && 
+             $form->_context != 'search' &&
              $className == 'CRM_Contact_Form_Task_Email' ) {
             $form->_single = true;
         }
@@ -157,7 +158,7 @@ class CRM_Contact_Form_Task_EmailCommon
         }
 		
         $toSetDefault = true;
-        if ( $form->_context == 'standalone' ) {
+        if ( property_exists( $form , '_context' ) && $form->_context == 'standalone' ) {
             $toSetDefault = false;
         }
     	// when form is submitted recompute contactIds

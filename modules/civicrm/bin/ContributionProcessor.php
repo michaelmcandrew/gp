@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -63,6 +63,8 @@ class CiviContributeProcessor {
                                      'l_name0'          => 'source',
                                      'ordertime'        => 'receive_date',
                                      'note'             => 'note',
+                                     'custom'           => 'note',
+                                     'l_number0'        => 'note',
                                      'is_test'          => 'is_test',
                                      'transactiontype'  => 'trxn_type',
                                      'recurrences'      => 'installments',
@@ -95,10 +97,18 @@ class CiviContributeProcessor {
                                      'total-charge-amount' => 'total_amount',
                                      'google-order-number' => 'trxn_id',
                                      'currency'            => 'currency',
-                                     'item-name'           => 'note',
+                                     'item-name'           => 'source',
+                                     'item-description'    => 'note',
                                      'timestamp'           => 'receive_date',
                                      'latest-charge-fee'   => 'fee_amount',
                                      'net-amount'          => 'net_amount',
+                                     'times'               => 'installments',
+                                     'period'              => 'frequency_unit',
+                                     'frequency_interval'  => 'frequency_interval',
+                                     'start_date'          => 'start_date',
+                                     'modified_date'       => 'modified_date',
+                                     'trxn_type'           => 'trxn_type',
+                                     'amount'              => 'amount',
                                      ),
               );
 
@@ -165,6 +175,21 @@ class CiviContributeProcessor {
                     // We don't/can't process subscription notifications, which appear
                     // to be identified by transaction ids beginning with S-
                     if ( substr( $value, 0, 2 ) == 'S-' )  {
+                        continue;
+                    }
+
+                    // Before we bother making a remote API call to PayPal to lookup
+                    // details about a transaction, let's make sure that it doesn't
+                    // already exist in the database.
+                    require_once 'CRM/Contribute/DAO/Contribution.php';
+                    $dao = new CRM_Contribute_DAO_Contribution;
+                    $dao->trxn_id = $value;
+                    if ( $dao->find(true) ) {
+                        preg_match('/(\d+)$/', $name, $matches);
+                        $seq = $matches[1];
+                        $email = $result["l_email{$seq}"];
+                        $amt = $result["l_amt{$seq}"];
+                        CRM_Core_Error::debug_log_message( "Skipped (already recorded) - $email, $amt, $value ..<p>", true );
                         continue;
                     }
                     

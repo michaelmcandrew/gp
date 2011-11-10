@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id: PaymentProcessor.php 9702 2007-05-29 23:57:16Z lobo $
  *
  */
@@ -89,10 +89,10 @@ class CRM_Admin_Form_PaymentProcessor extends CRM_Admin_Form
         }
         
         //CRM-4129
-        $destination = CRM_Utils_Request::retrieve( 'destination', 'String', $this );
+        $destination = CRM_Utils_Request::retrieve( 'civicrmDestination', 'String', $this );
         if ( $destination ) {
             $destination = urlencode( $destination );
-            $refreshURL .= "&destination=$destination";
+            $refreshURL .= "&civicrmDestination=$destination";
         }
         
         $this->assign( 'refreshURL', $refreshURL );

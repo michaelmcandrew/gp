@@ -1,9 +1,26 @@
 /* 
-   jQuery TextAreaResizer plugin
-*/
+ *   jQuery TextAreaResizer plugin
+ *
+ *   jQuery TextAreaResizer plugin
+ *   Created on 17th January 2008 by Ryan O'Dell 
+ *   Version 1.0.4
+ *               
+ *   Converted from Drupal -> textarea.js
+ *   Found source: http://plugins.jquery.com/misc/textarea.js
+ *   $Id: textarea.js,v 1.11.2.1 2007/04/18 02:41:19 drumm Exp $
+ *
+ *   1.0.1 Updates to missing global 'var', added extra global variables, fixed multiple instances, improved iFrame support
+ *   1.0.2 Updates according to textarea.focus
+ *   1.0.3 Further updates including removing the textarea.focus and moving private variables to top
+ *   1.0.4 Re-instated the blur/focus events, according to information supplied by dec
+ *   
+ */
 $(document).ready(function() {
-    cj('textarea.huge:not(.processed)').TextAreaResizer();
-    cj('textarea.form-textarea:not(.processed)').TextAreaResizer();
+	cj('#crm-container textarea.huge:not(.textarea-processed), #crm-container textarea.form-textarea:not(.textarea-processed)').each(function() {
+        $this = cj(this);
+        if ($this.parents('div.civicrm-drupal-wysiwyg').length == 0) 
+			$this.TextAreaResizer();
+    });
 });
 
 (function($) {
@@ -18,9 +35,9 @@ $(document).ready(function() {
     /* TextAreaResizer plugin */
     $.fn.TextAreaResizer = function() {
 	return this.each(function() {
-	    textarea = $(this).addClass('processed'), staticOffset = null;
+	    textarea = $(this).addClass('textarea-processed'), staticOffset = null;
 	    
-	    // When wrapping the text area, work around an IE margin bug.  See:
+        // When wrapping the text area, work around an IE margin bug.  See:
 	    // http://jaspan.com/ie-inherited-margin-bug-form-elements-and-haslayout
 	    $(this).wrap('<div class="resizable-textarea"><span></span></div>')
 	    .parent().append($('<div class="grippie"></div>').bind("mousedown",{el: this} , startDrag));

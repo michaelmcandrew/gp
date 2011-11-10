@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -67,14 +67,16 @@ class CRM_Utils_String {
      * @static
      */
     static function titleToVar( $title, $maxLength = 31 ) {
-        $variable = self::munge( $title );
+        $variable = self::munge( $title, '_', $maxLength );
       
         require_once "CRM/Utils/Rule.php";
         if ( CRM_Utils_Rule::title( $variable, $maxLength ) ) {
             return $variable;
         }
-      
-        return null;
+
+        // if longer than the maxLength lets just return a substr of the
+        // md5 to prevent errors downstream
+        return substr( md5( $title ), 0, $maxLength );
     }
 
     /**
@@ -183,22 +185,31 @@ class CRM_Utils_String {
      * @static
      */
     static function isAscii( $str, $utf8 = true ) {
-        $str = preg_replace( '/\s+/', '', $str ); // eliminate all white space from the string
-        /* FIXME:  This is a pretty brutal hack to make utf8 and 8859-1 work.
-         */
+        if( ! function_exists( 'mb_detect_encoding' ) ) {
+            $str = preg_replace( '/\s+/', '', $str ); // eliminate all white space from the string
+            /* FIXME:  This is a pretty brutal hack to make utf8 and 8859-1 work.
+             */
         
-        /* match low- or high-ascii characters */
-        if ( preg_match( '/[\x00-\x20]|[\x7F-\xFF]/', $str ) )  {
-//         || // low ascii characters
-//              preg_match( '/[\x7F-\xFF]/', $str ) ) {   // high ascii characters
-            if ($utf8) {
-                /* if we did match, try for utf-8, or iso8859-1 */
-                return self::isUtf8( $str );
-            } else {
-                return false;
+            /* match low- or high-ascii characters */
+            if ( preg_match( '/[\x00-\x20]|[\x7F-\xFF]/', $str ) )  {
+            // || // low ascii characters
+            //  preg_match( '/[\x7F-\xFF]/', $str ) ) {   // high ascii characters
+                if ($utf8) {
+                    /* if we did match, try for utf-8, or iso8859-1 */
+                    return self::isUtf8( $str );
+                } else {
+                    return false;
+                }
             }
+            return true;
+        } else {
+            $order = array( 'ASCII' ); 
+            if ($utf8) {
+                $order[] = 'UTF-8';
+            }
+            $enc = mb_detect_encoding($str, $order, true); 
+            return ($enc == 'ASCII' || $enc == 'UTF-8');
         }
-        return true;
     }
     
     /**
@@ -264,15 +275,20 @@ class CRM_Utils_String {
      * @return boolean
      */
     static function isUtf8( $str ) {
-        $str = preg_replace( '/\s+/', '', $str ); // eliminate all white space from the string
+        if( ! function_exists( mb_detect_encoding ) ) {
+            $str = preg_replace( '/\s+/', '', $str ); // eliminate all white space from the string
         
-        /* pattern stolen from the php.net function documentation for
-         * utf8decode();
-         * comment by JF Sebastian, 30-Mar-2005
-         */
-        return  preg_match( '/^([\x00-\x7f]|[\xc2-\xdf][\x80-\xbf]|\xe0[\xa0-\xbf][\x80-\xbf]|[\xe1-\xec][\x80-\xbf]{2}|\xed[\x80-\x9f][\x80-\xbf]|[\xee-\xef][\x80-\xbf]{2}|f0[\x90-\xbf][\x80-\xbf]{2}|[\xf1-\xf3][\x80-\xbf]{3}|\xf4[\x80-\x8f][\x80-\xbf]{2})*$/' , $str );
-//             || 
-//                 iconv('ISO-8859-1', 'UTF-8', $str);
+            /* pattern stolen from the php.net function documentation for
+             * utf8decode();
+             * comment by JF Sebastian, 30-Mar-2005
+             */
+            return  preg_match( '/^([\x00-\x7f]|[\xc2-\xdf][\x80-\xbf]|\xe0[\xa0-\xbf][\x80-\xbf]|[\xe1-\xec][\x80-\xbf]{2}|\xed[\x80-\x9f][\x80-\xbf]|[\xee-\xef][\x80-\xbf]{2}|f0[\x90-\xbf][\x80-\xbf]{2}|[\xf1-\xf3][\x80-\xbf]{3}|\xf4[\x80-\x8f][\x80-\xbf]{2})*$/' , $str );
+            // || 
+            // iconv('ISO-8859-1', 'UTF-8', $str);
+        } else {
+            $enc = mb_detect_encoding($str, array('UTF-8'), true); 
+            return ($enc !== false);         
+        }
     }
     /**
      * determine if two href's are equivalent (fuzzy match)
@@ -375,16 +391,43 @@ class CRM_Utils_String {
             return;
         }
 
-        $names = explode( ' ', $name );
-        if ( count( $names ) == 1 ) {
-            $params['first_name'] = $names[0];
-        } else if ( count( $names ) == 2 ) {
-            $params['first_name'] = $names[0];
-            $params['last_name' ] = $names[1];
+        // strip out quotes
+        $name = str_replace('"', '', $name);
+        $name = str_replace('\'', '', $name);
+        
+        // check for comma in name
+        if ( strpos( $name, ',' ) !== false ) {
+            
+            // name has a comma - assume lname, fname [mname]
+            $names = explode( ',', $name );
+            if ( count( $names ) > 1) {
+                $params['last_name'] = trim( $names[0] );
+                
+                // check for space delim
+                $fnames = explode( ' ', trim( $names[1] ) );
+                if ( count( $fnames ) > 1 ) {
+                    $params['first_name' ] = trim( $fnames[0] );
+                    $params['middle_name'] = trim( $fnames[1] );
+                } else {
+                    $params['first_name'] = trim( $fnames[0] );
+                }
+            } else {
+                $params['first_name'] = trim( $names[0] );
+            }
         } else {
-            $params['first_name' ] = $names[0];
-            $params['middle_name'] = $names[1];
-            $params['last_name'  ] = $names[2];
+            
+            // name has no comma - assume fname [mname] fname
+            $names = explode( ' ', $name );
+            if ( count( $names ) == 1 ) {
+                $params['first_name'] = $names[0];
+            } else if ( count( $names ) == 2 ) {
+                $params['first_name'] = $names[0];
+                $params['last_name' ] = $names[1];
+            } else {
+                $params['first_name' ] = $names[0];
+                $params['middle_name'] = $names[1];
+                $params['last_name'  ] = $names[2];
+            }
         }
     }
 
@@ -407,7 +450,7 @@ class CRM_Utils_String {
      */
     static function addJqueryFiles( &$html ) {
         $smarty = CRM_Core_Smarty::singleton( );
-        return $smarty->fetch( 'CRM/common/jquery.tpl' ) . $html . '<script type="text/javascript">jQuery.noConflict(true);</script>';
+        return $smarty->fetch( 'CRM/common/jquery.tpl' ) . $html;
     }
 
     /**
@@ -421,11 +464,82 @@ class CRM_Utils_String {
     static function stripAlternatives($full)
     {
         $matches = array();
-        if (preg_match('/-ALTERNATIVE ITEM 0-(.*?)-ALTERNATIVE ITEM 1-.*-ALTERNATIVE END-/s', $full, $matches)) {
+        preg_match('/-ALTERNATIVE ITEM 0-(.*?)-ALTERNATIVE ITEM 1-.*-ALTERNATIVE END-/s', $full, $matches);
+
+        if ( isset( $matches[1] ) &&
+             trim( strip_tags( $matches[1] ) ) != '' ) {
             return $matches[1];
         } else {
             return $full;
         }
+    }
+
+    /** 
+     * strip leading, trailing, double spaces from string
+     * used for postal/greeting/addressee
+     * @param string  $string input string to be cleaned
+     *
+     * @return string the cleaned string
+     * @access public
+     * @static
+     */
+	static function stripSpaces( $string ) 
+	{
+        if ( empty($string) ) {
+            return $string;
+        }
+        
+        $pat = array( 0 => "/^\s+/",
+                      1 =>  "/\s{2,}/", 
+                      2 => "/\s+\$/" );
+        
+        $rep = array( 0 => "",
+                      1 => " ",
+                      2 => "" );
+        
+        return preg_replace( $pat, $rep, $string );
+	}
+
+    /**
+     * This function is used to clean the URL 'path' variable that we use 
+     * to construct CiviCRM urls by removing characters from the path variable
+     *
+     * @param string $string  the input string to be sanitized
+     * @param array  $search  the characters to be sanitized
+     * @param string $replace the character to replace it with
+     *
+     * @return string the sanitized string
+     * @access public
+     * @static
+     */
+    static function stripPathChars( $string,
+                                    $search  = null,
+                                    $replace = null ) {
+        static $_searchChars  = null;
+        static $_replaceChar  = null;
+
+        if ( empty( $string ) ) {
+            return $string;
+        }
+        
+        if ( $_searchChars == null ) {
+            $_searchChars = array( '&', ';', ',', '=', '$',
+                                   '"', "'", '\\',
+                                   '<', '>', '(', ')',
+                                   ' ', "\r", "\r\n", "\n", "\t" );
+            $_replaceChar = '_';
+        }
+                                   
+        
+        if ( $search == null ) {
+            $search = $_searchChars;
+        }
+
+        if ( $replace == null ) {
+            $replace = $_replaceChar;
+        }
+
+        return str_replace( $search, $replace, $string );
     }
 }
 

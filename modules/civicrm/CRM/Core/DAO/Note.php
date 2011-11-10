@@ -1,9 +1,9 @@
 <?php
 /*
 +--------------------------------------------------------------------+
-| CiviCRM version 3.2                                                |
+| CiviCRM version 3.4                                                |
 +--------------------------------------------------------------------+
-| Copyright CiviCRM LLC (c) 2004-2010                                |
+| Copyright CiviCRM LLC (c) 2004-2011                                |
 +--------------------------------------------------------------------+
 | This file is a part of CiviCRM.                                    |
 |                                                                    |
@@ -27,7 +27,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -79,7 +79,7 @@ class CRM_Core_DAO_Note extends CRM_Core_DAO
      * @var boolean
      * @static
      */
-    static $_log = false;
+    static $_log = true;
     /**
      * Note ID
      *
@@ -122,6 +122,12 @@ class CRM_Core_DAO_Note extends CRM_Core_DAO
      * @var string
      */
     public $subject;
+    /**
+     * Foreign Key to Note Privacy Level (which is an option value pair and hence an implicit FK)
+     *
+     * @var int
+     */
+    public $privacy;
     /**
      * class constructor
      *
@@ -203,6 +209,11 @@ class CRM_Core_DAO_Note extends CRM_Core_DAO
                     'title' => ts('Subject') ,
                     'maxlength' => 255,
                     'size' => CRM_Utils_Type::HUGE,
+                ) ,
+                'privacy' => array(
+                    'name' => 'privacy',
+                    'type' => CRM_Utils_Type::T_INT,
+                    'title' => ts('Privacy') ,
                 ) ,
             );
         }

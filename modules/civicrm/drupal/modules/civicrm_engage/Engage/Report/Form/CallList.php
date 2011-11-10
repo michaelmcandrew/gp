@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.1                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2009                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2009
+ * @copyright CiviCRM LLC (c) 2004-2011
  * @copyright DharmaTech  (c) 2009
  * $Id$
  *
@@ -214,7 +214,7 @@ class Engage_Report_Form_CallList extends Engage_Report_Form_List {
                     //var_dump($clause);
                     if ( ! empty( $clause ) ) {
                         if ( CRM_Utils_Array::value( 'group', $field ) ) {
-                            $clauses[] = $this->whereGroupClause( $clause );
+                            $clauses[] = $this->engageWhereGroupClause( $clause );
                         } else {
                             $clauses[] = $clause;
                         }

@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,9 +28,9 @@
 
 /**
  *
- * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
- * $Id$
+ * @package CiviCRM_Hook
+ * @copyright CiviCRM LLC (c) 2004-2011
+ * $Id: $
  *
  */
 

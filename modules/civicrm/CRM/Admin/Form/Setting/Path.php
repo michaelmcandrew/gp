@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -55,7 +55,9 @@ class CRM_Admin_Form_Setting_Path extends CRM_Admin_Form_Setting
                               'imageUploadDir'      => ts( 'Images'           ),
                               'customFileUploadDir' => ts( 'Custom Files'     ),
                               'customTemplateDir'   => ts( 'Custom Templates' ),
-                              'customPHPPathDir'    => ts( 'Custom PHP Path Directory' )  );
+                              'customPHPPathDir'    => ts( 'Custom PHP Path Directory' ),
+                              'extensionsDir'       => ts( 'CiviCRM Extensions Directory' )
+                              );
         foreach ( $directories as $name => $title ) {
             $this->add('text', $name, $title );
             $this->addRule( $name,

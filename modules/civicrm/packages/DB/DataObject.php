@@ -557,13 +557,14 @@ class DB_DataObject extends DB_DataObject_Overload
             $_DB_DATAOBJECT['RESULTFIELDS'][$this->_DB_resultid]= array_flip(array_keys($array));
         }
         
-        foreach($array as $k=>$v) {
-            $kk = str_replace(".", "_", $k);
-            $kk = str_replace(" ", "_", $kk);
+        $keys = str_replace(array("."," "), "_", array_keys($array));
+        $i = 0; 
+        foreach($array as $val) {
+            $key = $keys[$i++]; 
             if (!empty($_DB_DATAOBJECT['CONFIG']['debug'])) {
-                $this->debug("$kk = ". $array[$k], "fetchrow LINE", 3);
+                $this->debug("$key = ". $val, "fetchrow LINE", 3);
             }
-            $this->$kk = $array[$k];
+            $this->$key = $val;
         }
         
         // set link flag
@@ -657,6 +658,16 @@ class DB_DataObject extends DB_DataObject_Overload
         $this->_query['order_by'] .= " , {$order}";
     }
 
+    /*
+     * Return affected rows for current connection.
+     * Override the mysql affectedRows w/ db object. 
+     */
+    function affectedRows( ) {
+        global $_DB_DATAOBJECT;
+        $DB = &$_DB_DATAOBJECT['CONNECTIONS'][$this->_database_dsn_md5];
+        return $DB->affectedRows( );
+    }
+    
     /**
      * Adds a group by condition
      *
@@ -1480,12 +1491,14 @@ class DB_DataObject extends DB_DataObject_Overload
             return false;
         }
 
-        foreach($array as $k => $v) {
-            $kk = str_replace(".", "_", $k);
+        $keys = str_replace(array("."," "), "_", array_keys($array));
+        $i = 0; 
+        foreach($array as $val) {
+            $key = $keys[$i++]; 
             if (!empty($_DB_DATAOBJECT['CONFIG']['debug'])) {
-                $this->debug("$kk = ". $array[$k], "fetchrow LINE", 3);
+                $this->debug("$key = ". $val, "fetchrow LINE", 3);
             }
-            $this->$kk = $array[$k];
+            $this->$key = $val;
         }
 
         if (!empty($_DB_DATAOBJECT['CONFIG']['debug'])) {
@@ -2571,7 +2584,8 @@ class DB_DataObject extends DB_DataObject_Overload
             }
             
 
-            if ($v & DB_DATAOBJECT_STR) {
+            if ($v & DB_DATAOBJECT_STR ||
+                $v & DB_DATAOBJECT_TXT) {
                 $this->whereAdd(" $kSql  = " . $this->_quote((string) (
                         ($v & DB_DATAOBJECT_BOOL) ? 
                             // this is thanks to the braindead idea of postgres to 

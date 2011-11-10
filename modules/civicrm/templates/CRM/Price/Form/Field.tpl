@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -33,6 +33,7 @@
         if (html_type_name == "Text") {
             document.getElementById("price-block").style.display="block";
             document.getElementById("showoption").style.display="none";
+
         } else {
             document.getElementById("price-block").style.display="none";
             document.getElementById("showoption").style.display="block";
@@ -85,27 +86,38 @@
            </td>
         </tr>
         {/if}
-        {if $form.count }
-	    <tr class="crm-price-field-form-block-count">
-           <td class="label">{$form.count.label}</td>
-           <td>{if $action == 2}{include file='CRM/Core/I18n/Dialog.tpl' table='civicrm_price_field' field='count' id=$id}{/if}{$form.count.html}<br />
-                <span class="description">{ts}Enter a value here if you want to increment the number of registered participants per unit against the maximum number of participants allowed for this event.{/ts}</span>
-                {help id="id-participant-count"}
-            </td>
-        </tr>
-	    {/if}
+ 
     </table>
     <div class="spacer"></div>
     <div id="price-block" {if $action eq 2 && $form.html_type.value.0 eq 'Text'} class="show-block" {else} class="hide-block" {/if}>
         <table class="form-layout">
             <tr class="crm-price-field-form-block-price">
-               <td class="label">{$form.price.label}</td>
+               <td class="label">{$form.price.label} <span class="crm-marker" title="{ts}This field is required.{/ts}">*</span></td>
                <td>{$form.price.html}
                {if $action neq 4}
                     <br /><span class="description">{ts}Unit price.{/ts}</span> {help id="id-negative"}
                {/if}
                </td>
             </tr>
+	    {if $useForEvent}
+	    <tr class="crm-price-field-form-block-count">
+              <td class="label">{$form.count.label}</td>
+              <td>{$form.count.html}<br />
+                <span class="description">{ts}Enter a value here if you want to increment the number of registered participants per unit against the maximum number of participants allowed for this event.{/ts}</span>
+                {help id="id-participant-count"}
+              </td>
+            </tr>
+	    <tr class="crm-price-field-form-block-max_value">
+              <td class="label">{$form.max_value.label}</td>
+              <td>{$form.max_value.html}
+              </td>
+            </tr>
+	    <tr class="crm-price-field-form-block-description">
+              <td class="label">{$form.description.label}</td>
+              <td>{$form.description.html}
+              </td>
+            </tr>
+	  {/if}
         </table>
     </div>
 
@@ -145,29 +157,23 @@
               </td>
            </tr>
 
-<!-- Dates price field is available feature - not implemented yet. dgg
         <tr class="crm-price-field-form-block-active_on">
            <td class="label">{$form.active_on.label}</td>
-           <td>{$form.active_on.html}</td>
+           <td>{include file="CRM/common/jcalendar.tpl" elementName=active_on}
+           {if $action neq 4}
+               <br /><span class="description">{ts}Date this field becomes effective (optional).  Used for price set fields that are made available starting on a specific date.{/ts}</span>
+           {/if}
+           </td>
         </tr>
-        {if $action neq 4}
-        <tr>
-           <td>&nbsp;</td>
-           <td class="description">{ts}Date this field becomes effective (optional){/ts}</td>
-        </tr>
-        {/if}
 
         <tr class="crm-price-field-form-block-expire_on">
-           <td class="label">{$form.expire_on.label}</td>
-           <td>{$form.expire_on.html}</td>
+            <td class="label">{$form.expire_on.label}</td>
+            <td>{include file="CRM/common/jcalendar.tpl" elementName=expire_on}
+            {if $action neq 4}
+                <br /><span class="description">{ts}Date this field expires (optional).  Used for price set fields that are no longer available after a specific date (e.g. early-bird pricing).{/ts}</span>
+            {/if}
+            </td>
         </tr>
-        {if $action neq 4}
-        <tr>
-           <td>&nbsp;</td>
-           <td class="description">{ts}Date this field expires (optional){/ts}</td>
-        </td>
-        {/if}
--->
 
         <tr class="crm-price-field-form-block-is_required">
            <td class="label">{$form.is_required.label}</td>
@@ -189,6 +195,22 @@
 <script type="text/javascript">
     option_html_type(this.form);
 </script>
+{literal}
+     <script type="text/javascript">
+     
+     function calculateRowValues( row ) {
+      var mtype = cj("#membership_type_id_"+row).val();
+      var postUrl = "{/literal}{crmURL p='civicrm/ajax/memType' h=0}{literal}";
+
+      cj.post( postUrl, {mtype: mtype}, function( data ) {
+       	       cj("#option_amount_"+ row).val( data.total_amount );   
+	       cj("#option_label_"+ row).val( data.name );   
+      }, 'json');  
+     }
+
+    {/literal}
+</script>
+
 
 {* Give link to view/edit choice options if in edit mode and html_type is one of the multiple choice types *}
 {if $action eq 2 AND ($form.data_type.value.1.0 eq 'CheckBox' OR $form.data_type.value.1.0 eq 'Radio' OR $form.data_type.value.1.0 eq 'Select') }
@@ -196,3 +218,4 @@
         <a href="{crmURL p="civicrm/admin/event/field/option" q="reset=1&action=browse&fid=`$id`"}" class="button"><span>{ts}Multiple Choice Options{/ts}</span></a>
     </div>
 {/if}
+

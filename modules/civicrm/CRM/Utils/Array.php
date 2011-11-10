@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -150,6 +150,31 @@ class CRM_Utils_Array {
                 }
             }
         }
+    }
+
+    /**
+     * Convert an array with path-like keys into a tree of arrays
+     *
+     * @param $delim A path delimiter
+     * @param $arr A one-dimensional array indexed by string keys
+     * @return array-encoded tree
+     */
+    function unflatten($delim, &$arr) {
+        $result = array();
+        foreach ($arr as $key => $value) {
+            $path = explode($delim, $key);
+            $node =& $result;
+            while (count($path) > 1) {
+                $key = array_shift($path);
+                if (!isset($node[$key])) {
+                    $node[$key] = array();
+                }
+                $node =& $node[$key];
+            }
+            $key = array_shift($path); // last part of path
+            $node[$key] = $value;
+        }
+        return $result;
     }
 
     /**

@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -125,8 +125,11 @@ class CRM_Utils_PagerAToZ
         //get the current path
         $path = CRM_Utils_System::currentPath() ;
 
-        $qfKey = $query->_formValues['qfKey'];
-
+        $qfKey = CRM_Utils_Array::value( 'qfKey', $query->_formValues );
+        if ( empty($qfKey) ) {
+            $qfKey = CRM_Utils_Request::retrieve('qfKey', 'String', $this, false, null, $_REQUEST );
+        }
+        
         $aToZBar = array( );
         foreach ( $AToZBar as $key => $link ) {
             if ( ! $link ) {

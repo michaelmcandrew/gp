@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -41,7 +41,6 @@ require_once 'CRM/Core/DAO/Email.php';
  */
 class CRM_Core_BAO_Email extends CRM_Core_DAO_Email 
 {
-
     /**
      * takes an associative array and adds email
      *
@@ -91,7 +90,6 @@ contact_id = {$params['contact_id']}";
     {
         return CRM_Core_BAO_Block::getValues( 'email', $entityBlock );
     }
-
    
     /**
      * Get all the emails for a specified contact_id, with the primary email being first
@@ -102,7 +100,7 @@ contact_id = {$params['contact_id']}";
      * @access public
      * @static
      */
-    static function allEmails( $id ) 
+    static function allEmails( $id, $updateBlankLocInfo = false ) 
     {
         if ( ! $id ) {
             return null;
@@ -117,24 +115,30 @@ LEFT JOIN civicrm_location_type ON ( civicrm_email.location_type_id = civicrm_lo
 WHERE
   civicrm_contact.id = %1
 ORDER BY
-  civicrm_email.is_primary DESC, civicrm_email.location_type_id DESC, email_id ASC ";
+  civicrm_email.is_primary DESC, email_id ASC ";
         $params = array( 1 => array( $id, 'Integer' ) );
 
-        $emails = array( );
+        $emails = $values = array( );
         $dao =& CRM_Core_DAO::executeQuery( $query, $params );
+        $count = 1;
         while ( $dao->fetch( ) ) {
-            $emails[$dao->email_id] = array( 'locationType'   => $dao->locationType,
-                                             'is_primary'     => $dao->is_primary,
-                                             'on_hold'        => $dao->on_hold,
-                                             'id'             => $dao->email_id,
-                                             'email'          => $dao->email,
-                                             'locationTypeId' => $dao->locationTypeId );
+            $values = array( 'locationType'   => $dao->locationType,
+                             'is_primary'     => $dao->is_primary,
+                             'on_hold'        => $dao->on_hold,
+                             'id'             => $dao->email_id,
+                             'email'          => $dao->email,
+                             'locationTypeId' => $dao->locationTypeId );
+            
+            if ( $updateBlankLocInfo ) {
+                $emails[$count++] = $values; 
+            } else {
+                $emails[$dao->email_id] = $values;
+            }
         }
         return $emails;
     }
     
-
-     /**
+    /**
      * Get all the emails for a specified location_block id, with the primary email being first
      *
      * @param array $entityElements the array containing entity_id and
@@ -211,6 +215,48 @@ ORDER BY e.is_primary DESC, email_id ASC ";
                 $email->hold_date   = date( 'YmdHis' );
             }
         }
+    }
+
+    /**
+     * Build From Email as the combination of all the email ids of the logged in user and
+     * the domain email id 
+     * 
+     * @return array         an array of email ids
+     * @access public
+     * @static
+     */
+    static function getFromEmail( )
+    {
+        $session   = CRM_Core_Session::singleton( );
+        $contactID = $session->get( 'userID' );
+        $fromEmailValues = array( ); 
+        
+        // add the domain email id
+        require_once 'CRM/Core/BAO/Domain.php';
+        $domainEmail = CRM_Core_BAO_Domain::getNameAndEmail( );
+        $domainEmail = "$domainEmail[0] <$domainEmail[1]>";
+        $fromEmailValues[$domainEmail] = htmlspecialchars( $domainEmail );
+        
+        // add logged in user's active email ids
+        if ( $contactID ) {
+            $contactEmails   = self::allEmails( $contactID );
+            $fromDisplayName = CRM_Core_DAO::getFieldValue( 'CRM_Contact_DAO_Contact', $contactID, 'display_name' );
+            
+            foreach( $contactEmails as $emailId => $emailVal ) {
+                $email = trim( $emailVal['email'] );
+                if ( !$email || $emailVal['on_hold'] ) {
+                    continue;
+                }
+                $fromEmail      = "$fromDisplayName <$email>";
+                $fromEmailHtml  =  htmlspecialchars( $fromEmail ) . ' ' . $emailVal['locationType'];
+                                
+                if ( CRM_Utils_Array::value( 'is_primary', $emailVal ) ) {
+                    $fromEmailHtml .=  ' ' . ts('(preferred)');
+                }
+                $fromEmailValues[$fromEmail] = $fromEmailHtml;
+            }
+        }
+        return $fromEmailValues;
     }
 }
 

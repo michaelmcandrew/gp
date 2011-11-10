@@ -1,9 +1,9 @@
 <?php
 /*
 +--------------------------------------------------------------------+
-| CiviCRM version 3.2                                                |
+| CiviCRM version 3.4                                                |
 +--------------------------------------------------------------------+
-| Copyright CiviCRM LLC (c) 2004-2010                                |
+| Copyright CiviCRM LLC (c) 2004-2011                                |
 +--------------------------------------------------------------------+
 | This file is a part of CiviCRM.                                    |
 |                                                                    |
@@ -27,7 +27,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -122,6 +122,30 @@ class CRM_Mailing_DAO_Job extends CRM_Core_DAO
      */
     public $is_test;
     /**
+     * Type of mailling job: null | child
+     *
+     * @var string
+     */
+    public $job_type;
+    /**
+     * Parent job id
+     *
+     * @var int unsigned
+     */
+    public $parent_id;
+    /**
+     * Offset of the child job
+     *
+     * @var int
+     */
+    public $job_offset;
+    /**
+     * Queue size limit for each child job
+     *
+     * @var int
+     */
+    public $job_limit;
+    /**
      * class constructor
      *
      * @access public
@@ -142,6 +166,7 @@ class CRM_Mailing_DAO_Job extends CRM_Core_DAO
         if (!(self::$_links)) {
             self::$_links = array(
                 'mailing_id' => 'civicrm_mailing:id',
+                'parent_id' => 'civicrm_mailing_job:id',
             );
         }
         return self::$_links;
@@ -191,6 +216,29 @@ class CRM_Mailing_DAO_Job extends CRM_Core_DAO
                 'is_test' => array(
                     'name' => 'is_test',
                     'type' => CRM_Utils_Type::T_BOOLEAN,
+                ) ,
+                'job_type' => array(
+                    'name' => 'job_type',
+                    'type' => CRM_Utils_Type::T_STRING,
+                    'title' => ts('Job Type') ,
+                    'maxlength' => 255,
+                    'size' => CRM_Utils_Type::HUGE,
+                ) ,
+                'parent_id' => array(
+                    'name' => 'parent_id',
+                    'type' => CRM_Utils_Type::T_INT,
+                    'default' => 'UL',
+                    'FKClassName' => 'CRM_Mailing_DAO_Job',
+                ) ,
+                'job_offset' => array(
+                    'name' => 'job_offset',
+                    'type' => CRM_Utils_Type::T_INT,
+                    'title' => ts('Job Offset') ,
+                ) ,
+                'job_limit' => array(
+                    'name' => 'job_limit',
+                    'type' => CRM_Utils_Type::T_INT,
+                    'title' => ts('Job Limit') ,
                 ) ,
             );
         }

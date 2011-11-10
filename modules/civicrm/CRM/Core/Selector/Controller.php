@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -36,7 +36,7 @@
  * implement the Selector/Api.interface.php class
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -301,10 +301,23 @@ class CRM_Core_Selector_Controller {
         // get the column headers
         $columnHeaders =& $this->_object->getColumnHeaders( $this->_action, $this->_output );
 
+        require_once 'CRM/Utils/Hook.php';
+        $contextArray = explode( '_', get_class( $this->_object ) );
+
+        $contextName = strtolower( $contextArray[1] );
+        
+        // fix contribute and member
+        if ( $contextName == 'contribute' ) {
+            $contextName = 'contribution';
+        } else if ( $contextName == 'member' ) {
+            $contextName = 'membership';
+        }
+
         // we need to get the rows if we are exporting or printing them
         if ($this->_output == self::EXPORT || $this->_output == self::SCREEN ) {
             // get rows (without paging criteria)
             $rows = self::getRows( $this );
+            CRM_Utils_Hook::searchColumns( $contextName, $columnHeaders, $rows, $this );
             if ( $this->_output == self::EXPORT ) {
                 // export the rows.
                 CRM_Core_Report_Excel::writeCSVFile( $this->_object->getExportFileName( ),
@@ -320,6 +333,7 @@ class CRM_Core_Selector_Controller {
         } else {
             // output requires paging/sorting capability
             $rows = self::getRows( $this );
+            CRM_Utils_Hook::searchColumns( $contextName, $columnHeaders, $rows, $this );
             $rowsEmpty = count( $rows ) ? false : true;
             $qill      = $this->getQill( );
             $summary   = $this->getSummary( );
@@ -499,5 +513,3 @@ class CRM_Core_Selector_Controller {
     }
 
 }
-
-

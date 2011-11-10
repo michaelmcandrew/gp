@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -67,10 +67,13 @@ class CRM_Mailing_Event_BAO_Bounce extends CRM_Mailing_Event_DAO_Bounce {
         $bounce->time_stamp = date('YmdHis');
 
         // if we dont have a valid bounce type, we should set it
-        // to bounce_type_id 6 which is Invalid. this allows such email
-        // addresses to be put on hold immediately, CRM-4814
+        // to bounce_type_id 11 which is Syntax error. this allows such email
+        // addresses to be bounce a few more time before being put on hold
+        // CRM-4814
+        // we changed this behavior since this bounce type might be due to some issue
+        // with the connection or smtp server etc
         if ( empty( $params['bounce_type_id'] ) ) {
-            $params['bounce_type_id'] = 6;
+            $params['bounce_type_id'] = 11;
             $params['bounce_reason'] = ts( 'Unknown bounce type: Could not parse bounce email' );
         }
              
@@ -228,8 +231,16 @@ class CRM_Mailing_Event_BAO_Bounce extends CRM_Mailing_Event_DAO_Bounce {
             $query .= " GROUP BY $queue.id ";
         }
 
-        $query .= " ORDER BY $contact.sort_name, $bounce.time_stamp DESC ";
-
+        $orderBy = "sort_name ASC, {$bounce}.time_stamp DESC";
+        if ($sort) {
+            if ( is_string( $sort ) ) {
+                $orderBy = $sort;
+            } else {
+                $orderBy = trim( $sort->orderBy() );
+            }
+        }
+        $query .= " ORDER BY {$orderBy} ";
+        
         if ($offset||$rowCount) {//Added "||$rowCount" to avoid displaying all records on first page
             $query .= ' LIMIT ' 
                     . CRM_Utils_Type::escape($offset, 'Integer') . ', ' 

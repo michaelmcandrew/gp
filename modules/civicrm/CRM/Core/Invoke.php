@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -32,7 +32,7 @@
  * Serves as a wrapper between the UserFrameWork and Core CRM
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -129,6 +129,10 @@ class CRM_Core_Invoke
         $template->assign( 'formTpl'        , 'default' );
 
         if ( $item ) {
+            // CRM-7656 - make sure we send a clean sanitized path to create printer friendly url
+            $printerFriendly = CRM_Utils_System::makeURL( 'snippet', false, false, $item['path'] ) . '2';
+            $template->assign ( 'printerFriendly', $printerFriendly );
+
             if ( ! array_key_exists( 'page_callback', $item ) ) {
                 CRM_Core_Error::debug( 'Bad item', $item );
                 CRM_Core_Error::fatal( ts( 'Bad menu record in database' ) );
@@ -267,23 +271,43 @@ class CRM_Core_Invoke
         $secondArg = CRM_Utils_Array::value( 2, $args, '' ); 
 
         if ($secondArg == 'map' ) {
-
             $controller = new CRM_Core_Controller_Simple( 'CRM_Contact_Form_Task_Map',
                                                            ts('Map Contact'),
                                                            null, false, false, true );
+                
+            $gids = explode( ',', CRM_Utils_Request::retrieve('gid', 'String', CRM_Core_DAO::$_nullObject, false, 0, 'GET') );
 
-            $profileGID  = CRM_Utils_Request::retrieve( 'gid', 'Integer',
-                                                       $controller,
-                                                       true );
+            if ( count( $gids ) > 1 ) {
+                foreach( $gids as $pfId  ) {
+                   $profileIds[ ] = CRM_Utils_Type::escape( $pfId, 'Positive' ); 
+                }
+                $controller->set( 'gid', $profileIds[0] );
+                $profileGID = $profileIds[0];
+            } else {         
+                $profileGID = CRM_Utils_Request::retrieve( 'gid', 'Integer',
+                                                            $controller,
+                                                            true );
+            }
+
+            // make sure that this profile enables mapping
+            // CRM-8609
+            $isMap = CRM_Core_DAO::getFieldValue( 'CRM_Core_DAO_UFGroup',
+                                                  $profileGID,
+                                                  'is_map' );
+            if ( ! $isMap ) {
+                CRM_Core_Error::statusBounce( ts('This profile does not have the map feature turned on.') );
+            }
+            
             $profileView = CRM_Utils_Request::retrieve( 'pv', 'Integer',
                                                         $controller,
                                                         false );
+
             // set the userContext stack
             $session = CRM_Core_Session::singleton();
             if ( $profileView ) {
                 $session->pushUserContext( CRM_Utils_System::url( 'civicrm/profile/view' ) );
             } else {
-                $session->pushUserContext( CRM_Utils_System::url( 'civicrm/profile' ) );
+                $session->pushUserContext( CRM_Utils_System::url( 'civicrm/profile', 'force=1' ) );
             }
 
             $controller->set( 'profileGID', $profileGID );

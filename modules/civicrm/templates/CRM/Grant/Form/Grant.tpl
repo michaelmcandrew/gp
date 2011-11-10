@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,7 +25,7 @@
 *}
 {* this template is used for adding/editing/deleting grant *}
 
-{if $action eq 1}
+{if $action eq 1 and $context ne 'standalone'}
 	<h3>{ts}New Grant{/ts}</h3>
 {elseif $action eq 2}
 	<h3>{ts}Edit Grant{/ts}</h3>
@@ -43,7 +43,7 @@
       </div>
   {else}
 
-<div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl"}</div> 	
+<div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl" location="top"}</div> 	
 
 		<table class="form-layout-compressed">  
 		    {if $context eq 'standalone'}
@@ -122,5 +122,5 @@
 		</div>
 
    {/if}
-<div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl"}</div>
+<div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl" location="bottom"}</div>
 </div>

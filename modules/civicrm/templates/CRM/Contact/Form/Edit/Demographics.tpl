@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -57,10 +57,11 @@
     showDeceasedDate( );    
     function showDeceasedDate( )
     {
-        if (document.getElementsByName("is_deceased")[0].checked) {
-      	    show('showDeceasedDate');
+        if ( cj("#is_deceased").is(':checked') ) {
+      	    cj("#showDeceasedDate").show( );
         } else {
-	    hide('showDeceasedDate');
+	  cj("#showDeceasedDate").hide( );
+         cj("#deceased_date").val('');
         }
     }     
 </script>

@@ -60,11 +60,6 @@
      <page_callback>CRM_Case_Page_CaseDetails</page_callback>
   </item>  
   <item>
-     <path>civicrm/ajax/caseSubject</path>
-     <page_callback>CRM_HRDCase_Page_AJAX::caseSubject</page_callback>
-     <access_arguments>access CiviCRM</access_arguments>  
-  </item>
-  <item>
      <path>civicrm/admin/options/case_type</path>
      <title>Case Types</title>
      <desc>List of types which can be assigned to Cases. (Enable the Cases tab from Global Settings - Site Preferences if you want to track cases.)</desc>
@@ -98,6 +93,17 @@
      <weight>400</weight>
   </item>
   <item>
+     <path>civicrm/admin/options/encounter_medium</path>
+     <title>Encounter Mediums</title>
+     <desc>List of encounter mediums.</desc>
+     <path_arguments>group=encounter_medium</path_arguments>
+     <page_callback>CRM_Admin_Page_Options</page_callback>
+     <access_arguments>administer CiviCase</access_arguments>
+     <adminGroup>CiviCase</adminGroup>
+     <icon>admin/small/case_type.png</icon>
+     <weight>400</weight>
+  </item>  
+  <item>
      <path>civicrm/case/report/print</path>
      <page_callback>CRM_Case_XMLProcessor_Report::printCaseReport</page_callback>
      <access_arguments>access all cases and activities</access_arguments>
@@ -111,9 +117,17 @@
      <page_callback>CRM_Case_Page_AJAX::getRelatedCases</page_callback>
   </item>
   <item>
+     <path>civicrm/case/ajax/addclient</path>
+     <page_callback>CRM_Case_Page_AJAX::addClient</page_callback>
+  </item>  
+  <item>
      <path>civicrm/case/ajax/processtags</path>
      <page_callback>CRM_Case_Page_AJAX::processCaseTags</page_callback>
      <access_arguments>access CiviCRM</access_arguments>
      <page_type>3</page_type>
-  </item>  
+  </item>
+   <item>
+     <path>civicrm/case/ajax/details</path>
+     <page_callback>CRM_Case_Page_AJAX::CaseDetails</page_callback>
+  </item>
 </menu>

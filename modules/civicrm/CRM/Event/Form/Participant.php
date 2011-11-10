@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -30,17 +30,20 @@
  *
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
 
+require_once 'CRM/Contact/BAO/Contact.php';
+require_once 'CRM/Event/BAO/Participant.php';
 require_once 'CRM/Contact/Form/Task.php';
 require_once 'CRM/Event/PseudoConstant.php';
 require_once 'CRM/Event/Form/EventFees.php';
 require_once 'CRM/Custom/Form/CustomData.php';
 require_once 'CRM/Core/BAO/CustomGroup.php';
 require_once 'CRM/Contact/BAO/Contact/Location.php';
+require_once 'CRM/Core/Form.php';
 
 /**
  * This class generates form components for processing a participation 
@@ -177,6 +180,16 @@ class CRM_Event_Form_Participant extends CRM_Contact_Form_Task
     public $_eventId = null;
     
     /** 
+     * id of payment, if any
+     */
+    public $_paymentId = null;
+    
+    /**
+     * array of participant role custom data
+     */
+    public $_participantRoleIds = array();
+    
+    /** 
      * Function to set variables up before form is built 
      *                                                           
      * @return void 
@@ -193,7 +206,6 @@ class CRM_Event_Form_Participant extends CRM_Contact_Form_Task
         $this->assign('context', $this->_context );
         
         if ( $this->_contactId ) {
-            require_once 'CRM/Contact/BAO/Contact.php';
             $displayName = CRM_Contact_BAO_Contact::displayName( $this->_contactId );
             $this->assign( 'displayName', $displayName );
         }
@@ -207,13 +219,18 @@ class CRM_Event_Form_Participant extends CRM_Contact_Form_Task
             $this->_id = CRM_Utils_Request::retrieve( 'id', 'Positive', $this );
         }
 
-		// get the option value for custom data type 	
+        require_once 'CRM/Event/DAO/ParticipantPayment.php';
+        if ( $this->_id ) {
+            $this->_paymentId = CRM_Core_DAO::getFieldValue('CRM_Event_DAO_ParticipantPayment',
+                                                            $this->_id, 'id', 'participant_id' );
+        }
+        
+        // get the option value for custom data type 	
         require_once 'CRM/Core/OptionGroup.php';
 		$this->_roleCustomDataTypeID      = CRM_Core_OptionGroup::getValue( 'custom_data_type', 'ParticipantRole', 'name' );
-		$this->_eventNameCustomDataTypeID = CRM_Core_OptionGroup::getValue( 'custom_data_type', 'ParticipantEventName', 'name' );		
-		$this->_eventTypeCustomDataTypeID = CRM_Core_OptionGroup::getValue( 'custom_data_type', 'ParticipantEventType', 'name' );
-
-		$this->assign( 'roleCustomDataTypeID', $this->_roleCustomDataTypeID );
+		$this->_eventNameCustomDataTypeID = CRM_Core_OptionGroup::getValue( 'custom_data_type', 'ParticipantEventName', 'name' );
+        $this->_eventTypeCustomDataTypeID = CRM_Core_OptionGroup::getValue( 'custom_data_type', 'ParticipantEventType', 'name' );
+        $this->assign( 'roleCustomDataTypeID', $this->_roleCustomDataTypeID );
 		$this->assign( 'eventNameCustomDataTypeID', $this->_eventNameCustomDataTypeID );
 		$this->assign( 'eventTypeCustomDataTypeID', $this->_eventTypeCustomDataTypeID );
 		
@@ -234,7 +251,7 @@ class CRM_Event_Form_Participant extends CRM_Contact_Form_Task
                 } else if ( $paymentProcessor['payment_processor_type'] == 'Dummy' && $this->_mode == 'live' ) {
                     continue;
                 } else {
-                    $paymentObject =& CRM_Core_Payment::singleton( $this->_mode, 'Contribute', $paymentProcessor, $this );
+                    $paymentObject =& CRM_Core_Payment::singleton( $this->_mode, $paymentProcessor, $this );
                     $error = $paymentObject->checkConfig( );
                     if ( empty( $error ) ) {
                         $validProcessors[$ppID] = $label;
@@ -250,6 +267,8 @@ class CRM_Event_Form_Participant extends CRM_Contact_Form_Task
             // also check for billing information
             // get the billing location type
             $locationTypes =& CRM_Core_PseudoConstant::locationType( );
+            // CRM-8108 remove ts around Billing location type
+            //$this->_bltID = array_search( ts('Billing'),  $locationTypes );
             $this->_bltID = array_search( 'Billing',  $locationTypes );
             if ( ! $this->_bltID ) {
                 CRM_Core_Error::fatal( ts( 'Please set a location type of %1', array( 1 => 'Billing' ) ) );
@@ -330,9 +349,11 @@ class CRM_Event_Form_Participant extends CRM_Contact_Form_Task
         
         $this->assign( 'single', $this->_single );
         
-        $this->_action = CRM_Utils_Request::retrieve( 'action', 'String', $this, false, 'add' );
-        $this->assign( 'action'  , $this->_action   ); 
-
+        if ( !$this->_id ) {
+            $this->_action = CRM_Utils_Request::retrieve( 'action', 'String', $this, false, 'add' );
+        }
+        $this->assign( 'action'  , $this->_action   );
+                
         // check for edit permission
         if ( ! CRM_Core_Permission::checkActionPermission( 'CiviEvent', $this->_action ) ) {
             CRM_Core_Error::fatal( ts( 'You do not have permission to access this page' ) );
@@ -345,7 +366,7 @@ class CRM_Event_Form_Participant extends CRM_Contact_Form_Task
         if ( $this->_id ) {
             // assign participant id to the template
             $this->assign('participantId',  $this->_id );
-            $this->_roleId = CRM_Core_DAO::getFieldValue( "CRM_Event_DAO_Participant", $this->_id, 'role_id' );
+            $this->_roleId = CRM_Core_DAO::getFieldValue( 'CRM_Event_DAO_Participant', $this->_id, 'role_id' );
         } 
 
         // when fee amount is included in form
@@ -357,12 +378,17 @@ class CRM_Event_Form_Participant extends CRM_Contact_Form_Task
         }
 
         // when custom data is included in this page
-    	if ( CRM_Utils_Array::value( "hidden_custom", $_POST ) ) {
+    	if ( CRM_Utils_Array::value( 'hidden_custom', $_POST ) ) {
     		//custom data of type participant role
-    		CRM_Custom_Form_Customdata::preProcess( $this, $this->_roleCustomDataTypeID, $_POST['role_id'], 1, 'Participant', $this->_id );
-    		CRM_Custom_Form_Customdata::buildQuickForm( $this );
-    		CRM_Custom_Form_Customdata::setDefaultValues( $this );
-		
+            if ( $_POST['role_id'] ) {
+                foreach( $_POST['role_id'] as $k => $val ) {
+                    $roleID = $val;
+                    CRM_Custom_Form_Customdata::preProcess( $this, $this->_roleCustomDataTypeID, $k, 1, 'Participant', $this->_id );
+                    CRM_Custom_Form_Customdata::buildQuickForm( $this );
+                    CRM_Custom_Form_Customdata::setDefaultValues( $this );
+                }
+            }
+            
     		//custom data of type participant event
     		CRM_Custom_Form_Customdata::preProcess( $this, $this->_eventNameCustomDataTypeID, $_POST['event_id'], 1, 'Participant', $this->_id );
     		CRM_Custom_Form_Customdata::buildQuickForm( $this );
@@ -371,7 +397,7 @@ class CRM_Event_Form_Participant extends CRM_Contact_Form_Task
     		// custom data of type participant event type
             $eventTypeId = null;
             if ( $eventId = CRM_Utils_Array::value( 'event_id', $_POST ) ) {
-                $eventTypeId = CRM_Core_DAO::getFieldValue( "CRM_Event_DAO_Event", $eventId, 'event_type_id', 'id' );
+                $eventTypeId = CRM_Core_DAO::getFieldValue( 'CRM_Event_DAO_Event', $eventId, 'event_type_id', 'id' );
             }
     		CRM_Custom_Form_Customdata::preProcess( $this, $this->_eventTypeCustomDataTypeID, $eventTypeId, 
                                                     1, 'Participant', $this->_id );
@@ -394,6 +420,48 @@ class CRM_Event_Form_Participant extends CRM_Contact_Form_Task
                                                                                  'Event' );
         }
         $this->set( 'onlinePendingContributionId', $this->_onlinePendingContributionId );
+        $roleIds = CRM_Event_PseudoConstant::participantRole( );
+                
+        if ( !empty($roleIds) ) { 
+            $query = "
+SELECT civicrm_custom_group.name as name, 
+       civicrm_custom_group.id as id,
+       extends_entity_column_value as value
+  FROM civicrm_custom_group
+ WHERE ( extends_entity_column_value REGEXP '[[:<:]]".implode( '[[:>:]]|[[:<:]]', array_keys($roleIds) )."[[:>:]]' 
+    OR extends_entity_column_value IS NULL )
+   AND extends_entity_column_id = '{$this->_roleCustomDataTypeID}' 
+   AND extends = 'Participant'
+   AND is_active = 1";
+            
+            $dao =& CRM_Core_DAO::executeQuery( $query );
+            while ( $dao->fetch( ) ) {
+                if ( $dao->value ) {
+                    $getRole = explode( CRM_Core_DAO::VALUE_SEPARATOR, $dao->value );
+                    foreach ( $getRole as $r ) {
+                        if ( !$r ) continue;
+                        if ( isset( $this->_participantRoleIds[$r] ) ) {
+                            $this->_participantRoleIds[$r] .= ','.$dao->name;
+                        } else {
+                            $this->_participantRoleIds[$r] = $dao->name;
+                        }
+                    }
+                } else {
+                    if ( isset( $this->_participantRoleIds[0] ) ) {
+                        $this->_participantRoleIds[0] .= ','.$dao->name;
+                    } else {
+                        $this->_participantRoleIds[0] = $dao->name;
+                    }
+                }
+            }
+            $dao->free( );
+        }
+        foreach ( $roleIds as $k => $v ) {
+            if ( ! isset( $this->_participantRoleIds[$k] ) ) {
+                $this->_participantRoleIds[$k] = '';
+            }
+        }
+        $this->assign( 'participantRoleIds', $this->_participantRoleIds );
     }
     
     /**
@@ -423,14 +491,36 @@ class CRM_Event_Form_Participant extends CRM_Contact_Form_Task
             $ids    = array( );
             $params = array( 'id' => $this->_id );
 
-            require_once "CRM/Event/BAO/Participant.php";
             CRM_Event_BAO_Participant::getValues( $params, $defaults, $ids );
+            $sep = CRM_Core_DAO::VALUE_SEPARATOR;
+            if ( $defaults[$this->_id]['role_id'] ) {
+                foreach ( explode( $sep, $defaults[$this->_id]['role_id'] ) as $k => $v ) {
+                    $defaults[$this->_id]["role_id[{$v}]"] = 1;
+                }
+                unset( $defaults[$this->_id]['role_id'] );
+            }
             $this->_contactId = $defaults[$this->_id]['contact_id'];
             $this->_statusId = $defaults[$this->_id]['participant_status_id'];
             
             //set defaults for note
             $noteDetails = CRM_Core_BAO_Note::getNote( $this->_id, 'civicrm_participant' );
             $defaults[$this->_id]['note'] = array_pop( $noteDetails );
+            
+            // Check if this is a primaryParticipant (registered for others) and retrieve additional participants if true  (CRM-4859)
+            if ( CRM_Event_BAO_Participant::isPrimaryParticipant( $this->_id ) ){
+                $this->assign( 'additionalParticipants', CRM_Event_BAO_Participant::getAdditionalParticipants( $this->_id ) );
+            }
+            
+            // Get registered_by contact ID and display_name if participant was registered by someone else (CRM-4859)
+            if ( CRM_Utils_Array::value( 'participant_registered_by_id', $defaults[$this->_id] ) ) {
+                $registered_by_contact_id = CRM_Core_DAO::getFieldValue( 'CRM_Event_DAO_Participant', 
+                                          $defaults[$this->_id]['participant_registered_by_id'],
+                                          'contact_id', 'id' );
+                $this->assign( 'participant_registered_by_id', $defaults[$this->_id]['participant_registered_by_id']);
+                $this->assign( 'registered_by_contact_id', $registered_by_contact_id );
+                $this->assign( 'registered_by_display_name', CRM_Contact_BAO_Contact::displayName( $registered_by_contact_id ) );
+            }
+
         }
         
         if ($this->_action & ( CRM_Core_Action::VIEW | CRM_Core_Action::BROWSE ) ) {
@@ -459,7 +549,7 @@ class CRM_Event_Form_Participant extends CRM_Contact_Form_Task
                 $fields["email-Primary"                 ] = 1;
 
                 if ( $this->_contactId ) {
-                    require_once "CRM/Core/BAO/UFGroup.php";
+                    require_once 'CRM/Core/BAO/UFGroup.php';
                     CRM_Core_BAO_UFGroup::setProfileDefaults( $this->_contactId, $fields, $defaults  );
                 }
                
@@ -470,7 +560,7 @@ class CRM_Event_Form_Participant extends CRM_Contact_Form_Task
             }
 
 			$submittedRole = $this->getElementValue( 'role_id' );
-			if ( $submittedRole[0] ) {
+			if ( CRM_Utils_Array::value( 0, $submittedRole ) ) {
 				$roleID  = $submittedRole[0];
 			}
 			$submittedEvent = $this->getElementValue( 'event_id' );
@@ -488,7 +578,7 @@ class CRM_Event_Form_Participant extends CRM_Contact_Form_Task
 			$roleID  = $defaults[$this->_id]['participant_role_id'];
 			$eventID = $defaults[$this->_id]['event_id'];
 			
-			$this->_eventTypeId = CRM_Core_DAO::getFieldValue( "CRM_Event_DAO_Event", $eventID, 'event_type_id', 'id' );
+			$this->_eventTypeId = CRM_Core_DAO::getFieldValue( 'CRM_Event_DAO_Event', $eventID, 'event_type_id', 'id' );
 
             $this->_discountId = CRM_Core_DAO::getFieldValue( 'CRM_Event_DAO_Participant', $this->_id , 'discount_id' );
             if ( $this->_discountId ) {
@@ -501,19 +591,18 @@ class CRM_Event_Form_Participant extends CRM_Contact_Form_Task
                                                                          CRM_Utils_Array::value( 'register_date', $defaults[$this->_id] ), 'activityDateTime' );
         
 		//assign event and role id, this is needed for Custom data building
-		if ( isset( $_POST['role_id'] ) ) {
-		    $roleID = $_POST['role_id'];
-		}
-		
-		if ( isset( $roleID ) ) {
-		    $this->assign( 'roleID',  $roleID );
-		}
-        
+        $sep = CRM_Core_DAO::VALUE_SEPARATOR;
+        if ( CRM_Utils_Array::value( 'participant_role_id', $defaults[$this->_id] ) ) { 
+            $roleIDs = explode( $sep, $defaults[$this->_id]['participant_role_id'] ); 
+        }
+        if ( isset( $roleIDs ) ) {
+            $this->assign( 'roleID', $roleIDs );
+        }
 		if ( isset( $_POST['event_id'] ) ) {
 		    $eventID = $_POST['event_id'];
 			if ( $eventID ) {
                 $this->_eventTypeId = 
-                    CRM_Core_DAO::getFieldValue( "CRM_Event_DAO_Event", $eventID, 'event_type_id', 'id' );
+                    CRM_Core_DAO::getFieldValue( 'CRM_Event_DAO_Event', $eventID, 'event_type_id', 'id' );
             }
         }
 
@@ -552,12 +641,20 @@ class CRM_Event_Form_Participant extends CRM_Contact_Form_Task
 
         $this->applyFilter('__ALL__', 'trim');
        
+        require_once 'CRM/Event/BAO/Event.php';
         if ( $this->_action & CRM_Core_Action::DELETE ) {
             if (  $this->_single ) {
-                require_once 'CRM/Event/BAO/Event.php';
-                $additionalParticipant = count (CRM_Event_BAO_Event::buildCustomProfile( $this->_id, null, $this->_contactId, false, true )) - 1;
+                $additionalParticipant = count (CRM_Event_BAO_Event::buildCustomProfile( $this->_id, 
+                                                                                         null, 
+                                                                                         $this->_contactId, 
+                                                                                         false, 
+                                                                                         true )) - 1;
                 if ( $additionalParticipant ) {
-                    $this->assign( "additionalParticipant", $additionalParticipant );
+                    $deleteParticipants  = array( 1 => ts( 'Delete this participant record along with associated participant record(s).' ), 
+                                                  2 => ts( 'Delete only this participant record.' ) );
+                    $this->addRadio( 'delete_participant', null, $deleteParticipants, null, '<br />');
+                    $this->setDefaults( array( 'delete_participant' => 1 ) );
+                    $this->assign( 'additionalParticipant', $additionalParticipant );
                 }   
             }
             $this->addButtons(array( 
@@ -579,7 +676,7 @@ class CRM_Event_Form_Participant extends CRM_Contact_Form_Task
             if ( $this->_context == 'standalone' ) {
                 require_once 'CRM/Contact/Form/NewContact.php';
                 CRM_Contact_Form_NewContact::buildQuickForm( $this );
-                $urlParams = "reset=1&context=standalone";
+                $urlParams = 'reset=1&context=standalone';
                 $urlPath   = 'civicrm/participant/add';
             }        
 
@@ -602,25 +699,26 @@ class CRM_Event_Form_Participant extends CRM_Contact_Form_Task
                                           false, null, false  );
         }
 
-        $this->assign("refreshURL",$url);
+        $this->assign( 'refreshURL', $url );
 
         $this->add( 'hidden', 'past_event' );
 
         $events = array( );
-        $this->assign("past", false);
-        require_once "CRM/Event/BAO/Event.php";
-        if ( $this->getElementValue( 'past_event' ) || ( $this->_action & CRM_Core_Action::UPDATE ) ) {
+        $this->assign( 'past', false);
+        if ( $this->_action & CRM_Core_Action::UPDATE ) {
+            $events = CRM_Event_BAO_Event::getEvents( true, false, false );
+        } elseif ( $this->getElementValue( 'past_event' ) )  {
             $events = CRM_Event_BAO_Event::getEvents( true );
-            $this->assign("past", true);
+            $this->assign( 'past', true );
         } else {
             $events = CRM_Event_BAO_Event::getEvents( );
         }
-        
+                
         if ( $this->_mode ) {
             //unset the event which are not monetary when credit card
             //event registration is used
             foreach( $events as $key => $val ) {
-                $isPaid = CRM_Core_DAO::getFieldValue( "CRM_Event_DAO_Event", $key, 'is_monetary' );
+                $isPaid = CRM_Core_DAO::getFieldValue( 'CRM_Event_DAO_Event', $key, 'is_monetary' );
                 if ( ! $isPaid ) {
                     unset( $events[$key] );
                 }
@@ -640,12 +738,21 @@ WHERE      civicrm_event.is_template IS NULL OR civicrm_event.is_template = 0";
         }
         $eventAndTypeMapping = json_encode($eventAndTypeMapping);
         // building of mapping ends --
-
-
+        
+        //inherit the campaign from event.
+        $eventCampaigns = array( );
+        $allEventIds = array_keys( $events );
+        if ( !empty( $allEventIds ) ) {
+            CRM_Core_PseudoConstant::populate( $eventCampaigns,
+                                               'CRM_Event_DAO_Event',
+                                               true, 'campaign_id' );
+        }
+        $eventCampaigns = json_encode( $eventCampaigns );
+        
         $element = $this->add('select', 'event_id',  ts( 'Event' ),  
                               array( '' => ts( '- select -' ) ) + $events,
                               true,
-                              array('onchange' => "buildFeeBlock( this.value ); buildCustomData( 'Participant', this.value, {$this->_eventNameCustomDataTypeID} ); buildEventTypeCustomData( this.value, {$this->_eventTypeCustomDataTypeID}, '{$eventAndTypeMapping}' );", 'class' => 'huge' ) 
+                              array('onchange' => "buildFeeBlock( this.value ); buildCustomData( 'Participant', this.value, {$this->_eventNameCustomDataTypeID} ); buildParticipantRole( this.value ); buildEventTypeCustomData( this.value, {$this->_eventTypeCustomDataTypeID}, '{$eventAndTypeMapping}' ); loadCampaign( this.value, {$eventCampaigns} );", 'class' => 'huge' ) 
                               );
 
         // CRM-6111
@@ -653,7 +760,7 @@ WHERE      civicrm_event.is_template IS NULL OR civicrm_event.is_template = 0";
         // but we do the same for the onChange element and this form is complex
         // and i did not want to break it late in the 3.2 cycle
         $preloadJSSnippet = null;
-        if ( $_GET['reset'] ) {
+        if ( CRM_Utils_Array::value( 'reset', $_GET ) ) {
             $this->_eID = CRM_Utils_Request::retrieve( 'eid', 'Positive', $this );
             if ( $this->_eID ) {
                 $preloadJSSnippet = "
@@ -662,6 +769,7 @@ cj('#event_id').val( '{$this->_eID}' );
 buildFeeBlock( {$this->_eID} ); 
 buildCustomData( 'Participant', {$this->_eID}, {$this->_eventNameCustomDataTypeID} );
 buildEventTypeCustomData( {$this->_eID}, {$this->_eventTypeCustomDataTypeID}, '{$eventAndTypeMapping}' );
+loadCampaign( {$this->_eID}, {$eventCampaigns} );
 });
 ";
             }
@@ -677,18 +785,37 @@ buildEventTypeCustomData( {$this->_eID}, {$this->_eventTypeCustomDataTypeID}, '{
                 $element->freeze();
             }
         }
-       
+        
+        //CRM-7362 --add campaigns.
+        require_once 'CRM/Campaign/BAO/Campaign.php';
+        $campaignId = null;
+        if ( $this->_id ) {
+            $campaignId = CRM_Core_DAO::getFieldValue( 'CRM_Event_DAO_Participant', $this->_id, 'campaign_id' ); 
+        }
+        if ( !$campaignId ) {
+            $eventId = CRM_Utils_Request::retrieve( 'eid', 'Positive', $this ); 
+            if ( $eventId ) {
+                $campaignId = CRM_Core_DAO::getFieldValue( 'CRM_Event_DAO_Event', $eventId, 'campaign_id' );
+            }
+        }
+        CRM_Campaign_BAO_Campaign::addCampaign( $this, $campaignId );
+        
         $this->addDateTime( 'register_date', ts('Registration Date'), true, array( 'formatType' => 'activityDateTime') );
         
 		if ( $this->_id ) {
 			$this->assign( 'entityID', $this->_id );
 		}
 		
-        $this->add( 'select', 'role_id' , ts( 'Participant Role' ),
-                    array( '' => ts( '- select -' ) ) + CRM_Event_PseudoConstant::participantRole( ),
-                    true,
-                    array('onchange' => "buildCustomData( 'Participant', this.value, {$this->_roleCustomDataTypeID} );") );
+        $roleids = CRM_Event_PseudoConstant::participantRole( );
         
+        foreach ( $roleids as $rolekey => $rolevalue ) {  
+            $roleTypes[] = HTML_QuickForm::createElement( 'checkbox', $rolekey, null, $rolevalue, 
+                                                          array( 'onclick' => "showCustomData( 'Participant', {$rolekey}, {$this->_roleCustomDataTypeID} );") );
+        }
+    
+         $this->addGroup( $roleTypes, 'role_id', ts('Participant Role' ) );
+         $this->addRule( 'role_id', ts('Role is required'), 'required' );
+         
         // CRM-4395
         $checkCancelledJs = array('onchange' => "return sendNotification( );");
         $confirmJS = null;
@@ -718,20 +845,26 @@ buildEventTypeCustomData( {$this->_eID}, {$this->_eventTypeCustomDataTypeID}, '{
         
         $noteAttributes = CRM_Core_DAO::getAttribute( 'CRM_Core_DAO_Note' );
         $this->add('textarea', 'note', ts('Notes'), $noteAttributes['note']);
+                
+        $buttons[] = array ( 'type'      => 'upload',
+                             'name'      => ts('Save'), 
+                             'isDefault' => true,
+                             'js'        => $confirmJS 
+                             );
+
+        $path = CRM_Utils_System::currentPath( );
+        if ( strpos( $path, 'civicrm/contact/search' ) !== 0 ) { 
+            $buttons[] = array ( 'type'      => 'upload',
+                                 'name'      => ts('Save and New'), 
+                                 'subName'   => 'new',
+                                 'js'        => $confirmJS 
+                                 );
+        }
+        $buttons[] = array ( 'type'      => 'cancel', 
+                             'name'      => ts('Cancel')
+                             );
         
-        $this->addButtons(array( 
-                                array ( 'type'      => 'upload',
-                                        'name'      => ts('Save'), 
-                                        'isDefault' => true,
-                                        'js'        => $confirmJS ),
-                                array ( 'type'      => 'upload',
-                                        'name'      => ts('Save and New'), 
-                                        'subName'   => 'new',
-                                        'js'        => $confirmJS ),         
-                                array ( 'type'      => 'cancel', 
-                                        'name'      => ts('Cancel') ), 
-                                ) 
-                          );
+        $this->addButtons( $buttons );
         if ($this->_action == CRM_Core_Action::VIEW) { 
             $this->freeze();
         } 
@@ -770,8 +903,8 @@ buildEventTypeCustomData( {$this->_eID}, {$this->_eventTypeCustomDataTypeID}, '{
         }
         
         //check if contact is selected in standalone mode
-        if ( isset( $values['contact_select_id'] ) && !$values['contact_select_id'] ) {
-            $errorMsg['contact'] = ts('Please select a valid contact or create new contact');
+        if ( isset( $values['contact_select_id'][1] ) && !$values['contact_select_id'][1] ) {
+            $errorMsg['contact[1]'] = ts('Please select a contact or create new contact');
         }
         
         if ( CRM_Utils_Array::value( 'payment_processor_id', $values ) ) {
@@ -780,18 +913,18 @@ buildEventTypeCustomData( {$this->_eID}, {$this->_eventTypeCustomDataTypeID}, '{
             if ( CRM_Utils_Array::value( 'credit_card_type', $values ) ) {
                 if ( CRM_Utils_Array::value( 'credit_card_number', $values ) &&
                      ! CRM_Utils_Rule::creditCardNumber( $values['credit_card_number'], $values['credit_card_type'] ) ) {
-                    $errorMsg['credit_card_number'] = ts( "Please enter a valid Credit Card Number" );
+                    $errorMsg['credit_card_number'] = ts( 'Please enter a valid Credit Card Number' );
                 }
                 
                 if ( CRM_Utils_Array::value( 'cvv2', $values ) &&
                      ! CRM_Utils_Rule::cvv( $values['cvv2'], $values['credit_card_type'] ) ) {
-                    $errorMsg['cvv2'] =  ts( "Please enter a valid Credit Card Verification Number" );
+                    $errorMsg['cvv2'] =  ts( 'Please enter a valid Credit Card Verification Number' );
                 }
             }
         }
         
         if ( CRM_Utils_Array::value( 'record_contribution', $values ) && !  CRM_Utils_Array::value( 'contribution_type_id', $values ) ){
-            $errorMsg['contribution_type_id'] = ts( "Please enter the associated Contribution Type" );
+            $errorMsg['contribution_type_id'] = ts( 'Please enter the associated Contribution Type' );
         }
         
         // validate contribution status for 'Failed'.
@@ -799,14 +932,15 @@ buildEventTypeCustomData( {$this->_eID}, {$this->_eventTypeCustomDataTypeID}, '{
              CRM_Utils_Array::value( 'record_contribution', $values ) && 
              (CRM_Utils_Array::value( 'contribution_status_id', $values ) == 
               array_search( 'Failed', CRM_Contribute_PseudoConstant::contributionStatus(null, 'name'))) ) {
-            $errorMsg['contribution_status_id'] = ts( "Please select a valid payment status before updating." );
+            $errorMsg['contribution_status_id'] = ts( 'Please select a valid payment status before updating.' );
         }
         
         // do the amount validations.
         //skip for update mode since amount is freeze, CRM-6052
-        if ( !$self->_id && 
-             !CRM_Utils_Array::value( 'total_amount', $values ) && 
-             empty( $self->_values['line_items'] ) ) {
+        if ( ( !$self->_id && 
+               !CRM_Utils_Array::value( 'total_amount', $values ) && 
+               empty( $self->_values['line_items'] ) ) || 
+             ( $self->_id && !$self->_paymentId && is_array( $self->_values['line_items'] ) ) ) {
             if ( $priceSetId = CRM_Utils_Array::value( 'priceSetId', $values ) ) {
                 require_once 'CRM/Price/BAO/Field.php';
                 CRM_Price_BAO_Field::priceSetValidation( $priceSetId, $values, $errorMsg );
@@ -822,18 +956,33 @@ buildEventTypeCustomData( {$this->_eID}, {$this->_eventTypeCustomDataTypeID}, '{
      */ 
     public function postProcess( )
     {   
+        // get the submitted form values.  
+        $params = $this->controller->exportValues( $this->_name );
+        
         if ( $this->_action & CRM_Core_Action::DELETE ) {
-            require_once "CRM/Event/BAO/Participant.php";
+            if(  CRM_Utils_Array::value( 'delete_participant', $params ) == 2 ) {
+                $additionalId = (CRM_Event_BAO_Participant::getAdditionalParticipantIds( $this->_id ));
+                $participantLinks = (CRM_Event_BAO_Participant::getAdditionalParticipantUrl( $additionalId ));
+            }
+            if( CRM_Utils_Array::value( 'delete_participant', $params ) == 1 ) {
+                $additionalIds = CRM_Event_BAO_Participant::getAdditionalParticipantIds( $this->_id );
+                foreach( $additionalIds as $value ) {
+                    CRM_Event_BAO_Participant::deleteParticipant( $value );
+                }
+            }
             CRM_Event_BAO_Participant::deleteParticipant( $this->_id );
+            if ( !empty( $participantLinks ) ) {
+                $status = ts( 'The following participants no longer have an event fee recorded. You can edit their registration and record a replacement contribution by clicking the links below:' ) . '<br>' .$participantLinks ;         
+            } else {
+                $status = ts( 'Selected Participants was deleted sucessfully.' );
+            }
+            CRM_Core_Session::setStatus( $status );
             return;
         }
         
-        // get the submitted form values.  
-        $params = $this->controller->exportValues( $this->_name );
-             
         // set the contact, when contact is selected
         if ( CRM_Utils_Array::value('contact_select_id', $params ) ) {
-            $this->_contactId = CRM_Utils_Array::value('contact_select_id', $params);
+            $this->_contactId = $params['contact_select_id'][1];
         }
         
         if ( $this->_id ) {
@@ -846,7 +995,7 @@ buildEventTypeCustomData( {$this->_eID}, {$this->_eventTypeCustomDataTypeID}, '{
             $contributionParams           = array( );
             $lineItem                     = array( );
             $additionalParticipantDetails = array( );
-            if ( $this->_id && $this->_action & CRM_Core_Action::UPDATE ) {
+            if ( ( $this->_id && $this->_action & CRM_Core_Action::UPDATE ) && $this->_paymentId ) {
                 $participantBAO     = new CRM_Event_BAO_Participant( );
                 $participantBAO->id = $this->_id;
                 $participantBAO->find(true);
@@ -862,12 +1011,10 @@ buildEventTypeCustomData( {$this->_eID}, {$this->_eventTypeCustomDataTypeID}, '{
                 }
                 //also add additional participant's fee level/priceset
                 if ( CRM_Event_BAO_Participant::isPrimaryParticipant($this->_id) ) {
-                    if ( !isset($params['priceSetId']) ) {
-                        $additionalParticipantDetails = CRM_Event_BAO_Participant::getAdditionalParticipantIds( $this->_id, true, null, array( 'fee_level' => 1) );
-                        
-                    } else {
-                        $additionalParticipantDetails = CRM_Event_BAO_Participant::getAdditionalParticipantIds( $this->_id, true, null, array( 'priceset' => 1) ); 
-                    }
+                    $additionalIds = CRM_Event_BAO_Participant::getAdditionalParticipantIds( $this->_id );
+                    $hasLineItems  = CRM_Utils_Array::value( 'priceSetId', $params, false );
+                    $additionalParticipantDetails = CRM_Event_BAO_Participant::getFeeDetails( $additionalIds, 
+                                                                                              $hasLineItems );
                 }
             } else {
                 
@@ -891,7 +1038,7 @@ buildEventTypeCustomData( {$this->_eID}, {$this->_eventTypeCustomDataTypeID}, '{
                     $params['amount']       = $this->_values['fee'][$params['amount']]['value'];
                     
                 } else {
-                    CRM_Price_BAO_Set::processAmount( $this->_values['fee']['fields'], 
+                    CRM_Price_BAO_Set::processAmount( $this->_values['fee'], 
                                                       $params, $lineItem[0] );
                 }
                 
@@ -915,7 +1062,7 @@ buildEventTypeCustomData( {$this->_eID}, {$this->_eventTypeCustomDataTypeID}, '{
                     }
                 } 
                 if ( $participantCount ) {
-                    $this->assign( 'participantCount', $participantCount );
+                    $this->assign( 'pricesetFieldsCount', $participantCount );
                 }
                 $this->assign ( 'lineItem', empty($lineItem[0])?false:$lineItem );
             } else {
@@ -934,13 +1081,12 @@ buildEventTypeCustomData( {$this->_eID}, {$this->_eventTypeCustomDataTypeID}, '{
             $contributionParams['total_amount'] = CRM_Utils_Array::value( 'total_amount', $params );
         }
         
-        require_once 'CRM/Contact/BAO/Contact.php';
+
         // Retrieve the name and email of the current user - this will be the FROM for the receipt email
         $session = CRM_Core_Session::singleton( );
         $userID  = $session->get( 'userID' );
         list( $userName, 
               $userEmail ) = CRM_Contact_BAO_Contact_Location::getEmailDetails( $userID );
-        require_once "CRM/Event/BAO/Participant.php";
         
         if ( $this->_mode ) {
             if ( ! $this->_isPaidEvent ) {
@@ -948,16 +1094,14 @@ buildEventTypeCustomData( {$this->_eID}, {$this->_eventTypeCustomDataTypeID}, '{
             }
             //modify params according to parameter used in create
             //participant method (addParticipant)            
-            $params['participant_status_id']     = $params['status_id'] ;
-            $params['participant_role_id']       = $params['role_id'] ;
-            $params['participant_register_date'] = $params['register_date'] ;
-            $params['participant_source']        = $params['source'] ;
+            $this->_params['participant_status_id']     = $params['status_id'] ;
+            $this->_params['participant_role_id']       = $params['role_id'] ;
+            $this->_params['participant_register_date'] = $params['register_date'] ;
+            $this->_params['participant_source']        = $params['source'] ;
            
             require_once 'CRM/Core/BAO/PaymentProcessor.php';
             $this->_paymentProcessor = CRM_Core_BAO_PaymentProcessor::getPayment( $this->_params['payment_processor_id'],
                                                                                   $this->_mode );
-            require_once "CRM/Contact/BAO/Contact.php";
-            
             $now = date( 'YmdHis' );
             $fields = array( );
             
@@ -1000,23 +1144,30 @@ buildEventTypeCustomData( {$this->_eID}, {$this->_eventTypeCustomDataTypeID}, '{
             
         }
 
-		// build custom data getFields array
-		$customFieldsRole  = CRM_Core_BAO_CustomField::getFields( 'Participant', false, false, 
-																CRM_Utils_Array::value( 'role_id', $params ), $this->_roleCustomDataTypeID );
-		$customFieldsEvent = CRM_Core_BAO_CustomField::getFields( 'Participant', false, false, 
-														        CRM_Utils_Array::value( 'event_id', $params ), $this->_eventNameCustomDataTypeID );
-		$customFieldsEventType = 
-            CRM_Core_BAO_CustomField::getFields( 'Participant', false, false, 
-                                                 $this->_eventTypeId, $this->_eventTypeCustomDataTypeID );
-		$customFields      = CRM_Utils_Array::crmArrayMerge( $customFieldsRole, 
-															CRM_Core_BAO_CustomField::getFields( 'Participant', false, false, null, null, true ) );
-		$customFields      = CRM_Utils_Array::crmArrayMerge( $customFieldsEvent, $customFields );
-		$customFields      = CRM_Utils_Array::crmArrayMerge( $customFieldsEventType, $customFields );
-
-        $params['custom'] = CRM_Core_BAO_CustomField::postProcess( $params,
-                                                                   $customFields,
-                                                                   $this->_id,
-                                                                   'Participant' );
+		$roleAllIds = CRM_Utils_Array::value( 'role_id', $params );
+        if ( $roleAllIds ) { 
+            foreach ( $roleAllIds as $rkey => $rvalue ) {
+                $customFieldsRole  = CRM_Core_BAO_CustomField::getFields( 'Participant', false, false, $rkey, $this->_roleCustomDataTypeID );
+                $customFieldsEvent     = CRM_Core_BAO_CustomField::getFields( 'Participant', 
+                                                                              false, 
+                                                                              false, 
+                                                                              CRM_Utils_Array::value( 'event_id', $params ), 
+                                                                              $this->_eventNameCustomDataTypeID );
+                $customFieldsEventType = CRM_Core_BAO_CustomField::getFields( 'Participant', 
+                                                                              false, 
+                                                                              false, 
+                                                                              $this->_eventTypeId, 
+                                                                              $this->_eventTypeCustomDataTypeID );
+                $customFields = CRM_Utils_Array::crmArrayMerge( $customFieldsRole, 
+                                                                CRM_Core_BAO_CustomField::getFields( 'Participant', false, false, null, null, true ) );       
+                $customFields      = CRM_Utils_Array::crmArrayMerge( $customFieldsEvent, $customFields );
+                $customFields      = CRM_Utils_Array::crmArrayMerge( $customFieldsEventType, $customFields );
+                $params['custom']  = CRM_Core_BAO_CustomField::postProcess( $params,
+                                                                            $customFields,
+                                                                            $this->_id,
+                                                                            'Participant' );  
+            }
+        }
 
         if ( $this->_mode ) {
             // add all the additioanl payment params we need
@@ -1044,7 +1195,7 @@ buildEventTypeCustomData( {$this->_eID}, {$this->_eventTypeCustomDataTypeID}, '{
             require_once 'CRM/Core/Payment/Form.php';
             CRM_Core_Payment_Form::mapParams( $this->_bltID, $this->_params, $paymentParams, true );
             
-            $payment =& CRM_Core_Payment::singleton( $this->_mode, 'Event', $this->_paymentProcessor, $this );
+            $payment =& CRM_Core_Payment::singleton( $this->_mode, $this->_paymentProcessor, $this );
             
             $result =& $payment->doDirectPayment( $paymentParams );
             
@@ -1085,6 +1236,10 @@ buildEventTypeCustomData( {$this->_eID}, {$this->_eventTypeCustomDataTypeID}, '{
           
             // add participant record
             $participants   = array();
+            if ( CRM_Utils_Array::value( 'participant_role_id', $this->_params ) && is_array( $this->_params['participant_role_id'] ) ) {
+                $this->_params['participant_role_id'] = implode( CRM_Core_DAO::VALUE_SEPARATOR, 
+                                                                 array_keys( $this->_params['participant_role_id'] ) );
+            }
             $participants[] = CRM_Event_Form_Registration::addParticipant( $this->_params, $contactID );
 
             //add custom data for participant
@@ -1108,17 +1263,34 @@ buildEventTypeCustomData( {$this->_eID}, {$this->_eventTypeCustomDataTypeID}, '{
 
         } else {
             $participants = array();
-            // fix note if deleted
-            if ( !$params['note'] ) {
-                $params['note'] = 'null';
-            }
-
             if ( $this->_single ) {
+                if ( $params['role_id'] ) {
+                    foreach ( $params['role_id'] as $k => $v ) {
+                        $rolesIDS[] = $k;
+                    }
+                    require_once 'CRM/Core/DAO.php';
+                    $seperator = CRM_Core_DAO::VALUE_SEPARATOR;                   
+                    $params['role_id'] = implode( $seperator, $rolesIDS );
+                } else {
+                    $params['role_id'] = 'NULL';
+                }
                 $participants[] = CRM_Event_BAO_Participant::create( $params );
             } else { 
                 foreach ( $this->_contactIds as $contactID ) {
                     $commonParams = $params;
                     $commonParams['contact_id'] = $contactID;
+                    if ( $commonParams['role_id'] ) {
+                        $rolesIDS = array( );
+                        foreach ( $commonParams['role_id'] as $k => $v ) {
+                            $rolesIDS[] = $k;
+                        }
+                        require_once 'CRM/Core/DAO.php';
+                        $seperator = CRM_Core_DAO::VALUE_SEPARATOR;                   
+                        $commonParams['role_id'] = implode( $seperator, $rolesIDS );
+                        $commonParams['participant_role_id'] = implode( $seperator, $rolesIDS );
+                    } else {
+                        $commonParams['role_id'] = 'NULL';
+                    }
                     $participants[] = CRM_Event_BAO_Participant::create( $commonParams );   
                 }        
             }
@@ -1158,7 +1330,7 @@ buildEventTypeCustomData( {$this->_eID}, {$this->_eventTypeCustomDataTypeID}, '{
                 $recordContribution = array( 'contact_id', 'contribution_type_id',
                                              'payment_instrument_id', 'trxn_id', 
                                              'contribution_status_id', 'receive_date', 
-                                             'check_number' );
+                                             'check_number', 'campaign_id' );
                 
                 foreach ( $recordContribution as $f ) {
                     $contributionParams[$f] = CRM_Utils_Array::value( $f, $params );
@@ -1195,8 +1367,15 @@ buildEventTypeCustomData( {$this->_eID}, {$this->_eventTypeCustomDataTypeID}, '{
             } 
         }
 
+        //do cleanup line  items if participant edit the Event Fee.
+        if ( ( $this->_lineItem || !isset($params['proceSetId'] ) ) && !$this->_paymentId ) {
+            require_once 'CRM/Price/BAO/LineItem.php';
+            CRM_Price_BAO_LineItem::deleteLineItems( $params['participant_id'], 'civicrm_participant' );
+        }
+
         // also store lineitem stuff here        
-        if ( $this->_lineItem  & $this->_action & CRM_Core_Action::ADD ) {
+        if ( ( $this->_lineItem  & $this->_action & CRM_Core_Action::ADD ) || 
+             ( $this->_lineItem && CRM_Core_Action::UPDATE && !$this->_paymentId ) ) {
             require_once 'CRM/Price/BAO/LineItem.php';
             foreach ( $this->_contactIds as $num => $contactID ) {
                 foreach ( $this->_lineItem as $key => $value ) {
@@ -1217,15 +1396,17 @@ buildEventTypeCustomData( {$this->_eID}, {$this->_eventTypeCustomDataTypeID}, '{
              $this->_statusId != CRM_Utils_Array::value( 'status_id', $params ) &&
              CRM_Utils_Array::value( 'is_notify', $params )
              ) {
-            require_once "CRM/Event/BAO/Participant.php";
+
             $updateStatusMsg = CRM_Event_BAO_Participant::updateStatusMessage( $this->_id, 
                                                                                $params['status_id'], 
                                                                                $this->_statusId );
         }
         
         if ( CRM_Utils_Array::value( 'send_receipt', $params ) ) {
-            $receiptFrom = "$userName <$userEmail>";
-            
+            if ( array_key_exists( $params['from_email_address'], $this->_fromEmails['from_email_id'] ) ) {
+                $receiptFrom = $params['from_email_address'];
+            }
+                                    
             $this->assign( 'module', 'Event Registration' );          
             //use of the message template below requires variables in different format
             $event = $events = array();
@@ -1238,7 +1419,16 @@ buildEventTypeCustomData( {$this->_eID}, {$this->_eventTypeCustomDataTypeID}, '{
             unset($event['end_date']);
            
             $role = CRM_Event_PseudoConstant::participantRole();
-            $event['participant_role'] = $role[$params['role_id']];
+            $participantRoles = CRM_Utils_Array::value( 'role_id', $params );
+            if ( is_array( $participantRoles ) ) {
+                $selectedRoles = array( );
+                foreach ( array_keys( $participantRoles ) as $roleId ) {
+                    $selectedRoles[ ] = $role[$roleId];
+                }
+                $event['participant_role'] = implode( ', ', $selectedRoles );
+            } else {
+                $event['participant_role'] = CRM_Utils_Array::value( $participantRoles, $role );
+            }
             $event['is_monetary'] = $this->_isPaidEvent;
            
             if ( $params['receipt_text'] ) {
@@ -1342,9 +1532,17 @@ buildEventTypeCustomData( {$this->_eID}, {$this->_eventTypeCustomDataTypeID}, '{
                 list( $this->_contributorDisplayName, $this->_contributorEmail, $this->_toDoNotEmail ) = CRM_Contact_BAO_Contact::getContactDetails( $contactID );
 
                 $this->_contributorDisplayName = ($this->_contributorDisplayName == ' ') ? $this->_contributorEmail : $this->_contributorDisplayName;
+                
+                $waitStatus =  CRM_Event_PseudoConstant::participantStatus(null, "class = 'Waiting'");
+                if ( $waitingStatus = CRM_Utils_Array::value($params['status_id'], $waitStatus) ) {
+                    $this->assign( 'isOnWaitlist', true );
+                }
+                
                 $this->assign( 'customGroup', $customGroup );
                 $this->assign( 'contactID', $contactID);
                 $this->assign( 'participantID', $participants[$num]->id );
+
+                $this->_id = $participants[$num]->id;
                 
                 if ( $this->_isPaidEvent ) {
                     // fix amount for each of participants ( for bulk mode )
@@ -1374,13 +1572,21 @@ buildEventTypeCustomData( {$this->_eID}, {$this->_eventTypeCustomDataTypeID}, '{
                     $sendTemplateParams['from']    = $receiptFrom;
                     $sendTemplateParams['toName']  = $this->_contributorDisplayName;
                     $sendTemplateParams['toEmail'] = $this->_contributorEmail;
+                    $sendTemplateParams['cc']      = CRM_Utils_Array::value( 'cc', $this->_fromEmails );
+                    $sendTemplateParams['bcc']     = CRM_Utils_Array::value( 'bcc', $this->_fromEmails );
                 }
 
                 require_once 'CRM/Core/BAO/MessageTemplates.php';
                 list ($mailSent, $subject, $message, $html) = CRM_Core_BAO_MessageTemplates::sendTemplate($sendTemplateParams);
-
                 if ($mailSent) {
                     $sent[] = $contactID;
+                    require_once 'CRM/Activity/BAO/Activity.php';
+                    foreach ( $participants as $ids => $values ) { 
+                        if ( $values->contact_id == $contactID ) {
+                            CRM_Activity_BAO_Activity::addActivity( $values, 'Email' );
+                            break;
+                        }
+                    } 
                 } else {
                     $notSent[] = $contactID;
                 }
@@ -1406,13 +1612,13 @@ buildEventTypeCustomData( {$this->_eID}, {$this->_eventTypeCustomDataTypeID}, '{
             } else {
                 $statusMsg = ts('Total Participant(s) added to event: %1.', array(1 => count($this->_contactIds)));
                 if( count($notSent) > 0 ) {
-                    $statusMsg .= ' ' . ts('Email has NOT been sent to %1 contact - communication preferences specify DO NOT EMAIL OR valid Email is NOT present. ', array(1 => count($notSent)));
+                    $statusMsg .= ' ' . ts('Email has NOT been sent to %1 contact(s) - communication preferences specify DO NOT EMAIL OR valid Email is NOT present. ', array(1 => count($notSent)));
                 } elseif ( isset ( $params['send_receipt'] ) ) {
                     $statusMsg .= ' ' .  ts('A confirmation email has been sent to ALL participants');
                 }
             }
         }
-        require_once "CRM/Core/Session.php";
+        require_once 'CRM/Core/Session.php';
         CRM_Core_Session::setStatus( "{$statusMsg}" );
         
         $buttonName = $this->controller->getButtonName( );

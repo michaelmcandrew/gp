@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -125,11 +125,17 @@ class CRM_Case_BAO_Query
             $query->_tables['case_activity']               = $query->_whereTables['case_activity'] = 1;
         }
         
+        if ( CRM_Utils_Array::value( 'case_activity_subject', $query->_returnProperties ) ) {
+            $query->_select['case_activity_subject']  = "case_activity.subject as case_activity_subject";
+            $query->_element['case_activity_subject'] = 1;
+            $query->_tables['case_activity']          = 1;
+            $query->_tables['civicrm_case_contact']   = 1;
+            $query->_tables['civicrm_case']           = 1;
+        }
+
         if ( CRM_Utils_Array::value( 'case_subject', $query->_returnProperties ) ) {
-            $query->_select['case_subject']    = "case_activity.subject as case_subject";
+            $query->_select['case_subject']         = "civicrm_case.subject as case_subject";
             $query->_element['case_subject']        = 1;
-            $query->_element['case_subject']        = 1;
-            $query->_tables['case_activity']        = 1;
             $query->_tables['civicrm_case_contact'] = 1;
             $query->_tables['civicrm_case']         = 1;
         }
@@ -255,9 +261,9 @@ class CRM_Case_BAO_Query
             return;
             
         case 'case_type_id':
-            require_once "CRM/Core/OptionGroup.php";
-            $caseTypes = CRM_Core_OptionGroup::values( 'case_type', false, false, false, null, 'label', false );
-                        
+            require_once 'CRM/Case/PseudoConstant.php';
+            $caseTypes = CRM_Case_PseudoConstant::caseType( 'label', false );
+            
             $names = array( );
             $val   = array( );
             if ( is_array( $value ) ) {
@@ -276,10 +282,11 @@ class CRM_Case_BAO_Query
             }
             
             require_once 'CRM/Case/BAO/Case.php';
-            $value = CRM_Case_BAO_Case::VALUE_SEPERATOR . 
-                implode( CRM_Case_BAO_Case::VALUE_SEPERATOR . "%' OR civicrm_case.case_type_id LIKE '%" .
-                         CRM_Case_BAO_Case::VALUE_SEPERATOR, $val) . 
-                CRM_Case_BAO_Case::VALUE_SEPERATOR;
+            $value = 
+                CRM_Core_DAO::VALUE_SEPARATOR . 
+                implode( CRM_Core_DAO::VALUE_SEPARATOR . "%' OR civicrm_case.case_type_id LIKE '%" .
+                         CRM_Core_DAO::VALUE_SEPARATOR, $val) . 
+                CRM_Core_DAO::VALUE_SEPARATOR;
            
             $query->_where[$grouping][] = "(civicrm_case.case_type_id LIKE '%{$value}%')";
             
@@ -294,18 +301,20 @@ class CRM_Case_BAO_Query
 
         case 'case_owner': 
         case 'case_mycases'  : 
-            if ( $value == 0 ) {
-                $session = CRM_Core_Session::singleton();
-                $userID  = $session->get('userID');
-                $query->_where[$grouping][] = CRM_Contact_BAO_Query::buildClause( "case_relationship.contact_id_b", $op, $userID, 'Int' );
-                $query->_qill[$grouping ][] = ts( 'Case %1 My Cases', array( 1 => $op ) );
-                $query->_tables['case_relationship'] = $query->_whereTables['case_relationship'] = 1;
-            } else {
-                $query->_qill[$grouping ][] = ts( 'Case %1 All Cases', array( 1 => $op ) );
-                $query->_where[$grouping][] = "civicrm_case_contact.contact_id = contact_a.id";
+            if ( !empty( $value ) ) {
+                if ( $value == 2 ) {
+                    $session = CRM_Core_Session::singleton();
+                    $userID  = $session->get('userID');
+                    $query->_where[$grouping][] = CRM_Contact_BAO_Query::buildClause( "case_relationship.contact_id_b", $op, $userID, 'Int' );
+                    $query->_qill[$grouping ][] = ts( 'Case %1 My Cases', array( 1 => $op ) );
+                    $query->_tables['case_relationship'] = $query->_whereTables['case_relationship'] = 1;
+                } else if ( $value == 1 ) {
+                    $query->_qill[$grouping ][] = ts( 'Case %1 All Cases', array( 1 => $op ) );
+                    $query->_where[$grouping][] = "civicrm_case_contact.contact_id = contact_a.id";
+                }
+                $query->_tables['civicrm_case']         = $query->_whereTables['civicrm_case']         = 1;
+                $query->_tables['civicrm_case_contact'] = $query->_whereTables['civicrm_case_contact'] = 1;
             }
-            $query->_tables['civicrm_case']         = $query->_whereTables['civicrm_case']         = 1;
-            $query->_tables['civicrm_case_contact'] = $query->_whereTables['civicrm_case_contact'] = 1; 
             return;
 
         case 'case_deleted':
@@ -316,11 +325,18 @@ class CRM_Case_BAO_Query
             $query->_tables['civicrm_case'] = $query->_whereTables['civicrm_case'] = 1;
             return;
 
-        case 'case_subject':
+        case 'case_activity_subject':
             $query->_where[$grouping][] = CRM_Contact_BAO_Query::buildClause( "case_activity.subject", $op, $value, 'String' ); 
             $query->_qill[$grouping][]  = ts ("Activity Subject %1 '%2'", array(1 => $op, 2 => $value ));
             $query->_tables['case_activity'] = $query->_whereTables['case_activity'] = 1;
             $query->_tables['civicrm_case']  = $query->_whereTables['civicrm_case']  = 1;
+            $query->_tables['civicrm_case_contact'] = $query->_whereTables['civicrm_case_contact'] = 1;
+            return;
+            
+        case 'case_subject':
+            $query->_where[$grouping][] = CRM_Contact_BAO_Query::buildClause( "civicrm_case.subject", $op, $value, 'String' ); 
+            $query->_qill[$grouping][]  = ts ("Case Subject %1 '%2'", array(1 => $op, 2 => $value ));
+            $query->_tables['civicrm_case'] = $query->_whereTables['civicrm_case'] = 1;
             $query->_tables['civicrm_case_contact'] = $query->_whereTables['civicrm_case_contact'] = 1;
             return;
 
@@ -373,7 +389,6 @@ class CRM_Case_BAO_Query
             return;
 
         case 'case_activity_status_id':
-
             $names = $value;
             require_once "CRM/Core/OptionGroup.php";
             if ( $activityStatus = CRM_Core_OptionGroup::getLabel( 'activity_status', $value, 'value' ) ) {
@@ -397,7 +412,6 @@ class CRM_Case_BAO_Query
             return;
             
         case 'case_activity_medium_id':
-            
             $names = $value;
             require_once "CRM/Core/OptionGroup.php";
             if ( $activityMedium = CRM_Core_OptionGroup::getLabel( 'encounter_medium', $value, 'value' ) ) {
@@ -436,11 +450,25 @@ class CRM_Case_BAO_Query
             $query->_tables['civicrm_case']         = $query->_whereTables['civicrm_case']           = 1;
             $query->_tables['civicrm_case_contact'] = $query->_whereTables['civicrm_case_contact']   = 1;
             return; 
-                
+
+        case 'case_taglist':
+            $taglist = $value;
+            $value = array( );
+            foreach( $taglist as $val ) {
+                if ( $val ) {
+                    $val = explode(',', $val );
+                    foreach( $val as $tId ) {
+                        if ( is_numeric( $tId ) ) {
+                            $value[$tId] = 1;
+                        }
+                    }
+                }
+            } 
+
         case 'case_tags':
             require_once 'CRM/Core/BAO/Tag.php';
-        	$tags = CRM_Core_BAO_Tag::getTagsUsedFor( array('civicrm_case'), true );
-        	
+            $tags = CRM_Core_PseudoConstant::tag( );
+
             $names = array( );
             $val   = array( );
             if ( is_array( $value ) ) {
@@ -453,8 +481,9 @@ class CRM_Case_BAO_Query
             }
             
             $query->_where[$grouping][] = " civicrm_case_tag.tag_id IN (" . implode( ',', $val ). " )";
-            
             $query->_qill[$grouping ][] = ts( 'Case Tags %1', array( 1 => $op))  . ' ' . implode( ' ' . ts('or') . ' ', $names );
+            $query->_tables['civicrm_case']  = $query->_whereTables['civicrm_case']  = 1;
+            $query->_tables['civicrm_case_contact'] = $query->_whereTables['civicrm_case_contact'] = 1;
             $query->_tables['civicrm_case_tag'] = $query->_whereTables['civicrm_case_tag'] = 1;
             return;    
         }
@@ -521,8 +550,7 @@ case_relation_type.id = case_relationship.relationship_type_id )";
             break;
             
         case 'civicrm_case_tag':            
-			$from .= " $side JOIN civicrm_entity_tag as civicrm_case_tag ON ( civicrm_case_tag.entity_table = 'civicrm_case' AND
-                                                          					  civicrm_case_tag.entity_id = civicrm_case.id ) ";
+            $from .= " $side JOIN civicrm_entity_tag as civicrm_case_tag ON ( civicrm_case_tag.entity_table = 'civicrm_case' AND civicrm_case_tag.entity_id = civicrm_case.id ) ";
 			break;
 			
         }
@@ -552,7 +580,9 @@ case_relation_type.id = case_relationship.relationship_type_id )";
                                 'contact_id'                  =>      1,
                                 'sort_name'                   =>      1,   
                                 'display_name'                =>      1,
-                                'case_id'                     =>      1,   
+                                'case_id'                     =>      1,  
+                                'case_activity_subject'       =>      1,
+                                'case_subject'                =>      1,
                                 'case_status'                 =>      1, 
                                 'case_type'                   =>      1,
                                 'case_role'                   =>      1,
@@ -612,17 +642,19 @@ case_relation_type.id = case_relationship.relationship_type_id )";
     static function buildSearchForm( &$form ) 
     {
         $config = CRM_Core_Config::singleton( );
-
+        
+        //validate case configuration.
+        require_once 'CRM/Case/BAO/Case.php';
+        $configured = CRM_Case_BAO_Case::isCaseConfigured( );
+        $form->assign('notConfigured', !$configured['configured'] );
+        
         require_once "CRM/Case/PseudoConstant.php";
-        $caseTypes = CRM_Core_OptionGroup::values( 'case_type', false, false, false, null, 'label', false );
-        if ( empty( $caseTypes ) ){
-            $form->assign('notConfigured', 1);
-        }
+        $caseTypes = CRM_Case_PseudoConstant::caseType( 'label', false );
         foreach ( $caseTypes as $id => $Name) {
             $form->addElement('checkbox', "case_type_id[$id]", null,$Name);
         }
-      
-        $statuses  = CRM_Case_PseudoConstant::caseStatus( );
+        
+        $statuses  = CRM_Case_PseudoConstant::caseStatus( 'label', false );
         $form->add('select', 'case_status_id',  ts( 'Case Status' ),  
                    array( '' => ts( '- any status -' ) ) + $statuses );
         
@@ -632,15 +664,10 @@ case_relation_type.id = case_relationship.relationship_type_id )";
         $accessAllCases = false;
         if ( CRM_Core_Permission::check( 'access all cases and activities' ) ) {
             $accessAllCases = true;
-            $caseOwner = array( ts('My Cases'), ts('All Cases') );
+            $caseOwner = array( 1 => ts('Search All Cases'), 2 => ts('Only My Cases') );
             $form->addRadio( 'case_owner', ts( 'Cases' ), $caseOwner );
-            $form->setDefaults(array('case_owner' => 1));
         }
         $form->assign( 'accessAllCases', $accessAllCases );
-        
-        $caseOwner = array( ts('My Cases'), ts('All Cases') );
-        $form->addRadio( 'case_owner', ts( 'Cases' ), $caseOwner );
-        $form->setDefaults(array('case_owner' => 1));
         
         require_once 'CRM/Core/BAO/Tag.php';
         $caseTags = CRM_Core_BAO_Tag::getTagsUsedFor( array('civicrm_case') );
@@ -649,7 +676,12 @@ case_relation_type.id = case_relationship.relationship_type_id )";
                 $form->_tagElement =& $form->addElement('checkbox', "case_tags[$tagID]", null, $tagName);         
             }
         }
-        
+
+        require_once 'CRM/Core/Form/Tag.php';
+        require_once 'CRM/Core/BAO/Tag.php';
+        $parentNames = CRM_Core_BAO_Tag::getTagSet( 'civicrm_case' );
+        CRM_Core_Form_Tag::buildQuickForm( $form, $parentNames, 'civicrm_case', null, true, false, true );
+
         require_once"CRM/Core/Permission.php";
         if ( CRM_Core_Permission::check( 'administer CiviCRM' ) ) { 
             $form->addElement( 'checkbox', 'case_deleted' , ts( 'Deleted Cases' ) );

@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                               |
+ | CiviCRM version 3.4                                               |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -46,6 +46,10 @@ class CRM_UpdateGreeting {
 
         $config = CRM_Core_Config::singleton();
 
+        require_once 'CRM/Utils/Request.php';
+        require_once 'CRM/Core/PseudoConstant.php';
+        require_once 'CRM/Contact/BAO/Contact.php';
+
         // this does not return on failure
         CRM_Utils_System::authenticateScript( true );
 
@@ -57,9 +61,6 @@ class CRM_UpdateGreeting {
     {
         require_once '../civicrm.config.php';
         require_once 'CRM/Core/Config.php';
-        require_once 'CRM/Utils/Request.php';
-        require_once 'CRM/Core/PseudoConstant.php';
-        require_once 'CRM/Contact/BAO/Contact.php';
     }
     
     public function updateGreeting( )
@@ -114,7 +115,7 @@ class CRM_UpdateGreeting {
         
         //process all contacts only when force pass. 
         $force = CRM_Utils_Request::retrieve( 'force', 'String', CRM_Core_DAO::$_nullArray, false, null, 'REQUEST' );
-        $processAll = false;
+        $processAll = $processOnlyIdSet = false;
         if ( in_array( $force, array( 1, 'true' ) ) ) {
             $processAll = true;
         } elseif ( $force == 2 ) {
@@ -162,9 +163,11 @@ SELECT DISTINCT id, $idFldName
         $contactIds = array( );
         $cacheFieldQuery = "UPDATE civicrm_contact SET {$greeting}_display = CASE id ";
         foreach ( $greetingDetails as $contactID => $contactDetails ) {
-            if ( !$processAll && !array_key_exists( $contactID, $filterContactFldIds ) ) {
+            if ( ! $processAll && 
+                 ! array_key_exists( $contactID, $filterContactFldIds ) ) {
                 continue;
             }
+
             if ( $processOnlyIdSet ) { 
                 if ( !array_key_exists( $contactID, $filterIds ) ) {
                     continue;

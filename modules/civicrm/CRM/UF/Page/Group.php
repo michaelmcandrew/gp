@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -76,7 +76,7 @@ class CRM_UF_Page_Group extends CRM_Core_Page
                                                                           ),
                                         CRM_Core_Action::UPDATE  => array(
                                                                           'name'  => ts('Settings'),
-                                                                          'url'   => 'civicrm/admin/uf/group',
+                                                                          'url'   => 'civicrm/admin/uf/group/update',
                                                                           'qs'    => 'action=update&id=%%id%%&context=group',
                                                                           'title' => ts('Edit CiviCRM Profile Group') 
                                                                           ),
@@ -151,6 +151,9 @@ class CRM_UF_Page_Group extends CRM_Core_Page
         $id = CRM_Utils_Request::retrieve('id', 'Positive',
                                           $this, false, 0);
         
+        //set the context and then start w/ action.
+        $this->setContext( $id, $action );
+        
         // what action to take ?
         if ( $action & ( CRM_Core_Action::UPDATE | CRM_Core_Action::ADD | CRM_Core_Action::DELETE |CRM_Core_Action::DISABLE ) ) {
             $this->edit($id, $action) ;
@@ -220,9 +223,15 @@ class CRM_UF_Page_Group extends CRM_Core_Page
         $template = CRM_Core_Smarty::singleton( );
         $template->assign( 'gid', $gid );
         $template->assign( 'tplFile', 'CRM/Profile/Form/Edit.tpl' );
-        $profile  =  trim( $template->fetch( 'CRM/Form/default.tpl' ) ); 
+        $profile  = trim( $template->fetch( 'CRM/common/commonCSS.tpl' ) );
+        $profile .= trim( $template->fetch( 'CRM/Form/default.tpl' ) );
+
         // not sure how to circumvent our own navigation system to generate the right form url
-        $profile = str_replace( 'civicrm/admin/uf/group', 'civicrm/profile/create&amp;gid='.$gid.'&amp;reset=1', $profile );
+        $urlReplaceWith = 'civicrm/profile/create&amp;gid='.$gid.'&amp;reset=1';
+        if ( $config->userFramework == 'Drupal' && $config->cleanURL ) {
+            $urlReplaceWith = 'civicrm/profile/create?gid='.$gid.'&amp;reset=1';
+        }
+        $profile = str_replace( 'civicrm/admin/uf/group', $urlReplaceWith, $profile );
 
         // FIXME: (CRM-3587) hack to make standalone profile in joomla work
         // without administrator login 
@@ -233,6 +242,8 @@ class CRM_UF_Page_Group extends CRM_Core_Page
         // add jquery files
         $profile = CRM_Utils_String::addJqueryFiles( $profile );
         
+        // prevent jquery conflict
+        $profile .= '<script type="text/javascript">jQuery.noConflict(true);</script>'; 
         $this->assign('profile', htmlentities($profile, ENT_NOQUOTES, 'UTF-8'));
         //get the title of uf group
         if ($gid) {
@@ -313,11 +324,35 @@ class CRM_UF_Page_Group extends CRM_Core_Page
                 $action -= CRM_Core_Action::DELETE;
             }
             
-            // drop Create, Edit and View mode links if profile group_type is Contribution, Membership, or Participant
-            if ( $value['group_type'] == 'Contribution' || $value['group_type'] == 'Membership' || $value['group_type'] == 'Participant' ) {
+            $groupTypes       = self::extractGroupTypes($value['group_type']);
+            $groupComponents  = array( 'Contribution', 'Membership', 'Activity', 'Participant' );
+            
+            // drop Create, Edit and View mode links if profile group_type is Contribution, Membership, Activities or Participant
+            $componentFound = array_intersect($groupComponents, array_keys($groupTypes));
+            if ( !empty($componentFound) ) {
                 $action -= CRM_Core_Action::ADD;
             }
             
+            $groupTypesString = '';
+            if ( !empty($groupTypes) ) {
+                $groupTypesStrings = array( );
+                foreach($groupTypes as $groupType => $typeValues) {
+                    if ( is_array($typeValues) ) {
+                        if ( $groupType == 'Participant' ) {
+                            foreach( $typeValues as $subType => $subTypeValues ) {
+                                $groupTypesStrings[] = $subType. '::' . implode(': ', $subTypeValues);
+                            }
+                        } else {
+                            $groupTypesStrings[] = $groupType. '::' . implode(': ', current($typeValues));
+                        }
+                    } else {
+                        $groupTypesStrings[] = $groupType; 
+                    }
+                }
+                $groupTypesString = implode(', ',  $groupTypesStrings); 
+            }
+            $ufGroup[$id]['group_type'] = $groupTypesString;
+
             $ufGroup[$id]['action'] = CRM_Core_Action::formLink(self::actionLinks(), $action, 
                                                                 array('id' => $id));
             //get the "Used For" from uf_join
@@ -327,7 +362,7 @@ class CRM_UF_Page_Group extends CRM_Core_Page
         $this->assign('rows', $ufGroup);
     }
     
-
+    
     /**
      * this function is for preview mode for ufoup
      *
@@ -338,7 +373,6 @@ class CRM_UF_Page_Group extends CRM_Core_Page
     function preview( $id, $action ) 
     {
       $controller = new CRM_Core_Controller_Simple('CRM_UF_Form_Preview', ts('CiviCRM Profile Group Preview'),null);   
-      $this->setContext( $id, $action );
       $controller->set('id', $id);
       $controller->setEmbedded(true);
       $controller->process();
@@ -372,6 +406,75 @@ class CRM_UF_Page_Group extends CRM_Core_Page
         
         $session = CRM_Core_Session::singleton( ); 
         $session->pushUserContext( $url );
+    }
+
+    static function extractGroupTypes( $groupType ) {
+        $returnGroupTypes = array( );
+        if ( !$groupType ) {
+            return $returnGroupTypes;
+        }
+        
+        $groupTypeParts  = explode(CRM_Core_DAO::VALUE_SEPARATOR, $groupType);
+        foreach( explode(',', $groupTypeParts[0]) as $type ) {
+            $returnGroupTypes[$type] = $type;
+        }
+        
+        if ( CRM_Utils_Array::value(1, $groupTypeParts) ) {
+            foreach( explode(',', $groupTypeParts[1]) as $typeValue ) {
+                $groupTypeValues = $valueLabels = array( );
+                $valueParts = explode(':', $typeValue);
+                $typeName   = null;
+                switch($valueParts[0]) {
+                case 'ContributionType':
+                    require_once 'CRM/Contribute/PseudoConstant.php';
+                    $typeName = 'Contribution';
+                    $valueLabels = CRM_Contribute_PseudoConstant::contributionType( );
+                    break;
+
+                case 'ParticipantRole':
+                    require_once 'CRM/Event/PseudoConstant.php';
+                    $typeName = 'Participant';
+                    $valueLabels = CRM_Event_PseudoConstant::participantRole( );
+                    break;
+                    
+                case 'ParticipantEventName':
+                    require_once 'CRM/Event/PseudoConstant.php';
+                    $typeName = 'Participant';
+                    $valueLabels = CRM_Event_PseudoConstant::event( );
+                    break;
+
+                case 'ParticipantEventType': 
+                    require_once 'CRM/Event/PseudoConstant.php';
+                    $typeName = 'Participant';
+                    $valueLabels = CRM_Event_PseudoConstant::eventType( );
+                    break;
+
+                case 'MembershipType':
+                    require_once 'CRM/Member/PseudoConstant.php';
+                    $typeName = 'Membership';
+                    $valueLabels = CRM_Member_PseudoConstant::membershipType( );
+                    break;
+
+                case 'ActivityType':
+                    require_once 'CRM/Core/PseudoConstant.php';
+                    $typeName = 'Activity';
+                    $valueLabels = CRM_Core_PseudoConstant::ActivityType(true, true, false, 'label', true);
+                    break;
+                }
+                
+                foreach( $valueParts as $val ) {
+                    if ( CRM_Utils_Rule::integer($val) ) {
+                        $groupTypeValues[$val] = CRM_Utils_Array::value($val, $valueLabels);
+                    }
+                }
+                
+                if ( !is_array($returnGroupTypes[$typeName]) ) {
+                    $returnGroupTypes[$typeName] = array( );
+                }
+                $returnGroupTypes[$typeName][$valueParts[0]] = $groupTypeValues;
+            }
+        }
+        return $returnGroupTypes;
     }
 }
 

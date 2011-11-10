@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -136,7 +136,7 @@ class CRM_Core_BAO_Mapping extends CRM_Core_DAO_Mapping
     static function getMappings( $mappingTypeId )
     {
         $mapping = array( );
-        $mappingDAO =&  new CRM_Core_DAO_Mapping();
+        $mappingDAO = new CRM_Core_DAO_Mapping();
         $mappingDAO->mapping_type_id = $mappingTypeId;
         $mappingDAO->find();
         
@@ -334,11 +334,13 @@ class CRM_Core_BAO_Mapping extends CRM_Core_DAO_Mapping
             $required = false;
         }
 
+        require_once 'CRM/Core/BAO/Address.php';
         $contactType = array('Individual','Household','Organization');
         foreach ($contactType as $value) {
-
-            $relationfields[$value] = $fields[$value] = & CRM_Contact_BAO_Contact::exportableFields( $value, false, 
-                                                                                                     $required);
+            $contactFields  = CRM_Contact_BAO_Contact::exportableFields( $value, false, $required);
+            // exclude the address options disabled in the Address Settings
+            $fields[$value] = CRM_Core_BAO_Address::validateAddressOptions( $contactFields );
+            
             if ( $mappingType == 'Export' ) {
                 $relationships     = array( );
                 $relationshipTypes = CRM_Contact_BAO_Relationship::getContactRelationshipType( null, null, null, $value );
@@ -408,7 +410,7 @@ class CRM_Core_BAO_Mapping extends CRM_Core_DAO_Mapping
         if ( ( $mappingType == 'Search Builder' ) || ( $exportMode == CRM_Export_Form_Select::MEMBER_EXPORT ) ) {
             if ( CRM_Core_Permission::access( 'CiviMember' ) ) {
                 require_once 'CRM/Member/BAO/Membership.php';
-                $fields['Membership'] =& CRM_Member_BAO_Membership::getMembershipFields();
+                $fields['Membership'] =& CRM_Member_BAO_Membership::getMembershipFields( $exportMode );
                 unset($fields['Membership']['membership_contact_id']);
                 $compArray['Membership'] = ts('Membership');
             }
@@ -585,8 +587,10 @@ class CRM_Core_BAO_Mapping extends CRM_Core_DAO_Mapping
                     foreach ( $mapperFields[$k] as $field => $dontCare ) {
                         if ( isset ( $hasRelationTypes[$k][$field] ) ) {
                             list( $id, $first, $second ) = explode( '_', $field );
-                            $relationshipCustomFields    = self::getRelationTypeCustomGroupData( $id );
-                            asort( $relationshipCustomFields ) ;
+                            // FIX ME: For now let's not expose custom data related to relationship
+                            $relationshipCustomFields = array( );
+                            //$relationshipCustomFields    = self::getRelationTypeCustomGroupData( $id );
+                            //asort( $relationshipCustomFields ) ;
                             
                             require_once 'CRM/Contact/BAO/RelationshipType.php';
                             $relationshipType = new CRM_Contact_BAO_RelationshipType( ); 
@@ -601,13 +605,13 @@ class CRM_Core_BAO_Mapping extends CRM_Core_DAO_Mapping
                                 }
                             }
                             $relationshipType->free( );
-                            
+                            asort( $relatedFields ); 
                             $sel5[$k][$field] = $relatedFields;
                         } 
                     }
                 }
             }
-         
+
             //Location Type for relationship fields
             
             foreach ( $sel5 as $k => $v ) { 
@@ -642,8 +646,6 @@ class CRM_Core_BAO_Mapping extends CRM_Core_DAO_Mapping
         $specialFields = array ( 'street_address','supplemental_address_1', 'supplemental_address_2', 
                                  'city', 'postal_code', 'postal_code_suffix', 'geo_code_1', 'geo_code_2', 
                                  'state_province', 'country', 'phone', 'email', 'im' );
-        
-        $relationFields = array() ;
         
         if ( isset($mappingId) ) {
             $colCnt = 0;
@@ -725,7 +727,7 @@ class CRM_Core_BAO_Mapping extends CRM_Core_DAO_Mapping
                                 $noneArray[] = array( $x, $i, 2 );                               
                             } else {
                                 $phoneType = isset($mappingPhoneType[$x][$i]) ? $mappingPhoneType[$x][$i] : null;
-                                
+                                $imProvider = isset($mappingImProvider[$x][$i]) ? $mappingImProvider[$x][$i] : null; 
                                 if ( !$locationId && in_array($mappingName[$x][$i], $specialFields) ) {
                                     $locationId = " ";
                                 }

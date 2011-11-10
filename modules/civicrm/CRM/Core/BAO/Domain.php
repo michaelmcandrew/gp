@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -156,7 +156,7 @@ class CRM_Core_BAO_Domain extends CRM_Core_DAO_Domain {
         return $numberDomains > 1 ? true : false;
     }
 
-    static function getNameAndEmail( ) 
+    static function getNameAndEmail( $skipFatal = false ) 
     {
         require_once 'CRM/Core/OptionGroup.php';
         $fromEmailAddress = CRM_Core_OptionGroup::values( 'from_email_address', null, null, null, ' AND is_default = 1' );
@@ -168,9 +168,11 @@ class CRM_Core_BAO_Domain extends CRM_Core_DAO_Domain {
                 break;
             }
             return array( $fromName, $email );
+        } else if ( $skipFatal ) {
+            return array( '', '' );
         }
         
-        $url = CRM_Utils_System::url( 'civicrm/contact/domain', 
+        $url = CRM_Utils_System::url( 'civicrm/admin/domain', 
                                       'action=update&reset=1' );
         $status = ts( "There is no valid default from email address configured for the domain. You can configure here <a href='%1'>Configure From Email Address.</a>", array( 1 => $url ) );
         

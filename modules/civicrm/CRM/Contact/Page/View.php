@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -98,9 +98,11 @@ class CRM_Contact_Page_View extends CRM_Core_Page {
         $qfKey = CRM_Utils_Request::retrieve( 'key', 'String', $this );
         //validate the qfKey
         require_once 'CRM/Utils/Rule.php';
-        if ( !CRM_Utils_Rule::qfKey( $qfKey ) ) $qfKey = null;
+        if ( ! CRM_Utils_Rule::qfKey( $qfKey ) ) {
+            $qfKey = null;
+        }
         $this->assign( 'searchKey', $qfKey );
-        
+
         // retrieve the group contact id, so that we can get contact id
         $gcid = CRM_Utils_Request::retrieve( 'gcid', 'Positive', $this );
         
@@ -115,6 +117,27 @@ class CRM_Contact_Page_View extends CRM_Core_Page {
         }
         $this->assign( 'contactId', $this->_contactId );
         
+        // see if we can get prev/next positions from qfKey
+        $navContacts = array( 'prevContactID'   => null,
+                              'prevContactName' => null,
+                              'nextContactID'   => null,
+                              'nextContactName' => null );
+        if ( $qfKey ) {
+            require_once 'CRM/Core/BAO/PrevNextCache.php';
+            $pos = CRM_Core_BAO_PrevNextCache::getPositions( "civicrm search $qfKey",
+                                                             $this->_contactId,
+                                                             $this->_contactId );
+            if ( isset( $pos['prev'] ) ) {
+                $navContacts['prevContactID'  ] = $pos['prev']['id1'];
+                $navContacts['prevContactName'] = $pos['prev']['data'];
+            }
+            if ( isset( $pos['next'] ) ) {
+                $navContacts['nextContactID'  ] = $pos['next']['id1'];
+                $navContacts['nextContactName'] = $pos['next']['data'];
+            }
+        }
+        $this->assign( $navContacts );
+
         $path = CRM_Utils_System::url( 'civicrm/contact/view', 'reset=1&cid=' . $this->_contactId );
         CRM_Utils_System::appendBreadCrumb( array( array( 'title' => ts('View Contact'),
                                                           'url'   => $path ) ) );
@@ -122,6 +145,14 @@ class CRM_Contact_Page_View extends CRM_Core_Page {
                                                           'url'   => self::getSearchURL( ) ) ) );
 
         if ( $image_URL  = CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact', $this->_contactId , 'image_URL') ) {
+            
+            //CRM-7265 --time being fix. 
+            $config = CRM_Core_Config::singleton( );
+            $image_URL = str_replace( 'https://', 'http://', $image_URL );
+            if ( isset( $config->enableSSL ) && $config->enableSSL ) {
+                $image_URL = str_replace( 'http://', 'https://', $image_URL );    
+            }
+            
             list( $imageWidth, $imageHeight ) = getimagesize( $image_URL );
             list( $imageThumbWidth, $imageThumbHeight ) = CRM_Contact_BAO_Contact::getThumbSize( $imageWidth, $imageHeight );
             $this->assign( "imageWidth", $imageWidth );
@@ -150,23 +181,42 @@ class CRM_Contact_Page_View extends CRM_Core_Page {
 
         // see if other modules want to add a link activtity bar
         require_once 'CRM/Utils/Hook.php';
-        $hookLinks = CRM_Utils_Hook::links( 'view.contact.activity', 'Contact', 
-                                            $this->_contactId, CRM_Core_DAO::$_nullObject );
+        $hookLinks = CRM_Utils_Hook::links( 'view.contact.activity',
+                                            'Contact', 
+                                            $this->_contactId,
+                                            CRM_Core_DAO::$_nullObject,
+                                            CRM_Core_DAO::$_nullObject );
         if ( is_array( $hookLinks ) ) {
             $this->assign( 'hookLinks', $hookLinks );
         }
         
         // add to recently viewed block
         $isDeleted = (bool) CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact', $this->_contactId, 'is_deleted');
+        
+        $recentOther = array( 'imageUrl'  => $contactImageUrl,
+                              'subtype'   => $contactSubtype,
+                              'isDeleted' => $isDeleted,
+                              );
+        
+        require_once 'CRM/Contact/BAO/Contact/Permission.php';
+
+        if ( ( $session->get( 'userID' ) == $this->_contactId ) ||
+              CRM_Contact_BAO_Contact_Permission::allow( $this->_contactId, CRM_Core_Permission::EDIT ) ) {
+            $recentOther['editUrl'] = CRM_Utils_System::url('civicrm/contact/add', "reset=1&action=update&cid={$this->_contactId}");
+        }
+
+        if ( ( $session->get( 'userID' ) != $this->_contactId ) && CRM_Core_Permission::check('delete contacts') 
+             && !$isDeleted ) {
+            $recentOther['deleteUrl'] = CRM_Utils_System::url('civicrm/contact/view/delete', "reset=1&delete=1&cid={$this->_contactId}");
+        }
+            
         CRM_Utils_Recent::add( $displayName,
                                CRM_Utils_System::url('civicrm/contact/view', "reset=1&cid={$this->_contactId}"),
                                $this->_contactId,
                                $contactType,
                                $this->_contactId,
                                $displayName,
-                               $contactImageUrl,
-                               $contactSubtype,
-                               $isDeleted
+                               $recentOther
                              );
         $this->assign('isDeleted', $isDeleted);
 
@@ -271,26 +321,30 @@ class CRM_Contact_Page_View extends CRM_Core_Page {
         return CRM_Utils_System::url( $urlString, $urlParams );
     }
     
-    static function checkUserPermission( $page ) {
+    static function checkUserPermission( $page, $contactID = null ) {
         // check for permissions
         $page->_permission = null;
+
+        if ( !$contactID) {
+            $contactID = $page->_contactId;
+        }
 
         // automatically grant permissin for users on their own record. makes 
         // things easier in dashboard
         $session = CRM_Core_Session::singleton( );
         
         require_once 'CRM/Contact/BAO/Contact/Permission.php';
-        if ( $session->get( 'userID' ) == $page->_contactId ) {
+        if ( $session->get( 'userID' ) == $contactID ) {
             $page->assign( 'permission', 'edit' );
             $page->_permission = CRM_Core_Permission::EDIT;
         // deleted contacts’ stuff should be (at best) only viewable
-        } elseif (CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact', $page->_contactId, 'is_deleted') and CRM_Core_Permission::check('access deleted contacts')) {
+        } elseif (CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact', $contactID, 'is_deleted') and CRM_Core_Permission::check('access deleted contacts')) {
             $page->assign('permission', 'view');
             $page->_permission = CRM_Core_Permission::VIEW;
-        } else if ( CRM_Contact_BAO_Contact_Permission::allow( $page->_contactId, CRM_Core_Permission::EDIT ) ) {
+        } else if ( CRM_Contact_BAO_Contact_Permission::allow( $contactID, CRM_Core_Permission::EDIT ) ) {
             $page->assign( 'permission', 'edit' );
             $page->_permission = CRM_Core_Permission::EDIT;            
-        } else if ( CRM_Contact_BAO_Contact_Permission::allow( $page->_contactId, CRM_Core_Permission::VIEW ) ) {
+        } else if ( CRM_Contact_BAO_Contact_Permission::allow( $contactID, CRM_Core_Permission::VIEW ) ) {
             $page->assign( 'permission', 'view' );
             $page->_permission = CRM_Core_Permission::VIEW;
         } else {

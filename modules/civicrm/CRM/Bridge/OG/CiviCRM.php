@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -91,9 +91,9 @@ class CRM_Bridge_OG_CiviCRM {
             return;
         }
 
-        require_once 'api/UFGroup.php';
+        require_once 'api/v2/UFGroup.php';
         foreach ( $contactIDs as $contactID ) {
-            $drupalID = crm_uf_get_uf_id( $contactID );
+            $drupalID = civicrm_uf_id_get( $contactID );
             if ( $drupalID ) {
                 if ( $op == 'add' ) {
                     og_save_subscription( $ogID, $drupalID, array( 'is_active' => 1 ) );

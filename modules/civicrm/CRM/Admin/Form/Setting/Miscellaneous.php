@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -53,7 +53,22 @@ class CRM_Admin_Form_Setting_Miscellaneous extends  CRM_Admin_Form_Setting
 
         $this->addYesNo('contactUndelete', ts('Contact Trash & Undelete'));
 
-        $this->addYesNo( 'versionCheck'           , ts( 'Version Check & Statistics Reporting' ));
+        // also check if we can enable triggers
+        $validTriggerPermission = CRM_Core_DAO::checkTriggerViewPermission( false );
+
+        // FIXME: for now, disable logging for multilingual sites OR if triggers are not permittted
+        require_once 'CRM/Core/DAO/Domain.php';
+        $domain = new CRM_Core_DAO_Domain;
+        $domain->find(true);
+        $attribs = $domain->locales || ! $validTriggerPermission ? array('disabled' => 'disabled') : null;
+
+        $this->assign( 'validTriggerPermission', $validTriggerPermission );
+        $this->addYesNo('logging', ts('Logging'), null, null, $attribs);
+
+        $this->addYesNo( 'versionCheck', ts( 'Version Check & Statistics Reporting' ));
+        
+        $this->addYesNo( 'doNotAttachPDFReceipt', ts( 'Attach PDF copy to receipts' ) );
+        
         $this->addElement('text', 'maxAttachments' , ts('Maximum Attachments'),
                           array( 'size' => 2, 'maxlength' => 8 ) );
         $this->addElement('text', 'maxFileSize' , ts('Maximum File Size'),
@@ -65,12 +80,24 @@ class CRM_Admin_Form_Setting_Miscellaneous extends  CRM_Admin_Form_Setting
 
         $this->addElement('text', 'dashboardCacheTimeout', ts('Dashboard cache timeout'),
                           array( 'size' => 3, 'maxlength' => 5 ) );
+        $this->addElement('text','recaptchaOptions', ts('Recaptcha Options'),
+                          array( 'size' => 64, 'maxlength' => 64 ) );
 
         $this->addRule('maxAttachments', ts('Value should be a positive number') , 'positiveInteger');
         $this->addRule('maxFileSize', ts('Value should be a positive number') , 'positiveInteger');
        
         parent::buildQuickForm();    
     }
+
+    public function postProcess()
+    {
+        parent::postProcess();
+
+        // handle logging
+        // FIXME: do it only if the setting changed
+        require_once 'CRM/Logging/Schema.php';
+        $values = $this->exportValues();
+        $logging = new CRM_Logging_Schema;
+        $values['logging'] ? $logging->enableLogging() : $logging->disableLogging();
+    }
 }
-
-

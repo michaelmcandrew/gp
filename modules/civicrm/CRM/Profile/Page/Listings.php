@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -91,6 +91,12 @@ class CRM_Profile_Page_Listings extends CRM_Core_Page {
     protected $_map;
 
     /**
+     * Store profile ids if multiple profile ids are passed using comma separated.
+     * Currently lets implement this functionality only for dialog mode
+     */
+    protected $_profileIds = array( );
+
+    /**
      * extracts the parameters from the request and constructs information for
      * the selector object to do a query
      *
@@ -104,18 +110,48 @@ class CRM_Profile_Page_Listings extends CRM_Core_Page {
         
         $search = CRM_Utils_Request::retrieve( 'search', 'Boolean',
                                                $this, false, 0, 'GET' );
-        if( isset( $search ) && $search == 0) {
+        if ( isset( $search ) && $search == 0) {
             $this->_search = false;
         }
 
-        $this->_gid = CRM_Utils_Request::retrieve('gid', 'Positive',
-                                                  $this, true, 0, 'GET' );
+        $this->_gid        = $this->get( 'gid' );
+        $this->_profileIds = $this->get( 'profileIds' );
+
+        $gids = explode( ',', CRM_Utils_Request::retrieve('gid', 'String', CRM_Core_DAO::$_nullObject, false, 0, 'GET') );
+ 
+        if ( ( count( $gids ) > 1 ) && !$this->_profileIds && empty( $this->_profileIds ) ) {
+            if ( !empty( $gids ) ) {
+                foreach( $gids as $pfId  ) {
+                   $this->_profileIds[ ] = CRM_Utils_Type::escape( $pfId, 'Positive' ); 
+                }
+            }
+            
+            // check if we are rendering mixed profiles
+            require_once 'CRM/Core/BAO/UFGroup.php';
+            if ( CRM_Core_BAO_UFGroup::checkForMixProfiles( $this->_profileIds ) ) {
+                CRM_Core_Error::fatal( ts( 'You cannot combine profiles of multiple types.' ) );
+            } 
+
+            $this->_gid = $this->_profileIds[0];
+            $this->set( 'profileIds', $this->_profileIds );
+            $this->set( 'gid', $this->_gid );
+        }
+        
+        if ( !$this->_gid ) {
+           $this->_gid = CRM_Utils_Request::retrieve('gid', 'Positive', $this, false, 0, 'GET');
+        } 
         
         require_once 'CRM/Core/BAO/UFGroup.php';
+        if ( empty( $this->_profileIds ) ) {
+            $gids = $this->_gid;
+        } else {
+            $gids = $this->_profileIds; 
+        }
+
         $this->_fields =
             CRM_Core_BAO_UFGroup::getListingFields( CRM_Core_Action::UPDATE,
                                                     CRM_Core_BAO_UFGroup::PUBLIC_VISIBILITY | CRM_Core_BAO_UFGroup::LISTINGS_VISIBILITY,
-                                                    false, $this->_gid, false, 'Profile',
+                                                    false, $gids, false, 'Profile',
                                                     CRM_Core_Permission::SEARCH );
 
         $this->_customFields = CRM_Core_BAO_CustomField::getFieldsForImport( null );
@@ -153,7 +189,7 @@ class CRM_Profile_Page_Listings extends CRM_Core_Page {
             } else if ( CRM_Utils_Array::value( 'html_type', $field ) == 'Multi-Select State/Province' 
                         || CRM_Utils_Array::value( 'html_type', $field ) == 'Multi-Select Country') {
                 $value = CRM_Utils_Request::retrieve( $name, 'String', $this, false, null, 'REQUEST' );
-                if ( ! is_array($value) ) $value = explode(CRM_Core_BAO_CustomOption::VALUE_SEPERATOR, substr($value,1,-1));
+                if ( ! is_array($value) ) $value = explode(CRM_Core_DAO::VALUE_SEPARATOR, substr($value,1,-1));
             } else {
                 $value = CRM_Utils_Request::retrieve( $name, 'String',
                                                       $this, false, null, 'REQUEST' );
@@ -265,7 +301,15 @@ class CRM_Profile_Page_Listings extends CRM_Core_Page {
                CRM_Utils_Array::value( 'force', $_GET ) ) &&
              ! $searchError ) {
             $this->assign( 'isReset', false );
-                
+
+            $gidString = $this->_gid;    
+            if ( empty( $this->_profileIds ) ) {
+                $gids = $this->_gid;
+            } else {
+                $gids = $this->_profileIds;
+                $gidString = implode( ',', $this->_profileIds );
+            }
+
             $map      = 0;
             $linkToUF = 0;
             $editLink = false;
@@ -278,7 +322,7 @@ class CRM_Profile_Page_Listings extends CRM_Core_Page {
             if ( $map ) {
                 $this->assign( 'mapURL',
                                CRM_Utils_System::url( 'civicrm/profile/map',
-                                                      "map=1&gid={$this->_gid}&reset=1" ) );
+                                                      "map=1&gid={$gidString}&reset=1" ) );
             }
             if ( CRM_Utils_Array::value( 'group', $this->_params ) ) {
                 foreach( $this->_params['group'] as $key => $val ) {
@@ -296,8 +340,8 @@ class CRM_Profile_Page_Listings extends CRM_Core_Page {
                  $config->userFrameworkFrontend == 1 ) {
                 $editLink = false;
             }
-                
-            $selector = new CRM_Profile_Selector_Listings( $this->_params, $this->_customFields, $this->_gid,
+
+            $selector = new CRM_Profile_Selector_Listings( $this->_params, $this->_customFields, $gids,
                                                            $map, $editLink, $linkToUF );
                 
             $controller = new CRM_Core_Selector_Controller($selector ,
@@ -377,6 +421,15 @@ class CRM_Profile_Page_Listings extends CRM_Core_Page {
             $template     =& CRM_Core_Page::getTemplate( );
             if ( $template->template_exists( $templateFile ) ) {
                 return $templateFile;
+            }
+
+            // lets see if we have customized by name
+            $ufGroupName = CRM_Core_DAO::getFieldValue( 'CRM_Core_DAO_UFGroup', $this->_gid, 'name' );
+            if ( $ufGroupName ) {
+                $templateFile = "CRM/Profile/Page/{$ufGroupName}/Listings.tpl";
+                if ( $template->template_exists( $templateFile ) ) {
+                    return $templateFile;
+                }
             }
         }
         return parent::getTemplateFileName( );

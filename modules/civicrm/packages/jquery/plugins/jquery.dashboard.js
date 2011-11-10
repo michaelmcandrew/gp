@@ -1,6 +1,32 @@
 /**
- * @file
- *    Defines the jQuery.dashboard() plugin.
+ +--------------------------------------------------------------------+
+ | CiviCRM version 3.4                                                |
+ +--------------------------------------------------------------------+
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
+ +--------------------------------------------------------------------+
+ | This file is a part of CiviCRM.                                    |
+ |                                                                    |
+ | CiviCRM is free software; you can copy, modify, and distribute it  |
+ | under the terms of the GNU Affero General Public License           |
+ | Version 3, 19 November 2007 and the CiviCRM Licensing Exception.   |
+ |                                                                    |
+ | CiviCRM is distributed in the hope that it will be useful, but     |
+ | WITHOUT ANY WARRANTY; without even the implied warranty of         |
+ | MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.               |
+ | See the GNU Affero General Public License for more details.        |
+ |                                                                    |
+ | You should have received a copy of the GNU Affero General Public   |
+ | License and the CiviCRM Licensing Exception along                  |
+ | with this program; if not, contact CiviCRM LLC                     |
+ | at info[AT]civicrm[DOT]org. If you have questions about the        |
+ | GNU Affero General Public License or the licensing of CiviCRM,     |
+ | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
+ +--------------------------------------------------------------------+
+ *
+ * Copyright (C) 2009 Bevan Rudge
+ * Licensed to CiviCRM under the Academic Free License version 3.0.
+ *
+ * @file Defines the jQuery.dashboard() plugin.
  *
  * Uses jQuery 1.3, jQuery UI 1.6 and several jQuery UI extensions, most of all Sortable
  *    http://visualjquery.com/
@@ -10,7 +36,6 @@
  *      Draggable
  *      UI Core
  *
- * Released under the GNU General Public License.  See LICENSE.txt.
  */
 
 (function($) { // Create closure.
@@ -73,11 +98,6 @@
       $.extend(params, opts.ajaxCallbacks.saveColumns.data);
       $.post(opts.ajaxCallbacks.saveColumns.url, params, function(response, status) {
         invokeCallback(opts.callbacks.saveColumns, dashboard);
-
-        // Log the response to aid server-side debugging.
-        if (window.console && console.log) {
-          console.log(response);
-        }
       });
     };
 
@@ -116,7 +136,7 @@
 
       // Show the columns.
       for (var c in dashboard.columns) {
-       if ( typeof dashboard.columns[c] == 'object' ) dashboard.columns[c].element.show();
+          if ( typeof dashboard.columns[c] == 'object' ) dashboard.columns[c].element.show();
       }
 
       invokeCallback(opts.callbacks.exitFullscreen, dashboard, dashboard.fullscreen.currentElement);
@@ -157,29 +177,29 @@
       // (Don't iterate on widgets since this will break badly if the dataset has empty columns.)
       var emptyDashboard = true;
       for (var c = 0; c < opts.columns; c++) {
-        // Save the column to both the public scope for external accessibility and the local scope for readability.
-        var col = dashboard.columns[c] = {
-          initialWidgets: Array(),
-          element: $('<ul id="column-' + c + '" class="column column-' + c + '"></ul>').appendTo(dashboard.element)
-        };
+          // Save the column to both the public scope for external accessibility and the local scope for readability.
+          var col = dashboard.columns[c] = {
+              initialWidgets: Array(),
+              element: $('<ul id="column-' + c + '" class="column column-' + c + '"></ul>').appendTo(dashboard.element)
+          };
         
-        // Add the empty placeholder now, hide it and save it.
-        col.emptyPlaceholder = $(markup).appendTo(col.element).hide();
+          // Add the empty placeholder now, hide it and save it.
+          col.emptyPlaceholder = $(markup).appendTo(col.element).hide();
 
-        // For each widget in this column.
-        for (var id in widgets[c]) {
-          var widgetID = id.split('-');
-          // Build a new widget object and save it to various publicly accessible places.
-          col.initialWidgets[id] = dashboard.widgets[widgetID[1]] = widget({
-            id: widgetID[1],
-            element: $('<li class="widget"></li>').appendTo(col.element),
-            initialColumn: col,
-            minimized: ( widgets[c][widgetID[1]] > 0  ? true : false )
-          });
+          // For each widget in this column.
+          for (var id in widgets[c]) {
+              var widgetID = id.split('-');
+              // Build a new widget object and save it to various publicly accessible places.
+              col.initialWidgets[id] = dashboard.widgets[widgetID[1]] = widget({
+                  id: widgetID[1],
+                  element: $('<li class="widget"></li>').appendTo(col.element),
+                  initialColumn: col,
+                  minimized: ( widgets[c][widgetID[1]] > 0  ? true : false )
+              });
           
-          //set empty Dashboard to false
-          emptyDashboard = false;
-        }
+              //set empty Dashboard to false
+              emptyDashboard = false;
+          }
       }
 
       if ( emptyDashboard ) {
@@ -199,7 +219,7 @@
     function completeInit() {
       // Don't do anything if any widgets are waiting for ajax requests to complete in order to finish initialization.
       if (asynchronousRequestCounter > 0) {
-        return;
+          return;
       }
 
       // Make widgets sortable across columns.
@@ -210,16 +230,18 @@
         handle: '.widget-header',
 
         // The class of placeholder elements (the 'ghost' widget showing where the dragged item would land if released now.)
-        placeholder: 'placeholder',
-
-        // This worked in jQuery UI 1.6 rc5, but broke in rc6.
-        // @todo: Test this and/or report sortable's opacity bug.
-        // opacity: 0.2,
+        placeholder: 'placeholder',   
+        activate: function(event, ui) { 
+		  var h= cj(ui.item).height(); 
+		  $('.placeholder').css('height', h +'px'); },
+         	    
+        opacity: 0.2,
 
         // Maks sure that only widgets are sortable, and not empty placeholders.
         items: '> .widget',
+        
         forcePlaceholderSize: true,
-
+        
         // Callback functions.
         update: resorted,
         start: hideEmptyPlaceholders
@@ -233,28 +255,28 @@
 
     // Callback for when any list has changed (and the user has finished resorting).
     function resorted(e, ui) {
-      // Only do anything if we haven't already handled resorts based on changes from this UI DOM event.
-      // (resorted() gets invoked once for each list when an item is moved from one to another.)
-      if (!currentReSortEvent || e.originalEvent != currentReSortEvent) {
-        currentReSortEvent = e.originalEvent;
-        dashboard.saveColumns();
-      }
+        // Only do anything if we haven't already handled resorts based on changes from this UI DOM event.
+        // (resorted() gets invoked once for each list when an item is moved from one to another.)
+        if (!currentReSortEvent || e.originalEvent != currentReSortEvent) {
+            currentReSortEvent = e.originalEvent;
+            dashboard.saveColumns();
+        }
     }
 
     // Callback for when a user starts resorting a list.  Hides all the empty placeholders.
     function hideEmptyPlaceholders(e, ui) {
-      for (var c in dashboard.columns) {
-        if( typeof dashboard.columns[c] == 'object ' ) dashboard.columns[c].emptyPlaceholder.hide();
-      }
+        for (var c in dashboard.columns) {
+            if( typeof dashboard.columns[c] == 'object ' ) dashboard.columns[c].emptyPlaceholder.hide();
+        }
     }
 
     // @todo use an event library to register, bind to and invoke events.
     //  @param callback is a function.
     //  @param theThis is the context given to that function when it executes.  It becomes 'this' inside of that function.
     function invokeCallback(callback, theThis, parameterOne) {
-      if (callback) {
-        callback.call(theThis, parameterOne);
-      }
+        if (callback) {
+            callback.call(theThis, parameterOne);
+        }
     }
 
     /**
@@ -336,10 +358,10 @@
         // serializeArray() returns an array of objects.  Process it.
         var fields = widget.settings.element.serializeArray();
         for (var i in fields) {
-          var field = fields[i];
-          // Put the values into flat object properties that PHP will parse into an array server-side.
-          // (Unfortunately jQuery doesn't do this)
-          params['settings[' + field.name + ']'] = field.value;
+            var field = fields[i];
+            // Put the values into flat object properties that PHP will parse into an array server-side.
+            // (Unfortunately jQuery doesn't do this)
+            params['settings[' + field.name + ']'] = field.value;
         }
 
         // Things get messy here.
@@ -386,28 +408,34 @@
 
       widget.enterFullscreen = function() {
         // Make sure the widget actually supports full screen mode.
-        if (!widget.fullscreen) {
+        if (!widget.fullscreenUrl) {
           return;
         }
 
-        if (!widget.fullscreen.element) {
-          // Initialize the full screen element for this widget.
-          var markup = '<div id="widget-' + widget.id + '-full-screen">' + widget.fullscreen + '</div>';
-          
-          // Overwrite the widget.fullscreen string.
-          widget.fullscreen = {
-            initialMarkup: widget.fullscreen,
-            element: $(markup).appendTo(dashboard.element)
-          };
+        $('<div id="crm-dashlet-container"></div>')
+            .html('<div id="crm-container"><div id="crm-dashlet-fullscreen-content">Loading...</div></div>')
+            .dialog({
+                autoOpen: true,
+                title: widget.title,
+                modal: true,
+                height: 'auto',
+                width: 'auto',
+                position: [100,125],
+                close: function(event, ui) {
+                    cj(this).dialog("destroy");
+                    $('#crm-dashlet-container').remove();
+                    $('#crm-dashlet-fullscreen-content').remove();
+                }
+            });
 
-          getJavascript(widget.fullscreenInitScript);
-        }
-
-        // Let dashboard.enterFullscreen() do the heavy lifting.
-        dashboard.enterFullscreen(widget.fullscreen.element);
-        getJavascript(widget.fullscreenScript);
-        widget.fullscreen.displayed = true;
+        $.ajax({
+            url: widget.fullscreenUrl,
+            success: function ( content ) {
+                $('#crm-dashlet-fullscreen-content').html( content );
+            }
+        }); 
       };
+      
       // Exit fullscreen mode.
       widget.exitFullscreen = function() {
         // This is just a wrapper for dashboard.exitFullscreen() which does the heavy lifting.
@@ -416,16 +444,15 @@
 
       // Adds controls to a widget.  id is for internal use and image file name in images/dashboard/ (a .gif).
       widget.addControl = function(id, control) {
-        //var markup = '<a class="widget-icon ' + id + '-icon"><img src="images/dashboard/' + id + '.gif" alt="' + control.description + '" /></a>';
-        var markup = '<a class="widget-icon ' + id + '-icon" alt="' + control.description + '" title="' + control.description + '"></a>';    
-        control.element = $(markup).prependTo($('.widget-controls', widget.element)).click(control.callback);
+          var markup = '<a class="widget-icon ' + id + '-icon" alt="' + control.description + '" title="' + control.description + '"></a>';    
+          control.element = $(markup).prependTo($('.widget-controls', widget.element)).click(control.callback);
       };
 
       // An external method used only by and from external scripts to reload content.  Not invoked or used internally.
       // The widget must provide the script that executes this, as well as the script that invokes it.
       widget.reloadContent = function() {
-        getJavascript(widget.reloadContentScript);
-        invokeCallback(opts.widgetCallbacks.reloadContent, widget);
+          getJavascript(widget.reloadContentScript);
+          invokeCallback(opts.widgetCallbacks.reloadContent, widget);
       };
 
       // Removes the widget from the dashboard, and saves columns.
@@ -492,7 +519,7 @@
         if (!widget.settings) {
           delete widget.controls.settings;
         }
-        if (!widget.fullscreen) {
+        if (!widget.fullscreenUrl) {
           delete widget.controls.fullscreen;
         }
 
@@ -519,7 +546,6 @@
         var html = '';
         html += '<div class="widget-wrapper">';
         html += '  <div class="widget-controls"><h3 class="widget-header">' + widget.title + '</h3></div>';
-        //html += '  <div class="widget-header">' + widget.title + '</div>';
         html += '  <div class="widget-content">' + widget.content + '</div>';
         html += '</div>';
         return html;

@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -93,7 +93,7 @@ class CRM_Activity_Form_Task extends CRM_Core_Form
     {
         $form->_activityHolderIds = array();
 
-        $values = $form->controller->exportValues( 'Search' );
+        $values = $form->controller->exportValues( $form->get( 'searchFormName' ) );
         
         $form->_task = $values['task'];
         $activityTasks = CRM_Activity_Task::tasks();
@@ -110,6 +110,7 @@ class CRM_Activity_Form_Task extends CRM_Core_Form
             $queryParams =  $form->get( 'queryParams' );
             $query       = new CRM_Contact_BAO_Query( $queryParams, null, null, false, false, 
                                                        CRM_Contact_BAO_Query::MODE_ACTIVITY);
+            $query->_distinctComponentClause = 'DISTINCT ( civicrm_activity.id )';
             $result = $query->searchQuery(0, 0, null);
 
             while ($result->fetch()) {
@@ -133,7 +134,13 @@ class CRM_Activity_Form_Task extends CRM_Core_Form
         if ( CRM_Utils_Rule::qfKey( $qfKey ) ) $urlParams .= "&qfKey=$qfKey";
         
         $session = CRM_Core_Session::singleton( );
-        $session->replaceUserContext( CRM_Utils_System::url( 'civicrm/activity/search', $urlParams ) );
+        $searchFormName = strtolower( $form->get( 'searchFormName' ) );
+        if ( $searchFormName == 'search' ) {
+            $session->replaceUserContext( CRM_Utils_System::url( 'civicrm/activity/search', $urlParams ) );
+        } else {
+            $session->replaceUserContext( CRM_Utils_System::url( "civicrm/contact/search/$searchFormName",
+                                                                 $urlParams ) );
+        }
     }
 
     /**

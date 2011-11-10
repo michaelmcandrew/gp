@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,11 +28,14 @@
 <div id="search-status">
   <table class="form-layout-compressed">
   <tr>
-    <td class="font-size12pt" style="width: 30%;">
+    <td class="font-size12pt" style="width: 40%;">
     {if $savedSearch.name}{$savedSearch.name} ({ts}smart group{/ts}) - {/if}
-    {ts count=$pager->_totalItems plural='%count Results'}%count Result{/ts}
+    {ts count=$pager->_totalItems plural='%count Results'}%count Result{/ts}{if $selectorLabel}&nbsp;-&nbsp;{$selectorLabel}{/if}
+    {if $context == 'Event' && $participantCount && ( $pager->_totalItems ne $participantCount ) }
+        <br />{ts}Actual participant count{/ts} : {$participantCount} {help id="id-actual_participant_count" file="CRM/Event/Form/Search/Results.hlp"} &nbsp;
+    {/if}
     </td>
-    <td class="nowrap">
+    <td>
         {* Search criteria are passed to tpl in the $qill array *}
         {if $qill}
             {include file="CRM/common/displaySearchCriteria.tpl"}
@@ -54,9 +57,17 @@
   </tr>
   <tr>
     <td colspan="2">
-     {$form._qf_Search_next_print.html} &nbsp; &nbsp;
+    {if $printButtonName}
+       {$form.$printButtonName.html} &nbsp; &nbsp;
+    {else}
+       {$form._qf_Search_next_print.html} &nbsp; &nbsp;
+     {/if}
      {$form.task.html}
+    {if $actionButtonName}
+       {$form.$actionButtonName.html} &nbsp; &nbsp;
+    {else}
      {$form._qf_Search_next_action.html} 
+   {/if}
     </td>
   </tr>
   </table>

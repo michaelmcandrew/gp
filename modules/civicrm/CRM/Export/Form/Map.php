@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -42,7 +42,6 @@ require_once 'CRM/Core/DAO/MappingField.php';
  */
 class CRM_Export_Form_Map extends CRM_Core_Form 
 {
-    
     /**
      * mapper fields
      *
@@ -66,7 +65,6 @@ class CRM_Export_Form_Map extends CRM_Core_Form
      * @access protected
      */
     protected $_mappingId;
-
    
     /**
      * Function to actually build the form
@@ -74,8 +72,8 @@ class CRM_Export_Form_Map extends CRM_Core_Form
      * @return None
      * @access public
      */
-    public function preProcess() {
-
+    public function preProcess()
+    {
         $this->_exportColumnCount = $this->get('exportColumnCount');
         if (! $this->_exportColumnCount ) {
             $this->_exportColumnCount = 10;
@@ -83,13 +81,18 @@ class CRM_Export_Form_Map extends CRM_Core_Form
             $this->_exportColumnCount = $this->_exportColumnCount + 10;
         }
         
-        $this->_mappingId =  $this->get('mappingId');
+        $this->_mappingId = $this->get('mappingId');
     }
     
     public function buildQuickForm( ) 
     {
-        require_once "CRM/Core/BAO/Mapping.php";
-        CRM_Core_BAO_Mapping::buildMappingForm($this, 'Export', $this->_mappingId, $this->_exportColumnCount, $blockCnt = 2, $this->get('exportMode'));
+        require_once 'CRM/Core/BAO/Mapping.php';
+        CRM_Core_BAO_Mapping::buildMappingForm( $this, 
+                                                'Export', 
+                                                $this->_mappingId, 
+                                                $this->_exportColumnCount, 
+                                                $blockCnt = 2, 
+                                                $this->get('exportMode') );
 
         $this->addButtons( array(
                                  array ( 'type'      => 'back',
@@ -102,7 +105,6 @@ class CRM_Export_Form_Map extends CRM_Core_Form
                                  )
                            );
     }
-
 
     /**
      * global validation rules for the form
@@ -117,7 +119,7 @@ class CRM_Export_Form_Map extends CRM_Core_Form
     {
         $errors  = array( );
 
-        if ( CRM_Utils_Array::value( 'saveMapping', $fields ) && $fields['_qf_Map_next']) {
+        if ( CRM_Utils_Array::value( 'saveMapping', $fields ) && $fields['_qf_Map_next'] ) {
             $nameField = CRM_Utils_Array::value( 'saveMappingName', $fields );
             if ( empty( $nameField ) ) {
                 $errors['saveMappingName'] = ts('Name is required to save Export Mapping');
@@ -140,15 +142,31 @@ class CRM_Export_Form_Map extends CRM_Core_Form
         }
     }    
 
-
     /**
      * Process the uploaded file
      *
      * @return void
      * @access public
      */
-    public function postProcess( ) {
+    public function postProcess( )
+    {
         $params = $this->controller->exportValues( $this->_name );
+        $exportParams = $this->controller->exportValues( 'Select' );
+
+        require_once 'CRM/Export/Form/Select.php';
+        $greetingOptions = CRM_Export_Form_Select::getGreetingOptions( );
+
+        if ( !empty( $greetingOptions ) ) {
+            foreach ( $greetingOptions as $key => $value ) {
+                if ( $option = CRM_Utils_Array::value( $key, $exportParams ) ) {
+                    if ( $greetingOptions[$key][$option] == 'Other' ) {
+                        $exportParams[$key] = '';
+                    } else {
+                        $exportParams[$key] = $greetingOptions[$key][$option];
+                    }
+                }
+            }
+        }
         
         $currentPath = CRM_Utils_System::currentPath( );
         
@@ -205,7 +223,7 @@ class CRM_Export_Form_Map extends CRM_Core_Form
         }
 
         //get the csv file
-        require_once "CRM/Export/BAO/Export.php";
+        require_once 'CRM/Export/BAO/Export.php';
         CRM_Export_BAO_Export::exportComponents( $this->get( 'selectAll' ),
                                                  $this->get( 'componentIds' ),
                                                  $this->get( 'queryParams' ),
@@ -216,7 +234,8 @@ class CRM_Export_Form_Map extends CRM_Core_Form
                                                  $this->get( 'componentClause' ),
                                                  $this->get( 'componentTable' ),
                                                  $this->get( 'mergeSameAddress' ),
-                                                 $this->get( 'mergeSameHousehold' )
+                                                 $this->get( 'mergeSameHousehold' ),
+                                                 $exportParams
                                                  );
     }
     

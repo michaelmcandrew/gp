@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -60,8 +60,8 @@ class CRM_Core_Config_Defaults
             'plugins'     . DIRECTORY_SEPARATOR ;
 
         $this->templateDir =
-            $civicrm_root . DIRECTORY_SEPARATOR .
-            'templates'   . DIRECTORY_SEPARATOR ;
+            array( $civicrm_root . DIRECTORY_SEPARATOR .
+                   'templates'   . DIRECTORY_SEPARATOR );
             
         $this->importDataSourceDir =
             $civicrm_root . DIRECTORY_SEPARATOR .
@@ -79,9 +79,6 @@ class CRM_Core_Config_Defaults
         // show tree widget
         $this->groupTree = defined( 'CIVICRM_GROUPTREE' ) ? true : false;
 
-        // in hrd mode?
-        $this->civiHRD   = defined( 'CIVICRM_HRD' ) ? true : false;
-        
         // add UI revamp pages
         //$this->revampPages = array( 'CRM/Admin/Form/Setting/Url.tpl', 'CRM/Admin/Form/Preferences/Address.tpl' );
         $this->revampPages = array( );
@@ -93,7 +90,14 @@ class CRM_Core_Config_Defaults
             $this->profileDoubleOptIn = defined( 'CIVICRM_PROFILE_DOUBLE_OPTIN' ) ? (bool) CIVICRM_PROFILE_DOUBLE_OPTIN : true;
         }
 
-        //email notifications to activity Assignees
+        $this->profileAddToGroupDoubleOptIn = false;
+        // enable profile add to group double Opt-In if Civimail enabled
+        if ( in_array( 'CiviMail', $this->enableComponents ) ) {
+            // set defined value for Profile add to group double Opt-In from civicrm settings file else true 
+            $this->profileAddToGroupDoubleOptIn = defined( 'CIVICRM_PROFILE_ADD_TO_GROUP_DOUBLE_OPTIN' ) ? (bool) CIVICRM_PROFILE_ADD_TO_GROUP_DOUBLE_OPTIN : false;
+        }
+
+       //email notifications to activity Assignees
         $this->activityAssigneeNotification = defined( 'CIVICRM_ACTIVITY_ASSIGNEE_MAIL' ) ? (bool) CIVICRM_ACTIVITY_ASSIGNEE_MAIL : true;
 
         // IDS enablement
@@ -134,20 +138,24 @@ class CRM_Core_Config_Defaults
 
         $baseURL = $config->userFrameworkBaseURL;
 
-        if ( $config->templateCompileDir ) {
-            $path = dirname( $config->templateCompileDir );
-            
-            //this fix is to avoid creation of upload dirs inside templates_c directory
-            $checkPath = explode( DIRECTORY_SEPARATOR, $path );
-            $cnt = count($checkPath) - 1;
-            if ( $checkPath[$cnt] == 'templates_c' ) {
-                unset( $checkPath[$cnt] );
-                $path = implode( DIRECTORY_SEPARATOR, $checkPath );
+        // CRM-6216: Drupal’s $baseURL might have a trailing LANGUAGE_NEGOTIATION_PATH,
+        // which needs to be stripped before we start basing ResourceURL on it
+        if ($config->userFramework == 'Drupal') {
+            global $language;
+            if (isset($language->prefix) and $language->prefix) {
+                if (substr($baseURL, -(strlen($language->prefix) + 1)) == $language->prefix . '/') {
+                    $baseURL = substr($baseURL, 0, -(strlen($language->prefix) + 1));
+                }
             }
-
-            $path = CRM_Utils_File::addTrailingSlash( $path );
         }
 
+        $baseCMSURL = CRM_Utils_System::baseCMSURL( );
+        if ( $config->templateCompileDir ) {
+            $path = CRM_Utils_File::baseFilePath( $config->templateCompileDir );
+        }
+        if(!isset($defaults['enableSSL'])){
+          $defaults['enableSSL'] = 0;
+        }
         //set defaults if not set in db
         if ( ! isset( $defaults['userFrameworkResourceURL'] ) ) {
             $testIMG = "i/tracker.gif";
@@ -240,12 +248,14 @@ class CRM_Core_Config_Defaults
         if ( isset( $_GET[$config->userFrameworkURLVar] ) ) {
             $args = explode( '/', $_GET[$config->userFrameworkURLVar] );
         }
-    
-        foreach( $defaults['enableComponents'] as $key => $name ) {
-            $comp = $config->componentRegistry->get( $name );
-            if ( $comp ) {
-                $co = $comp->getConfigObject();
-                $co->setDefaults( $defaults );
+        
+        if ( isset( $defaults['enableComponents'] ) ) {
+            foreach( $defaults['enableComponents'] as $key => $name ) {
+                $comp = $config->componentRegistry->get( $name );
+                if ( $comp ) {
+                    $co = $comp->getConfigObject();
+                    $co->setDefaults( $defaults );
+                }
             }
         }
     }

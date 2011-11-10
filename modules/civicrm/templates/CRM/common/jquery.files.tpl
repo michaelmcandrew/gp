@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,35 +28,25 @@
  * We will unify the two files in a future release
  *}
 packages/jquery/jquery.js
-packages/jquery/jquery-ui.js
-packages/jquery/themes/smoothness/jquery-ui.css
-
-packages/jquery/plugins/flexigrid.js
-packages/jquery/css/flexigrid.css
+packages/jquery/jquery-ui-1.8.11/js/jquery-ui-1.8.11.custom.min.js
+packages/jquery/jquery-ui-1.8.11/css/smoothness/jquery-ui-1.8.11.custom.css
 
 packages/jquery/plugins/jquery.autocomplete.js
 packages/jquery/css/jquery.autocomplete.css
 
-packages/jquery/plugins/tree_component.min.js
-packages/jquery/plugins/css.js
-packages/jquery/css/tree_component.css
+packages/jquery/plugins/jsTree.v.1.0rc2/jquery.jstree.min.js
+packages/jquery/plugins/jsTree.v.1.0rc2/themes/default/jstree.css
 
 packages/jquery/plugins/jquery.menu.pack.js
-packages/jquery/plugins/jquery.dimensions.js
 packages/jquery/css/menu.css
 
 packages/jquery/plugins/jquery.chainedSelects.js
-packages/jquery/plugins/jquery.treeview.min.js
-packages/jquery/plugins/jquery.bgiframe.pack.js
 
 packages/jquery/plugins/jquery.contextMenu.js
 packages/jquery/plugins/jquery.tableHeader.js
 
-{*allow select/unselect checkboxes functionality only for search*}
-packages/jquery/plugins/checkboxselect.js
-
 packages/jquery/plugins/jquery.textarearesizer.js
-packages/jquery/plugins/jquery.progressbar.js
+
 packages/jquery/plugins/jquery.form.js
 
 packages/jquery/plugins/jquery.tokeninput.js
@@ -67,19 +57,23 @@ packages/jquery/plugins/jquery.mousewheel.pack.js
 
 packages/jquery/plugins/jquery.toolTip.js
 
-packages/jquery/css/dataTable.css
-packages/jquery/plugins/jquery.dataTables.min.js
+packages/jquery/plugins/DataTables-1.7.6/media/css/demo_table_jui.css
+packages/jquery/plugins/DataTables-1.7.6/media/js/jquery.dataTables.min.js
 
 packages/jquery/plugins/jquery.dashboard.js
 packages/jquery/css/dashboard.css
 
 packages/jquery/plugins/jquery.FormNavigate.js
 
+packages/jquery/plugins/jquery.validate.js
+packages/jquery/plugins/jquery.civicrm-validate.js
+packages/jquery/plugins/jquery.ui.datepicker.validation.pack.js
+
+packages/jquery/plugins/jquery-fieldselection.js
+
 js/rest.js
 
 js/jquery/jquery.crmaccordions.js
 js/jquery/jquery.crmasmselect.js
 js/jquery/jquery.crmtooltip.js
-js/dd_roundies.js
-js/style.js
-
+js/jquery/jquery.crmrowhighlighter.js

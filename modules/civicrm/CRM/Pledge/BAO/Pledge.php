@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -184,7 +184,12 @@ class CRM_Pledge_BAO_Pledge extends CRM_Pledge_DAO_Pledge
                     $params['status_id'] = array_search( 'In Progress', $paymentStatusTypes );
                 } 
             } else {
-                $params['status_id'] = array_search( 'Pending', $paymentStatusTypes );
+                if ( $params['id'] ) {
+                    require_once 'CRM/Pledge/BAO/Payment.php';
+                    $params['status_id'] = CRM_Pledge_BAO_Payment::calculatePledgeStatus( $params['id'] );
+                } else {
+                    $params['status_id'] = array_search( 'Pending', $paymentStatusTypes );
+                }
             }
         }
         
@@ -230,7 +235,17 @@ class CRM_Pledge_BAO_Pledge extends CRM_Pledge_DAO_Pledge
         require_once 'CRM/Core/Config.php';
         $url = CRM_Utils_System::url( 'civicrm/contact/view/pledge', 
                "action=view&reset=1&id={$pledge->id}&cid={$pledge->contact_id}&context=home" );
-       
+        
+        $recentOther = array( );
+        if ( CRM_Core_Permission::checkActionPermission( 'CiviPledge', CRM_Core_Action::UPDATE ) ) {
+            $recentOther['editUrl'] = CRM_Utils_System::url( 'civicrm/contact/view/pledge', 
+                                                             "action=update&reset=1&id={$pledge->id}&cid={$pledge->contact_id}&context=home" );
+        } 
+        if ( CRM_Core_Permission::checkActionPermission( 'CiviPledge', CRM_Core_Action::DELETE ) ) {
+            $recentOther['deleteUrl'] = CRM_Utils_System::url( 'civicrm/contact/view/pledge', 
+                                                               "action=delete&reset=1&id={$pledge->id}&cid={$pledge->contact_id}&context=home" );
+        }
+        
         $config = CRM_Core_Config::singleton();
         require_once 'CRM/Utils/Money.php';
         $contributionTypes = CRM_Contribute_PseudoConstant::contributionType();
@@ -244,7 +259,9 @@ class CRM_Pledge_BAO_Pledge extends CRM_Pledge_DAO_Pledge
                                $pledge->id,
                                'Pledge',
                                $pledge->contact_id,
-                               null );
+                               null,
+                               $recentOther
+                               );
         
         return $pledge;
    }
@@ -596,6 +613,8 @@ WHERE  $whereCond
         if ( CRM_Utils_Array::value('receipt_from_email', $params ) ) {
             $userName  = CRM_Utils_Array::value('receipt_from_name', $params );
             $userEmail = CRM_Utils_Array::value('receipt_from_email', $params );
+        } else if ( CRM_Utils_Array::value( 'from_email_id', $params ) )  {
+            $receiptFrom = $params['from_email_id'];
         } else if ( $userID = $session->get( 'userID' ) )  {
             //check for loged in user.
             list( $userName, $userEmail ) = CRM_Contact_BAO_Contact_Location::getEmailDetails( $userID );
@@ -604,7 +623,10 @@ WHERE  $whereCond
             $userName  = CRM_Utils_Array::value('name', $domainValues );
             $userEmail = CRM_Utils_Array::value('email', $domainValues );
         }
-        $receiptFrom = "$userName <$userEmail>";
+
+        if ( !isset( $receiptFrom ) ) {
+            $receiptFrom = "$userName <$userEmail>";
+        }
 
         require_once 'CRM/Core/BAO/MessageTemplates.php';
         list ($sent, $subject, $message, $html) = CRM_Core_BAO_MessageTemplates::sendTemplate(
@@ -643,10 +665,17 @@ WHERE  $whereCond
                                      'activity_date_time' => CRM_Utils_Date::isoToMysql( $params['acknowledge_date'] ),
                                      'is_test'            => $params['is_test'],
                                      'status_id'          => 2,
-                                     'details'            => $details
+                                     'details'            => $details,
+                                     'campaign_id'        => CRM_Utils_Array::value( 'campaign_id', $params )
                                      );
-            require_once 'api/v2/Activity.php';
-            if ( is_a( civicrm_activity_create( $activityParams ), 'CRM_Core_Error' ) ) {
+            
+            //lets insert assignee record.
+            if ( CRM_Utils_Array::value( 'contact_id', $params ) ) {
+                $activityParams['assignee_contact_id'] = $params['contact_id'];
+            }
+            
+            require_once 'CRM/Activity/BAO/Activity.php';
+            if (is_a(CRM_Activity_BAO_Activity::create($activityParams), 'CRM_Core_Error')) {
                 CRM_Core_Error::fatal("Failed creating Activity for acknowledgment");
             }
         }
@@ -668,6 +697,11 @@ WHERE  $whereCond
             require_once 'CRM/Pledge/DAO/Pledge.php';
             $fields = CRM_Pledge_DAO_Pledge::export( );
             
+            //export campaign title.
+            if ( isset( $fields['pledge_campaign_id'] ) ) {
+                $fields['pledge_campaign'] = array( 'title' => ts( 'Campaign Title' ) ); 
+            }
+            
             require_once 'CRM/Pledge/DAO/Payment.php';
             $fields = array_merge( $fields, CRM_Pledge_DAO_Payment::export( ) );
             
@@ -677,7 +711,10 @@ WHERE  $whereCond
                                        'pledge_next_pay_date'       => array( 'title' => ts('Next Payment Date') ),
                                        'pledge_next_pay_amount'     => array( 'title' => ts('Next Payment Amount') ),
                                        'pledge_payment_paid_amount' => array( 'title' => ts('Paid Amount') ),
-                                       'pledge_payment_paid_date'   => array( 'title' => ts('Paid Date') )
+                                       'pledge_payment_paid_date'   => array( 'title' => ts('Paid Date') ),
+                                       'pledge_payment_status'      => array( 'title'    => ts('Pledge Payment Status'), 
+                                                                              'name'     => 'pledge_payment_status',
+                                                                              'data_type'=> CRM_Utils_Type::T_STRING )
                                        );
 
             

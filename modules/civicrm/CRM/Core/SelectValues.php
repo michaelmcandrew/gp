@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -32,7 +32,7 @@
  * smart caching scheme on a per domain basis
  * 
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -179,7 +179,7 @@ class CRM_Core_SelectValues
                  ''             => ts('- select -'),
                  'start_date'   => ts('start date'),
                  'end_date'     => ts('end date'),
-                 'join_date'    => ts('join date')
+                 'join_date'    => ts('member since')
              );
         }
         return $eventDate;
@@ -259,12 +259,14 @@ class CRM_Core_SelectValues
                                         'Pledge'       => ts('Pledges'),
                                         'Grant'        => ts('Grants'),
                                         'Address'      => ts('Addresses'),
+                                        'Campaign'     => ts('Campaigns'),
                                         );
             $contactTypes = self::contactType( );
             unset( $contactTypes[''] ); 
             $contactTypes = !empty( $contactTypes ) ? array( 'Contact' => 'Contacts' ) 
                 + $contactTypes : array( );
-            $customGroupExtends = array_merge( $contactTypes, $customGroupExtends );
+            $extendObjs   = CRM_Core_OptionGroup::values( 'cg_extend_objects' );
+            $customGroupExtends = array_merge( $contactTypes, $customGroupExtends, $extendObjs );
         }
         return $customGroupExtends;
     }
@@ -511,7 +513,29 @@ class CRM_Core_SelectValues
                              '{domain.phone}'          => ts('Domain (organization) phone'),
                              '{domain.email}'          => ts('Domain (organization) email'),
                              '{mailing.name}'          => ts('Mailing name'),
-                             '{mailing.group}'         => ts('Mailing group')    
+                             '{mailing.group}'         => ts('Mailing group'),
+                             '{mailing.viewUrl}'	   => ts('Mailing permalink'),
+                          );
+        }
+        return $tokens;
+    }
+    
+    /**
+     * different type of Activity Tokens
+     *
+     * @static
+     * return array
+     */
+    static function &activityTokens( ) 
+    {
+        static $tokens = null;
+
+        if (! $tokens ) {
+            $tokens = array( 
+                            '{activity.activity_id}' => ts('Activity ID'),
+                            '{activity.subject}' => ts('Activity Subject'),
+                            '{activity.details}' => ts('Activity Details'),
+                            
                           );
         }
         return $tokens;
@@ -542,6 +566,8 @@ class CRM_Core_SelectValues
                                  );
             $customFields = array();
             $customFields = CRM_Core_BAO_CustomField::getFields('Individual');
+            $customFieldsAddress = CRM_Core_BAO_CustomField::getFields('Address');
+            $customFields = $customFields + $customFieldsAddress;
             
             foreach($values as $key => $val) {
                 if ( in_array($val, $skipTokens) ) {
@@ -549,7 +575,7 @@ class CRM_Core_SelectValues
                 } 
                 //keys for $tokens should be constant. $token Values are changed for Custom Fields. CRM-3734
                 if ( $customFieldId = CRM_Core_BAO_CustomField::getKeyID( $val ) ) {
-                    $tokens["{contact.$val}"] = $customFields[$customFieldId]['label']." :: ".$customFields[$customFieldId]['groupTitle'];
+                   $tokens["{contact.$val}"] =  CRM_Utils_Array::value($customFieldId, $customFields) ? $customFields[$customFieldId]['label']." :: ".$customFields[$customFieldId]['groupTitle'] : '';
                 } else {
                     $tokens["{contact.$val}"] = $exportFields[$val]['title'];
                 }
@@ -614,6 +640,7 @@ class CRM_Core_SelectValues
     static function getDatePluginInputFormats( ) {
         $dateInputFormats = array( 
                                   "mm/dd/yy"      => ts('mm/dd/yyyy (12/31/2009)'),
+                                  "dd/mm/yy"      => ts('dd/mm/yyyy (31/12/2009)'),
                                   "yy-mm-dd"      => ts('yyyy-mm-dd (2009-12-31)'),
                                   "dd-mm-yy"      => ts('dd-mm-yyyy (31-12-2009)'),
                                   'dd.mm.yy'      => ts('dd.mm.yyyy (31.12.2009)'),
@@ -626,7 +653,7 @@ class CRM_Core_SelectValues
                                   "dd-mm"         => ts('dd-mm (31-12)'),
                                   "yy-mm"         => ts('yyyy-mm (2009-12)'),
                                   'M yy'          => ts('M yyyy (Dec 2009)'),
-                                  "yy"            => ts('yyyy (2009)'),
+                                  "yy"            => ts('yyyy (2009)')   
                                    );
         
         /*
@@ -650,6 +677,7 @@ class CRM_Core_SelectValues
      */
     static function datePluginToPHPFormats( ) {
         $dateInputFormats = array( "mm/dd/yy"      => 'm/d/Y',
+                                   "dd/mm/yy"      => 'd/m/Y',
                                    "yy-mm-dd"      => 'Y-m-d',
                                    "dd-mm-yy"      => 'd-m-Y',
                                    "dd.mm.yy"      => 'd.m.Y',                                 
@@ -657,13 +685,12 @@ class CRM_Core_SelectValues
                                    "d M yy"        => 'j M Y',
                                    "MM d, yy"      => 'F j, Y',
                                    "d MM yy"       => 'j F Y',
-                                   "DD, d MM yy"   => 'l, j F Y',                                   
+                                   "DD, d MM yy"   => 'l, j F Y',                               
                                    "mm/dd"         => 'm/d',
                                    "dd-mm"         => 'd-m',
                                    "yy-mm"         => 'Y-m',
                                    "M yy"          => 'M Y',
-                                   "yy"            => 'Y',
-                                  
+                                   "yy"            => 'Y'
                                   );
         return $dateInputFormats;
     }

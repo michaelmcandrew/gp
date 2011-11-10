@@ -1,9 +1,9 @@
 <?php
 /*
 +--------------------------------------------------------------------+
-| CiviCRM version 3.2                                                |
+| CiviCRM version 3.4                                                |
 +--------------------------------------------------------------------+
-| Copyright CiviCRM LLC (c) 2004-2010                                |
+| Copyright CiviCRM LLC (c) 2004-2011                                |
 +--------------------------------------------------------------------+
 | This file is a part of CiviCRM.                                    |
 |                                                                    |
@@ -27,7 +27,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -79,7 +79,7 @@ class CRM_Core_DAO_CustomField extends CRM_Core_DAO
      * @var boolean
      * @static
      */
-    static $_log = false;
+    static $_log = true;
     /**
      * Unique Custom Field ID
      *
@@ -92,6 +92,12 @@ class CRM_Core_DAO_CustomField extends CRM_Core_DAO
      * @var int unsigned
      */
     public $custom_group_id;
+    /**
+     * Variable name/programmatic handle for this group.
+     *
+     * @var string
+     */
+    public $name;
     /**
      * Text for form field label (also friendly name for administering this custom property).
      *
@@ -195,15 +201,15 @@ class CRM_Core_DAO_CustomField extends CRM_Core_DAO
      */
     public $text_length;
     /**
-     * Date may be up to start_date_years years prior to tcurrent date
+     * Date may be up to start_date_years years prior to the current date.
      *
-     * @var int unsigned
+     * @var int
      */
     public $start_date_years;
     /**
-     * Date may be up to end_date_years years after to tcurrent date
+     * Date may be up to end_date_years years after the current date.
      *
-     * @var int unsigned
+     * @var int
      */
     public $end_date_years;
     /**
@@ -287,6 +293,13 @@ class CRM_Core_DAO_CustomField extends CRM_Core_DAO
                     'type' => CRM_Utils_Type::T_INT,
                     'required' => true,
                     'FKClassName' => 'CRM_Core_DAO_CustomGroup',
+                ) ,
+                'name' => array(
+                    'name' => 'name',
+                    'type' => CRM_Utils_Type::T_STRING,
+                    'title' => ts('Name') ,
+                    'maxlength' => 64,
+                    'size' => CRM_Utils_Type::BIG,
                 ) ,
                 'label' => array(
                     'name' => 'label',

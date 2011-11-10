@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -325,6 +325,34 @@ class CRM_Core_BAO_OptionValue extends CRM_Core_DAO_OptionValue
             return true;
         }
     }
+    
+    /**
+     * updates options values weights.
+     *
+     * @param int   $opGroupIde option group id.
+     * @param array $opWeights  options value , weight pair
+     *
+     * @return void
+     * @access public
+     * @static
+     */
+    static function updateOptionWeights( $opGroupId, $opWeights ) {
+        if ( !is_array($opWeights) || empty($opWeights) ) {
+            return;
+        }
+        
+        foreach( $opWeights as $opValue => $opWeight ) {
+            $optionValue = new CRM_Core_DAO_OptionValue( );
+            $optionValue->option_group_id = $opGroupId;
+            $optionValue->value = $opValue;
+            if ( $optionValue->find(true) ) {
+                $optionValue->weight = $opWeight;
+                $optionValue->save( );
+            }
+            $optionValue->free( ); 
+        }
+    }
+    
 }
 
 

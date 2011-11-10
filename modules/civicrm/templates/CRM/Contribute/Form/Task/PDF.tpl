@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,11 +29,21 @@
       {include file="CRM/Contribute/Form/Task.tpl"}
 </div>
 <div id="help">
-    {ts}You may choose to Email receipts to Contributers OR Download a PDF file containing one receipt per page to your computer when you click <strong>Process Receipt(s)</strong>. Your browser may display the file for you automatically, or you may need to open it for printing using any PDF reader (such as Adobe&reg; Reader).{/ts}
+    {ts}You may choose to Email receipts to Contributers OR Download a PDF file containing one receipt per page to your local computer by clicking <strong>Process Receipt(s)</strong>. Your browser may display the file for you automatically, or you may need to open it for printing using any PDF reader (such as Adobe&reg; Reader).{/ts}
 </div>
 
-  {$form.output.pdf_receipt.html}
-  {$form.output.email_receipt.html}
+<table class="form-layout-compressed">
+  <tr>
+    <td>{$form.output.email_receipt.html}</td>
+  </tr>
+  <tr>
+    <td>{$form.output.pdf_receipt.html}</td>
+  </tr>
+  <tr id="selectPdfFormat" style="display: none;">
+    <td>{$form.pdf_format_id.html} {$form.pdf_format_id.label} {help id="id-contribution-receipt" file="CRM/Contact/Form/Task/PDFLetterCommon.hlp"}</td>
+  </tr>
+</table>
+
 <div class="spacer"></div>
 <div class="form-item">
  {$form.buttons.html}

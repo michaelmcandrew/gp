@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -132,6 +132,12 @@ class CRM_Contribute_Form_AdditionalInfo
                             'objectExists', 
                             array( 'CRM_Contribute_DAO_Contribution', $form->_id, 'invoice_id' ) );
         }
+
+        $form->add('select', 'contribution_page_id', 
+                   ts( 'Online Contribution Page' ),
+                   array( '' => ts( '- select -' ) ) +
+                   CRM_Contribute_PseudoConstant::contributionPage( ) );
+        
         
         $form->add('textarea', 'note', ts('Notes'),array("rows"=>4,"cols"=>60) );
         
@@ -247,7 +253,9 @@ class CRM_Contribute_Form_AdditionalInfo
                          'net_amount',
                          'trxn_id',
                          'invoice_id',
-                         'honor_type_id'
+                         'campaign_id',
+                         'honor_type_id',
+                         'contribution_page_id'
                          );
         foreach ( $fields as $f ) {
             $formatted[$f] = CRM_Utils_Array::value( $f, $params );
@@ -307,12 +315,17 @@ class CRM_Contribute_Form_AdditionalInfo
             $paymentInstrument = CRM_Contribute_PseudoConstant::paymentInstrument( );
             $params['paidBy']  = $paymentInstrument[$params['payment_instrument_id']];
         }
+
         // retrieve individual prefix value for honoree
         if ( CRM_Utils_Array::value( 'hidden_Honoree', $params ) ) {
             $individualPrefix       = CRM_Core_PseudoConstant::individualPrefix();
             $honor                  = CRM_Core_PseudoConstant::honor( ); 
-            $params['honor_prefix'] = CRM_Utils_Array::value( $params['honor_prefix_id'], $individualPrefix );
-            $params["honor_type"]   = CRM_Utils_Array::value( $params["honor_type_id"], $honor );
+            $params['honor_prefix'] = CRM_Utils_Array::value(  CRM_Utils_Array::value( 'honor_prefix_id',
+                                                                                       $params ),
+                                                               $individualPrefix );
+            $params["honor_type"]   = CRM_Utils_Array::value( CRM_Utils_Array::value( 'honor_type_id',
+                                                                                      $params ),
+                                                              $honor );
         }
         
         // retrieve premium product name and assigned fulfilled
@@ -366,9 +379,6 @@ class CRM_Contribute_Form_AdditionalInfo
                            CRM_Utils_System::mungeCreditCard( $params['credit_card_number'] ) );
         } else {
             //offline contribution
-            //Retrieve the name and email from receipt is to be send
-            $params['receipt_from_name'] = $form->userDisplayName;
-            $params['receipt_from_email']= $form->userEmail;
             // assigned various dates to the templates
             $form->assign('receipt_date',  CRM_Utils_Date::processDate( $params['receipt_date'] ) );
             $form->assign('cancel_date',   CRM_Utils_Date::processDate( $params['cancel_date']  ) );
@@ -419,17 +429,13 @@ class CRM_Contribute_Form_AdditionalInfo
         $this->assign( 'currency', $params['currency']);
         $this->assign( 'receive_date',  CRM_Utils_Date::processDate( $params['receive_date'] ) );
 
-        $session  = CRM_Core_Session::singleton( );
-        $userID   = $session->get( 'userID' );
-        list( $userName, $userEmail ) = CRM_Contact_BAO_Contact_Location::getEmailDetails( $userID );
-
         require_once 'CRM/Core/BAO/MessageTemplates.php';
         list ($sendReceipt, $subject, $message, $html) = CRM_Core_BAO_MessageTemplates::sendTemplate(
             array(
                 'groupName' => 'msg_tpl_workflow_contribution',
                 'valueName' => 'contribution_offline_receipt',
                 'contactId' => $params['contact_id'],
-                'from'      => "$userName <$userEmail>",
+                'from'      => $params['from_email_address'],
                 'toName'    => $contributorDisplayName,
                 'toEmail'   => $contributorEmail,
                 'isTest'    => $form->_mode == 'test',

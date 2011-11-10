@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -58,7 +58,7 @@ class CRM_Core_Payment_PayPalProIPN extends CRM_Core_Payment_BaseIPN {
             }
 
             if ( $value == null && $abort ) {
-                echo "Failure: Missing Parameter<p>";
+                echo "Failure: Missing Parameter $name<p>";
                 exit( );
             } else {
                 return $value;
@@ -83,7 +83,6 @@ class CRM_Core_Payment_PayPalProIPN extends CRM_Core_Payment_BaseIPN {
 
     function recur( &$input, &$ids, &$objects, $first ) 
     {
-        
         if ( ! isset( $input['txnType'] ) ) {
             CRM_Core_Error::debug_log_message( "Could not find txn_type in input request" );
             echo "Failure: Invalid parameters<p>";
@@ -103,8 +102,8 @@ class CRM_Core_Payment_PayPalProIPN extends CRM_Core_Payment_BaseIPN {
         // make sure the invoice is valid and matches what we have in
         // the contribution record
         if ( $recur->invoice_id != $input['invoice'] ) {
-            CRM_Core_Error::debug_log_message( "Invoice values dont match between database and IPN request" );
-            echo "Failure: Invoice values dont match between database and IPN request<p>";
+            CRM_Core_Error::debug_log_message( "Invoice values dont match between database and IPN request recur is " . $recur->invoice_id . " input is " . $input['invoice']);
+            echo "Failure: Invoice values dont match between database and IPN request recur is " . $recur->invoice_id . " input is " . $input['invoice'];
             return false;
         }
         
@@ -178,10 +177,18 @@ class CRM_Core_Payment_PayPalProIPN extends CRM_Core_Payment_BaseIPN {
         $recur->save( );
 
         if ( $sendNotification ) {
+            $autoRenewMembership = false;
+            if ( $recur->id && 
+                 isset( $ids['membership'] ) && $ids['membership'] ) {
+                $autoRenewMembership = true;
+            }
             //send recurring Notification email for user
             require_once 'CRM/Contribute/BAO/ContributionPage.php';
-            CRM_Contribute_BAO_ContributionPage::recurringNofify( $subscriptionPaymentStatus, $ids['contact'], 
-                                                                  $ids['contributionPage'], $recur );
+            CRM_Contribute_BAO_ContributionPage::recurringNofify( $subscriptionPaymentStatus, 
+                                                                  $ids['contact'], 
+                                                                  $ids['contributionPage'], 
+                                                                  $recur,
+                                                                  $autoRenewMembership );
         }
 
         if ( $txnType != 'recurring_payment' ) {
@@ -215,7 +222,7 @@ class CRM_Core_Payment_PayPalProIPN extends CRM_Core_Payment_BaseIPN {
         if ( ( ! $recur ) || ( $recur && $first ) ) {
             if ( $contribution->invoice_id != $input['invoice'] ) {
                 CRM_Core_Error::debug_log_message( "Invoice values dont match between database and IPN request" );
-                echo "Failure: Invoice values dont match between database and IPN request<p>";
+                echo "Failure: Invoice values dont match between database and IPN request<p>contribution is" . $contribution->invoice_id  . " and input is " .$input['invoice']  ;
                 return false;
             }
         } else {
@@ -293,7 +300,21 @@ class CRM_Core_Payment_PayPalProIPN extends CRM_Core_Payment_BaseIPN {
             $ids['related_contact']     = self::retrieve('relatedContactID' , 'Integer', 'GET', false );
             $ids['onbehalf_dupe_alert'] = self::retrieve('onBehalfDupeAlert', 'Integer', 'GET', false );
         }
-        
+
+        if ( !$ids['membership'] && $ids['contributionRecur'] ) {
+            $sql = "
+    SELECT m.id 
+      FROM civicrm_membership m
+INNER JOIN civicrm_membership_payment mp ON m.id = mp.membership_id AND mp.contribution_id = %1
+     WHERE m.contribution_recur_id = %2
+     LIMIT 1";
+            $sqlParams = array( 1 => array( $ids['contribution'],      'Integer' ),
+                                2 => array( $ids['contributionRecur'], 'Integer' ) );
+            if ( $membershipId = CRM_Core_DAO::singleValueQuery( $sql, $sqlParams ) ) {
+                $ids['membership'] = $membershipId;
+            }
+        }
+
         if ( ! $this->validateData( $input, $ids, $objects ) ) {
             return false;
         }
@@ -342,7 +363,7 @@ class CRM_Core_Payment_PayPalProIPN extends CRM_Core_Payment_BaseIPN {
         }
         
         $input['is_test']    = self::retrieve( 'test_ipn'     , 'Integer', 'POST', false );
-        $input['fee_amount'] = self::retrieve( 'payment_fee'  , 'Money'  , 'POST', false );
+        $input['fee_amount'] = self::retrieve( 'mc_fee'       , 'Money'  , 'POST', false );
         $input['net_amount'] = self::retrieve( 'settle_amount', 'Money'  , 'POST', false );
         $input['trxn_id']    = self::retrieve( 'txn_id'       , 'String' , 'POST', false );
     }

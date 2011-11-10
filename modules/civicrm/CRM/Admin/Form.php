@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.1                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -50,6 +50,13 @@ class CRM_Admin_Form extends CRM_Core_Form
     protected $_id;
 
     /**
+     * The default values for form fields
+     *
+     * @var int
+     */
+    protected $_values;
+
+    /**
      * The name of the BAO object for this form
      *
      * @var string
@@ -59,6 +66,12 @@ class CRM_Admin_Form extends CRM_Core_Form
     function preProcess( ) {
         $this->_id      = $this->get( 'id'      );
         $this->_BAOName = $this->get( 'BAOName' );
+        $this->_values  = array( );
+        if ( isset( $this->_id ) ) {
+            $params = array( 'id' => $this->_id );
+            require_once( str_replace( '_', DIRECTORY_SEPARATOR, $this->_BAOName ) . ".php" );
+            eval( $this->_BAOName . '::retrieve( $params, $this->_values );' );
+        }
     }
 
     /**
@@ -69,15 +82,14 @@ class CRM_Admin_Form extends CRM_Core_Form
      * @return None
      */
     function setDefaultValues( ) {
-        $defaults = $params = array( );
-        $defaults['is_active'] = null;
-
-        if ( isset( $this->_id ) ) {
+        if ( isset( $this->_id ) && empty( $this->_values ) ) {
+            $this->_values = array( );
             $params = array( 'id' => $this->_id );
             require_once(str_replace('_', DIRECTORY_SEPARATOR, $this->_BAOName) . ".php");
-            eval( $this->_BAOName . '::retrieve( $params, $defaults );' );
+            eval( $this->_BAOName . '::retrieve( $params, $this->_values );' );
         }
-
+        $defaults = $this->_values;
+        
         if ( $this->_action == CRM_Core_Action::DELETE &&
              isset( $defaults['name'] ) ) {
             $this->assign( 'delName', $defaults['name'] );

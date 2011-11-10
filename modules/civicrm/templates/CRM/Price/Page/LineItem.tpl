@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,6 +23,7 @@
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
 *}
+
 {* Displays contribution/event fees when price set is used. *}
 {foreach from=$lineItem item=value key=priceset}
     {if $value neq 'skip'}
@@ -32,19 +33,27 @@
     {/if}				 
     <table>
             <tr class="columnheader">
-                <th>{ts}Item{/ts}</th>
-                <th class="right">{ts}Qty{/ts}</th>
-                <th class="right">{ts}Unit Price{/ts}</th>
-                <th class="right">{ts}Total Price{/ts}</th>
-	 {if $participantCount }<th class="right">{ts}Total Participants{/ts}</th>{/if} 
+		    <th>{ts}Item{/ts}</th>
+	    	{if $context EQ "Membership"}	
+		    <th class="right">{ts}Fee{/ts}</th>
+                {else}
+		    <th class="right">{ts}Qty{/ts}</th>
+                    <th class="right">{ts}Unit Price{/ts}</th>
+		    <th class="right">{ts}Total Price{/ts}</th>
+		{/if}
+                
+	 	{if $pricesetFieldsCount}
+		    <th class="right">{ts}Total Participants{/ts}</th>{/if} 
             </tr>
-                {foreach from=$value item=line}
+            {foreach from=$value item=line}
             <tr>
-                <td>{$line.description}</td>
-                <td class="right">{$line.qty}</td>
-                <td class="right">{$line.unit_price|crmMoney}</td>
+                <td>{if $line.html_type eq 'Text'}{$line.label}{else}{$line.field_title} - {$line.label}{/if} {if $line.description}<div class="description">{$line.description}</div>{/if}</td>
+		{if $context NEQ "Membership"}
+		    <td class="right">{$line.qty}</td>
+                    <td class="right">{$line.unit_price|crmMoney}</td>
+		{/if}
                 <td class="right">{$line.line_total|crmMoney}</td>
-         {if $participantCount }<td class="right">{$line.participant_count}</td> {/if}
+         	{if $pricesetFieldsCount}<td class="right">{$line.participant_count}</td> {/if}
             </tr>
             {/foreach}
     </table>
@@ -57,16 +66,28 @@
             {ts}Contribution Total{/ts}:
         {elseif $context EQ "Event"}
             {ts}Event Total{/ts}: 
+ 	{elseif $context EQ "Membership"}
+            {ts}Membership Fee Total{/ts}: 
+        {else}
+            {ts}Total Amount{/ts}: 
         {/if}
     {$totalAmount|crmMoney}
     </div>
     <div class="content bold">
-      {if $participantCount}
+      {if $pricesetFieldsCount}
       {ts}Total Participants{/ts}:
       {foreach from=$lineItem item=pcount}
-      {foreach from=$pcount item=p_count}
-      {assign var="totalcount" value=$totalcount+$p_count.participant_count}
-      {/foreach}
+        {if $pcount neq 'skip'}
+        {assign var="lineItemCount" value=0}
+	
+        {foreach from=$pcount item=p_count}
+          {assign var="lineItemCount" value=$lineItemCount+$p_count.participant_count}
+        {/foreach}
+        {if $lineItemCount < 1 }
+      	  {assign var="lineItemCount" value=1}
+        {/if}
+        {assign var="totalcount" value=$totalcount+$lineItemCount}
+        {/if} 
       {/foreach}
       {$totalcount}
       {/if}

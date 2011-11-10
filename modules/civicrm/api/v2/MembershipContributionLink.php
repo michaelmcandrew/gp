@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -33,8 +33,8 @@
  * @package CiviCRM_APIv2
  * @subpackage API_Membership
  * 
- * @copyright CiviCRM LLC (c) 2004-2010
- * @version $Id: MembershipContributionLink.php 28934 2010-07-28 18:44:12Z mover $
+ * @copyright CiviCRM LLC (c) 2004-2011
+ * @version $Id: MembershipContributionLink.php 32998 2011-03-14 22:00:35Z kurund $
  */
 
 /**

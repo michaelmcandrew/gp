@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -82,7 +82,7 @@ class CRM_Contribute_Form_ManagePremiums extends CRM_Contribute_Form
                 $this->assign('imageURL',$tempDefaults['image']);
             }
             if ( isset ($tempDefaults['period_type'] )  ) {
-                $this->assign("showSubscriptions" , true );
+                $this->assign('showSubscriptions' , true );
             }
             
         }
@@ -204,10 +204,10 @@ class CRM_Contribute_Form_ManagePremiums extends CRM_Contribute_Form
         if ( isset ( $params['imageOption'] ) ) {
             if ( $params['imageOption'] == 'thumbnail' ) {
                 if ( ! $params['imageUrl']) {
-                    $errors ['imageUrl']= "Image URL is Reqiured ";
+                    $errors ['imageUrl']= 'Image URL is Required ';
                 }
                 if ( ! $params['thumbnailUrl']) {
-                    $errors ['thumbnailUrl']= "Thumbnail URL is Reqiured ";
+                    $errors ['thumbnailUrl']= 'Thumbnail URL is Required ';
                 }
             }
         }
@@ -292,15 +292,9 @@ class CRM_Contribute_Form_ManagePremiums extends CRM_Contribute_Form
                         // to check wether GD is installed or not
                         require_once 'CRM/Utils/System.php';
                         $gdSupport  = CRM_Utils_System::getModuleSetting( 'gd', 'GD Support');
-                        $jpgSupport = CRM_Utils_System::getModuleSetting( 'gd', 'JPG Support');
-                        $gifSupport = CRM_Utils_System::getModuleSetting( 'gd', 'GIF Read Support');
-                        $pngSupport = CRM_Utils_System::getModuleSetting( 'gd', 'PNG Support');
                         $error      = false; 
 
-                        if ( $gdSupport  == 'enabled' &&
-                             $jpgSupport == 'enabled' &&
-                             $gifSupport == 'enabled' &&
-                             $pngSupport == 'enabled' ) {
+                        if ( $gdSupport  == 'enabled' ) {
                             list($width_orig, $height_orig) = getimagesize($imageFile);
                             $imageInfo = getimagesize($imageFile);
                             $width_orig . "<br>";

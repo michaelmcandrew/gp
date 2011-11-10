@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -53,6 +53,17 @@ class CRM_Dedupe_Merger
     static function &relTables()
     {
         static $relTables;
+        
+        $config = CRM_Core_Config::singleton( );
+        if ( $config->userFramework == 'Drupal' ) {
+            $userRecordUrl = CRM_Utils_System::url( 'user/$ufid' );
+            $title = ts('%1 User: %2; user id: %3', array(1 => $config->userFramework, 2 => '$ufname', 3 => '$ufid'));
+        } else if ( $config->userFramework == 'Joomla' ) {
+            $userRecordUrl = $config->userFrameworkBaseURL . 
+                'index2.php?option=com_users&view=user&task=edit&cid[]=$ufid';
+            $title = ts('%1 User: %2; user id: %3', array(1 => $config->userFramework, 2 => '$ufname', 3 => '$ufid'));
+        }
+
         if (!$relTables) {
             $relTables = array(
                 'rel_table_contributions' => array(
@@ -125,6 +136,11 @@ class CRM_Dedupe_Merger
                     'tables' => array('civicrm_case_contact'),
                     'url'    => CRM_Utils_System::url('civicrm/contact/view', 'reset=1&force=1&cid=$cid&selectedChild=case'),
                 ),
+                'rel_table_grants' => array(
+                    'title'  => ts('Grants'),
+                    'tables' => array('civicrm_grant'),
+                    'url'    => CRM_Utils_System::url('civicrm/contact/view', 'reset=1&force=1&cid=$cid&selectedChild=grant'),
+                ),
                 'rel_table_pcp' => array(
                     'title'  => ts('PCPs'),
                     'tables' => array('civicrm_pcp'),
@@ -135,7 +151,13 @@ class CRM_Dedupe_Merger
                     'title'  => ts('Pledges'),
                     'tables' => array('civicrm_pledge', 'civicrm_pledge_payment' ),
                     'url'    => CRM_Utils_System::url('civicrm/contact/view', 'reset=1&force=1&cid=$cid&selectedChild=pledge'),
-                )
+                ),
+
+                'rel_table_users' => array(
+                    'title'  => $title,
+                    'tables' => array('civicrm_uf_match'),
+                    'url'    => $userRecordUrl,
+                ),
             );
 
             // Allow hook_civicrm_merge() to adjust $relTables
@@ -325,15 +347,55 @@ INNER JOIN  civicrm_participant participant ON ( participant.id = payment.partic
      WHERE  participant.contact_id = $otherContactId";
             break;
         }
-        
+
         return $sqls;
     }
     
+    static function operationSql( $mainId, $otherId, $tableName, $tableOperations = array(), $mode = 'add' )
+    {
+        $sqls = array( );
+        if ( !$tableName || !$mainId || !$otherId ) {
+            return $sqls;
+        }
+
+
+        switch ( $tableName ) {
+        case 'civicrm_membership' :
+            if ( array_key_exists($tableName, $tableOperations) && $tableOperations[$tableName]['add'] ) 
+                break;
+            if ( $mode == 'add' ) {
+                $sqls[] = "
+DELETE membership1.* FROM civicrm_membership membership1
+ INNER JOIN  civicrm_membership membership2 ON membership1.membership_type_id = membership2.membership_type_id 
+             AND membership1.contact_id = {$mainId} 
+             AND membership2.contact_id = {$otherId} ";
+            }
+            if ( $mode == 'payment' ) {
+                $sqls[] = "
+DELETE contribution.* FROM civicrm_contribution contribution 
+INNER JOIN  civicrm_membership_payment payment ON payment.contribution_id = contribution.id
+INNER JOIN  civicrm_membership membership1 ON membership1.id = payment.membership_id
+            AND membership1.contact_id = {$mainId}
+INNER JOIN  civicrm_membership membership2 ON membership1.membership_type_id = membership2.membership_type_id
+            AND membership2.contact_id = {$otherId}";
+            }
+            break;
+
+        case 'civicrm_uf_match' :
+            // normal queries won't work for uf_match since that will lead to violation of unique constraint,
+            // failing to meet intended result. Therefore we introduce this additonal query:
+            $sqls[] = "DELETE FROM civicrm_uf_match WHERE contact_id = {$mainId}";
+            break;
+        }
+
+        return $sqls;
+    }
+
     /**
      * Based on the provided two contact_ids and a set of tables, move the 
      * belongings of the other contact to the main one.
      */
-    function moveContactBelongings($mainId, $otherId, $tables = false)
+    function moveContactBelongings($mainId, $otherId, $tables = false, $tableOperations = array())
     {
         $cidRefs       = self::cidRefs( );
         $eidRefs       = self::eidRefs( );
@@ -376,10 +438,16 @@ INNER JOIN  civicrm_participant participant ON ( participant.id = payment.partic
                 foreach ($cidRefs[$table] as $field) {
                     // carry related contributions CRM-5359
                     if ( in_array( $table, $paymentTables ) ) {
+                        $payOprSqls = self::operationSql( $mainId, $otherId, $table, $tableOperations, 'payment' );
+                        $sqls = array_merge( $sqls, $payOprSqls ); 
+
                         $paymentSqls = self::paymentSql( $table, $mainId, $otherId ); 
                         $sqls = array_merge( $sqls, $paymentSqls ); 
                     }
-                    
+
+                    $preOperationSqls = self::operationSql( $mainId, $otherId, $table, $tableOperations );
+                    $sqls = array_merge( $sqls, $preOperationSqls ); 
+
                     $sqls[] = "UPDATE IGNORE $table SET $field = $mainId WHERE $field = $otherId";
                     $sqls[] = "DELETE FROM $table WHERE $field = $otherId";
                 }
@@ -416,15 +484,14 @@ INNER JOIN  civicrm_participant participant ON ( participant.id = payment.partic
      */
     function findDifferences($mainId, $otherId)
     {
-        require_once 'api/v2/Contact.php';
-        $mainParams  = array('contact_id' => (int) $mainId);
-        $otherParams = array('contact_id' => (int) $otherId);
+        $mainParams  = array('contact_id' => (int) $mainId,  'version' => 2);
+        $otherParams = array('contact_id' => (int) $otherId, 'version' => 2);
         // API 2 has to have the requested fields spelt-out for it
         foreach (self::$validFields as $field) {
             $mainParams["return.$field"] = $otherParams["return.$field"] = 1;
         }
-        $main  =& civicrm_contact_get($mainParams);
-        $other =& civicrm_contact_get($otherParams);
+        $main  =& civicrm_api('contact', 'get', $mainParams);
+        $other =& civicrm_api('contact', 'get', $otherParams);
         
         //CRM-4524
         $main  = reset( $main );

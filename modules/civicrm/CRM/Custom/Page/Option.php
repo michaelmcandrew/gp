@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -136,7 +136,7 @@ class CRM_Custom_Page_Option extends CRM_Core_Page {
         } else {
             CRM_Core_Error::fatal( );
         }
-        $defVal = explode(CRM_Core_BAO_CustomOption::VALUE_SEPERATOR,
+        $defVal = explode(CRM_Core_DAO::VALUE_SEPARATOR,
                           substr( $defaultValue, 1, -1 ) );
 
         // get the option group id
@@ -214,14 +214,14 @@ ORDER BY weight, label
         }
         
         // Add order changing widget to selector
-        $returnURL = CRM_Utils_System::url( 'civicrm/admin/custom/group/field/option', "reset=1&action=browse&gid={$this->_gid}&fid={$this->_fid}" );
+        $returnURL = CRM_Utils_System::url( 'civicrm/admin/custom/group/field/option', 
+                                            "reset=1&action=browse&gid={$this->_gid}&fid={$this->_fid}" );
         $filter    = "option_group_id = {$optionGroupID}";
         require_once 'CRM/Utils/Weight.php';
         CRM_Utils_Weight::addOrder( $customOption, 'CRM_Core_DAO_OptionValue',
                                     'id', $returnURL, $filter );
         $this->assign('customOption', $customOption);
     }
-
 
     /**
      * edit custom Option.
@@ -240,13 +240,13 @@ ORDER BY weight, label
 
         // set the userContext stack
         $session = CRM_Core_Session::singleton();
-        $session->pushUserContext(CRM_Utils_System::url('civicrm/admin/custom/group/field/option', "reset=1&action=browse&fid={$this->_fid}&gid={$this->_gid}"));
+        $session->pushUserContext(CRM_Utils_System::url( 'civicrm/admin/custom/group/field/option', 
+                                                         "reset=1&action=browse&fid={$this->_fid}&gid={$this->_gid}"));
         $controller->setEmbedded(true);
         $controller->process();
         $controller->run();
         $this->browse();
     }
-
 
     /**
      * Run the page.

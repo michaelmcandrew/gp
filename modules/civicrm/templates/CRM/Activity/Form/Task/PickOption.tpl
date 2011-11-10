@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -38,7 +38,7 @@
         <td>{$form.assigned_to.html}</td>
       </tr>
       <tr  class="crm-pick-option-form-block-created_by">
-        <td class="label"{$form.created_by.label}</td>
+        <td class="label">{$form.created_by.label}</td>
         <td>{$form.created_by.html}</td>
      </tr>
      <tr>

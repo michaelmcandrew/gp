@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -45,23 +45,36 @@ class CRM_Member_Page_AJAX
     function getMemberTypeDefaults( $config ) 
     {
         require_once 'CRM/Utils/Type.php';
+        if (!$_POST['mtype']) {
+            $details['name'] = '';
+            $details['auto_renew'] = '';
+            $details['total_amount'] = '';
+            
+            echo json_encode( $details );
+            CRM_Utils_System::civiExit( );
+        }
         $memType  = CRM_Utils_Type::escape( $_POST['mtype'], 'Integer') ; 
         
-        $contributionType = CRM_Core_DAO::getFieldValue( 'CRM_Member_DAO_MembershipType', 
-                                                         $memType, 
-                                                         'contribution_type_id' );
+
+
+        $query = "SELECT name, minimum_fee AS total_amount, contribution_type_id, auto_renew 
+FROM    civicrm_membership_type
+WHERE   id = %1";
         
-        $totalAmount = CRM_Core_DAO::getFieldValue( 'CRM_Member_DAO_MembershipType', 
-                                                    $memType, 
-                                                    'minimum_fee' );
+        $dao = CRM_Core_DAO::executeQuery( $query, array( 1 => array( $memType, 'Positive' ) ) );
+        $properties = array( 'contribution_type_id', 'total_amount', 'name', 'auto_renew' );
+        while ( $dao->fetch( ) ) {
+            foreach ( $properties as $property ) {
+                $details[$property] = $dao->$property;
+            }
+        }
 
         // fix the display of the monetary value, CRM-4038
         require_once 'CRM/Utils/Money.php';
-        $totalAmount = CRM_Utils_Money::format( $totalAmount, null, '%a' );
-        
-        $details = array( 'contribution_type_id' => $contributionType,
-                          'total_amount'         => $totalAmount );                                         
-        
+        $details['total_amount'] = CRM_Utils_Money::format( $details['total_amount'], null, '%a' );
+                
+        $options = array( ts('No auto-renew option'), ts('Give option, but not required'), ts('Auto-renew required ') );
+        $details['auto_renew'] = $options[$details['auto_renew']];
         echo json_encode( $details );
         CRM_Utils_System::civiExit( );
     }

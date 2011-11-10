@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -175,6 +175,9 @@ class CRM_Pledge_Form_Pledge extends CRM_Core_Form
         //get the pledge frequency units.
         require_once 'CRM/Core/OptionGroup.php';
         $this->_freqUnits = CRM_Core_OptionGroup::values("recur_frequency_units");
+
+        require_once "CRM/Core/BAO/Email.php";
+        $this->_fromEmails = CRM_Core_BAO_Email::getFromEmail( );
     }
     
     /**
@@ -238,16 +241,24 @@ class CRM_Pledge_Form_Pledge extends CRM_Core_Form
             $defaults['contribution_type_id']    = array_search( 'Donation', CRM_Contribute_PseudoConstant::contributionType() );
         }
         
+        $pledgeStatus      = CRM_Contribute_PseudoConstant::contributionStatus( );
+        $pledgeStatusNames = CRM_Core_OptionGroup::values( 'contribution_status', 
+                                                           false, false, false, null, 'name', true );
+        // get default status label (pending)
+        $defaultPledgeStatus = CRM_Utils_Array::value( array_search( 'Pending', $pledgeStatusNames ),
+                                                       $pledgeStatus );
+
         //assign status.
         $this->assign( 'status', CRM_Utils_Array::value( CRM_Utils_Array::value( 'status_id', $this->_values ),
-                                                         CRM_Contribute_PseudoConstant::contributionStatus( ),
-                                                         'Pending' ) );
+                                                         $pledgeStatus,
+                                                         $defaultPledgeStatus ) );
+        
         //honoree contact.
         if ( $this->_honorID ) {
             require_once 'CRM/Contact/BAO/Contact.php';
             $honorDefault = array();
             $idParams = array( 'contact_id' => $this->_honorID );
-            CRM_Contact_BAO_Contact::retrieve( $idParams, $honorDefault, $ids );
+            CRM_Contact_BAO_Contact::retrieve( $idParams, $honorDefault );
             $honorType = CRM_Core_PseudoConstant::honor( );   
             $defaults["honor_prefix_id"]  = $honorDefault["prefix_id"];
             $defaults["honor_first_name"] = CRM_Utils_Array::value( "first_name", $honorDefault );
@@ -401,7 +412,10 @@ class CRM_Pledge_Form_Pledge extends CRM_Core_Form
         if ( CRM_Utils_Array::value('status_id', $this->_values) != 
              array_search( 'Cancelled', CRM_Contribute_PseudoConstant::contributionStatus( null, 'name' ) ) ) { 
             
-            $this->addElement('checkbox','is_acknowledge', ts('Send Acknowledgment?'),null, array('onclick' =>"return showHideByValue('is_acknowledge','','acknowledgeDate','table-row','radio',true);") );
+            $this->addElement( 'checkbox', 'is_acknowledge', ts('Send Acknowledgment?'), null, 
+                               array( 'onclick' => "showHideByValue( 'is_acknowledge', '', 'acknowledgeDate', 'table-row', 'radio', true); showHideByValue( 'is_acknowledge', '', 'fromEmail', 'table-row', 'radio', false );" ) );
+
+            $this->add( 'select', 'from_email_address', ts('Receipt From'), $this->_fromEmails );
         }
 
         $this->addDate( 'acknowledge_date', ts('Acknowledgment Date') );
@@ -410,6 +424,11 @@ class CRM_Pledge_Form_Pledge extends CRM_Core_Form
                    ts( 'Contribution Type' ), 
                    array(''=>ts( '- select -' )) + CRM_Contribute_PseudoConstant::contributionType( ),
                    true );
+
+        //CRM-7362 --add campaigns.
+        require_once 'CRM/Campaign/BAO/Campaign.php';
+        CRM_Campaign_BAO_Campaign::addCampaign( $this, CRM_Utils_Array::value( 'campaign_id', $this->_values ) );
+        
         $pageIds = array( );
         CRM_Core_DAO::commonRetrieveAll( 'CRM_Pledge_DAO_PledgeBlock', 'entity_table', 
                                          'civicrm_contribution_page', $pageIds, array( 'entity_id' ) );
@@ -467,8 +486,8 @@ class CRM_Pledge_Form_Pledge extends CRM_Core_Form
         $errors = array( );
 
         //check if contact is selected in standalone mode
-        if ( isset( $fields['contact_select_id'] ) && !$fields['contact_select_id'] ) {
-            $errors['contact'] = ts('Please select a valid contact or create new contact');
+        if ( isset( $fields['contact_select_id'][1] ) && !$fields['contact_select_id'][1] ) {
+            $errors['contact[1]'] = ts('Please select a contact or create new contact');
         }
         
         if ( isset( $fields["honor_type_id"] ) ) {
@@ -517,7 +536,7 @@ class CRM_Pledge_Form_Pledge extends CRM_Core_Form
         
         // set the contact, when contact is selected
         if ( CRM_Utils_Array::value('contact_select_id', $formValues ) ) {
-            $this->_contactID = CRM_Utils_Array::value('contact_select_id', $formValues);
+            $this->_contactID = $formValues['contact_select_id'][1];
         }
         
         $config  = CRM_Core_Config::singleton( );
@@ -540,7 +559,8 @@ class CRM_Pledge_Form_Pledge extends CRM_Core_Form
                          'honor_first_name',
                          'honor_last_name',
                          'honor_email',
-                         'contribution_page_id'
+                         'contribution_page_id',
+                         'campaign_id'
                          );
         foreach ( $fields as $f ) {
             $params[$f] = CRM_Utils_Array::value( $f, $formValues );
@@ -638,6 +658,9 @@ class CRM_Pledge_Form_Pledge extends CRM_Core_Form
             $params['acknowledge_date'] = $pledge->acknowledge_date;
             $params['is_test'] = $pledge->is_test;
             
+            // retrieve 'from email id' for acknowledgement
+            $params['from_email_id'] = $formValues['from_email_address'];
+                        
             $this->paymentId = null;
             //send Acknowledgment mail.
             require_once 'CRM/Pledge/BAO/Pledge.php';

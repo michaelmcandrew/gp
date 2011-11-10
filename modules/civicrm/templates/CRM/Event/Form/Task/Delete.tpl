@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -35,6 +35,9 @@
         <p>{include file="CRM/Event/Form/Task.tpl"}</p>
   </div>
 </div>
+{if $additionalParticipants}
+    {$form.delete_participant.html}
+{/if}
 <p>
 <div class="crm-submit-buttons">
  {include file="CRM/common/formButtons.tpl" location="bottom"}

@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -87,22 +87,36 @@ class CRM_Contribute_Form_ContributionPage_Amount extends CRM_Contribute_Form_Co
 
         $this->addGroup( $default, 'default' );
         
-        
         $this->addElement('checkbox', 'amount_block_is_active', ts('Contribution Amounts section enabled'), null, array( 'onclick' => "showHideAmountBlock( this, 'amount_block_is_active' );" ) );
 
         $this->addElement('checkbox', 'is_monetary', ts('Execute real-time monetary transactions') );
         
         $paymentProcessor =& CRM_Core_PseudoConstant::paymentProcessor( );
+        $recurringPaymentProcessor = array( );
+
+        if ( !empty( $paymentProcessor ) ) {
+            $paymentProcessorIds = implode( ',', array_keys( $paymentProcessor ) );
+            $query = "
+SELECT id
+  FROM civicrm_payment_processor
+ WHERE id IN ({$paymentProcessorIds})
+   AND is_recur = 1";
+            $dao =& CRM_Core_DAO::executeQuery( $query );
+            while ( $dao->fetch( ) ) {
+                $recurringPaymentProcessor[] = $dao->id;
+            } 
+        }
+        $this->assign( 'recurringPaymentProcessor', $recurringPaymentProcessor );
         if ( count($paymentProcessor) ) {
             $this->assign('paymentProcessor',$paymentProcessor);
         }
         $this->add( 'select', 'payment_processor_id', ts( 'Payment Processor' ),
-                    array(''=>ts( '- select -' )) + $paymentProcessor );
+                    array(''=>ts( '- select -' )) + $paymentProcessor, null, array( 'onchange' => "showRecurring( this.value );" ) );
         
-        require_once "CRM/Contribute/BAO/ContributionPage.php";
+        require_once 'CRM/Contribute/BAO/ContributionPage.php';
         
         //check if selected payment processor supports recurring payment
-        if ( CRM_Contribute_BAO_ContributionPage::checkRecurPaymentProcessor( $this->_id ) ) {
+        if ( !empty( $recurringPaymentProcessor ) ) {
             $this->addElement( 'checkbox', 'is_recur', ts('Recurring contributions'), null, 
                                array('onclick' => "showHideByValue('is_recur',true,'recurFields','table-row','radio',false); showRecurInterval( );") );
             require_once 'CRM/Core/OptionGroup.php';
@@ -142,7 +156,7 @@ class CRM_Contribute_Form_ContributionPage_Amount extends CRM_Contribute_Form_Co
             $this->addElement( 'checkbox', 'is_pledge_active', ts('Pledges') , 
                                null, array('onclick' => "showHideAmountBlock( this, 'is_pledge_active' ); return showHideByValue('is_pledge_active',true,'pledgeFields','table-row','radio',false);") );
             $this->addCheckBox( 'pledge_frequency_unit', ts( 'Supported pledge frequencies' ), 
-                                CRM_Core_OptionGroup::values( "recur_frequency_units", false, false, false, null, 'name' ),
+                                CRM_Core_OptionGroup::values( 'recur_frequency_units', false, false, false, null, 'name' ),
                                 null, null, null, null,
                                 array( '&nbsp;&nbsp;', '&nbsp;&nbsp;', '&nbsp;&nbsp;', '<br/>' ));
             $this->addElement( 'checkbox', 'is_pledge_interval', ts('Allow frequency intervals') );
@@ -150,6 +164,9 @@ class CRM_Contribute_Form_ContributionPage_Amount extends CRM_Contribute_Form_Co
             $this->addElement( 'text', 'max_reminders', ts('Send up to'), array('size'=>3) );
             $this->addElement( 'text', 'additional_reminder_day', ts('Send additional reminders'), array('size'=>3) );
         }
+        
+        //add currency element.
+        $this->addCurrency( 'currency', ts( 'Currency' ) );
         
         $this->addFormRule( array( 'CRM_Contribute_Form_ContributionPage_Amount', 'formRule' ), $this );
         
@@ -234,6 +251,33 @@ class CRM_Contribute_Form_ContributionPage_Amount extends CRM_Contribute_Form_Co
     {  
         $errors = array( );
 
+        //as for separate membership payment we has to have
+        //contribution amount section enabled, hence to disable it need to
+        //check if separate membership payment enabled, 
+        //if so disable first separate membership payment option  
+        //then disable contribution amount section. CRM-3801,
+        
+        require_once 'CRM/Member/DAO/MembershipBlock.php';
+        $membershipBlock = new CRM_Member_DAO_MembershipBlock( );
+        $membershipBlock->entity_table = 'civicrm_contribution_page';
+        $membershipBlock->entity_id = $self->_id;
+        $membershipBlock->is_active = 1;
+        $hasMembershipBlk = false;
+        if ( $membershipBlock->find( true ) ) {
+            if ( CRM_Utils_Array::value('amount_block_is_active', $fields) &&
+                 ($setID = CRM_Price_BAO_Set::getFor('civicrm_contribution_page',  $self->_id)) ) {
+                $extends = CRM_Core_DAO::getFieldValue( 'CRM_Price_DAO_Set', $setID, 'extends' );
+                if ( $extends && $extends == CRM_Core_Component::getComponentID( 'CiviMember' ) ) {
+                    $errors['amount_block_is_active'] = ts( 'You cannot use a Membership Price Set when the Contribution Amounts section is enabled. Click the Memberships tab above, and select your Membership Price Set on that form. Membership Price Sets may include additional fields for non-membership options that require an additional fee (e.g. magazine subscription) or an additional voluntary contribution.' );
+                    return $errors;
+                }
+            }
+            $hasMembershipBlk = true;
+            if ( $membershipBlock->is_separate_payment && !$fields['amount_block_is_active'] ) {
+                $errors['amount_block_is_active'] = ts( 'To disable Contribution Amounts section you need to first disable Separate Membership Payment option from Membership Settings.' );
+            }
+        }
+
         $minAmount = CRM_Utils_Array::value( 'min_amount', $fields );
         $maxAmount = CRM_Utils_Array::value( 'max_amount', $fields );
         if ( ! empty( $minAmount) && ! empty( $maxAmount ) ) {
@@ -251,32 +295,13 @@ class CRM_Contribute_Form_ContributionPage_Amount extends CRM_Contribute_Form_Co
             if ( empty( $fields['pay_later_receipt'] ) ) {
                 $errors['pay_later_receipt'] = ts( 'Please enter the instructions to be sent to the contributor when they choose to \'pay later\'.' );
             }
-        }
-        
-        //as for separate membership payment we has to have
-        //contribution amount section enabled, hence to disable it need to
-        //check if separate membership payment enabled, 
-        //if so disable first separate membership payment option  
-        //then disable contribution amount section. CRM-3801,
-        
-        require_once 'CRM/Member/DAO/MembershipBlock.php';
-        $membershipBlock = new CRM_Member_DAO_MembershipBlock( );
-        $membershipBlock->entity_table = 'civicrm_contribution_page';
-        $membershipBlock->entity_id = $self->_id;
-        $membershipBlock->is_active = 1;
-        $hasMembershipBlk = false;
-        if ( $membershipBlock->find( true ) ) {
-            $hasMembershipBlk = true;
-            if ( $membershipBlock->is_separate_payment && !$fields['amount_block_is_active'] ) {
-                $errors['amount_block_is_active'] = ts( 'To disable Contribution Amounts section you need to first disable Separate Membership Payment option from Membership Settings.' );
-            }
-        }
+        }      
         
         // don't allow price set w/ membership signup, CRM-5095
         if ( $priceSetId = CRM_Utils_Array::value( 'price_set_id', $fields ) ) {
             // don't allow price set w/ membership.
             if ( $hasMembershipBlk ) {
-                $errors['price_set_id'] = ts( 'You cannot enable both Price Set and Membership Signup on the same online contribution page.' );  
+                $errors['price_set_id'] = ts( 'You cannot enable both a Contribution Price Set and Membership Signup on the same online contribution page.' );  
             }
         } else {
             if ( isset( $fields['is_recur'] ) ) {
@@ -316,6 +341,15 @@ class CRM_Contribute_Form_ContributionPage_Amount extends CRM_Contribute_Form_Co
                 }
             }
         }
+
+        if ( CRM_Utils_Array::value( 'is_recur_interval', $fields ) ) {
+            $paymentProcessorType = CRM_Core_DAO::getFieldValue( 'CRM_Core_DAO_PaymentProcessor', 
+                                                                 $fields['payment_processor_id'], 
+                                                                 'payment_processor_type' );
+            if ( $paymentProcessorType == 'Google_Checkout' ) {
+                $errors['is_recur_interval'] = ts( 'Google Checkout does not support recurring intervals' );
+            }
+        }
       
         return $errors;
     }
@@ -331,6 +365,11 @@ class CRM_Contribute_Form_ContributionPage_Amount extends CRM_Contribute_Form_Co
         // get the submitted form values.
         $params = $this->controller->exportValues( $this->_name );
        
+        if ( CRM_Utils_Array::value( 'payment_processor_id', $params) == 
+             CRM_Core_DAO::getFieldValue( 'CRM_Core_DAO_PaymentProcessor', 'AuthNet', 
+                                          'id', 'payment_processor_type') ) {
+            CRM_Core_Session::setStatus( ts( ' Please note that the Authorize.net payment processor only allows recurring contributions and auto-renew memberships with payment intervals from 7-365 days or 1-12 months (i.e. not greater than 1 year).' ) );
+        }
         // check for price set.
         $priceSetID = CRM_Utils_Array::value( 'price_set_id', $params );
         
@@ -370,7 +409,7 @@ class CRM_Contribute_Form_ContributionPage_Amount extends CRM_Contribute_Form_Co
         if ( $params['is_recur'] ) {
             require_once 'CRM/Core/BAO/CustomOption.php';
             $params['recur_frequency_unit'] = 
-                implode( CRM_Core_BAO_CustomOption::VALUE_SEPERATOR, 
+                implode( CRM_Core_DAO::VALUE_SEPARATOR,
                          array_keys( $params['recur_frequency_unit'] ) );
             $params['is_recur_interval'] = CRM_Utils_Array::value( 'is_recur_interval', $params ,false );
         }
@@ -461,6 +500,7 @@ class CRM_Contribute_Form_ContributionPage_Amount extends CRM_Contribute_Form_Co
                 CRM_Core_OptionGroup::deleteAssoc( "civicrm_contribution_page.amount.{$contributionPageID}" );
             }
         }
+        parent::endPostProcess( );
     }
     
     /** 

@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -30,8 +30,9 @@
  *
  * APIv2 functions for registering/processing mailer events.
  *
- * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @package CiviCRM_APIv2
+ * @subpackage API_Mailer
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -183,8 +184,9 @@ function civicrm_mailer_event_subscribe($params)
         return $errors;
     }
           
-    $email    = $params['email']; 
-    $group_id = $params['group_id']; 
+    $email      = $params['email']; 
+    $group_id   = $params['group_id']; 
+    $contact_id = CRM_Utils_Array::value('contact_id', $params);
     
     $group = new CRM_Contact_DAO_Group();
     $group->is_active = 1;
@@ -193,7 +195,7 @@ function civicrm_mailer_event_subscribe($params)
         return civicrm_create_error( ts( 'Invalid Group id' ) );
     }
         
-    $subscribe =& CRM_Mailing_Event_BAO_Subscribe::subscribe($group_id, $email);
+    $subscribe =& CRM_Mailing_Event_BAO_Subscribe::subscribe($group_id, $email, $contact_id);
 
     if ($subscribe !== null) {
         /* Ask the contact for confirmation */
@@ -247,10 +249,15 @@ function civicrm_mailer_event_confirm($params)
  */
 function civicrm_mailer_event_reply($params)
 {
-    $errors = _civicrm_mailer_check_params( $params, array('job_id', 'event_queue_id', 'hash', 'bodyTxt', 'replyTo') ) ;
+    $errors = _civicrm_mailer_check_params( $params, array('job_id', 'event_queue_id', 'hash', 'replyTo') ) ;
   
     if ( !empty( $errors ) ) {
         return $errors;
+    }
+
+    // CRM-7333: we can’t require fullEmail for backwards compatibility, but we should require either it or bodyTxt
+    if (empty($params['fullEmail']) and empty($params['bodyTxt'])) {
+        return civicrm_create_error('Required parameter missing: either "fullEmail" or "bodyTxt" is required');
     }
           
     $job       = $params['job_id']; 

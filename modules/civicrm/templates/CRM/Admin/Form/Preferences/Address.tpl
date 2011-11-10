@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -24,8 +24,8 @@
  +--------------------------------------------------------------------+
 *}
 <div class="crm-block crm-form-block crm-preferences-address-form-block">
-<div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl"}</div>
-    <fieldset><legend>{ts}Mailing Labels{/ts}</legend>
+<div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl" location="top"}</div>
+    <h3>{ts}Mailing Labels{/ts}</h3>
         <table class="form-layout">
     		<tr class="crm-preferences-address-form-block-mailing_format">
     		    <td class="label">{$form.mailing_format.label}</td>
@@ -34,9 +34,8 @@
     	            </td>
     		</tr>
     	</table>
-    </fieldset>
 
-    <fieldset><legend>{ts}Address Display{/ts}</legend>
+    <h3>{ts}Address Display{/ts}</h3>
         <table class="form-layout">
     	    <tr class="crm-preferences-address-form-block-address_format">
     	        <td class="label">{$form.address_format.label}</td>
@@ -45,9 +44,8 @@
     	        </td>
     	    </tr>
     	</table>
-    </fieldset>
 		
-    <fieldset><legend>{ts}Address Editing{/ts}</legend>
+    <h3>{ts}Address Editing{/ts}</h3>
         <table class="form-layout">
              <tr class="crm-preferences-address-form-block-address_options">
                 <td class="label">{$form.address_options.label}
@@ -56,13 +54,12 @@
                 </td>
              </tr>
         </table>
-    </fieldset>
 
-    <fieldset><legend>{ts}Address Standardization{/ts}</legend>
+    <h3>{ts}Address Standardization{/ts}</h3>
         <table class="form-layout">
              <tr class="crm-preferences-address-form-block-description">
                 <td colspan="2">
-    	            <span class="description">{ts 1=http://www.usps.com/webtools/address.htm}CiviCRM includes an optional plugin for interfacing the the United States Postal Services (USPS) Address Standardization web service. You must register to use the USPS service at <a href='%1' target='_blank'>%1</a>. If you are approved, they will provide you with a User ID and the URL for the service.{/ts}</span>
+    	            <span class="description">{ts 1=https://www.usps.com/business/webtools-address-information.htm}CiviCRM includes an optional plugin for interfacing the the United States Postal Services (USPS) Address Standardization web service. You must register to use the USPS service at <a href='%1' target='_blank'>%1</a>. If you are approved, they will provide you with a User ID and the URL for the service.{/ts}</span>
     	        </td>
             </tr>
             <tr class="crm-preferences-address-form-block-address_standardization_provider">
@@ -84,6 +81,5 @@
             	</td>
             </tr>
         </table>
-    </fieldset>
-<div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl"}</div>
+<div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl" location="bottom"}</div>
 </div>

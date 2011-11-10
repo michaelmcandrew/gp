@@ -1,6 +1,6 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.3                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2010                                |
  +--------------------------------------------------------------------+
@@ -30,6 +30,13 @@
 {ts}General Monthly Newsletter: 200709{/ts}
 </div>
 <p></p>
+{/htxt}
+
+{htxt id="base-group"}
+<p>Indicate which group a contact is removed from upon unsubscribe.</p>
+<p>Because this mailing is using the results of a search to provide the recipient list, you need to specify group to manage unsubscriptions to this email.  If a contact who matches your search results is already unsubscribed from the Unsubscription Group, that contact will be removed from the recipient lists.</p>
+<p>If a contact unsubscribes via the unsubscription link in this mailing, they will be unsubscribed from this group.  If they are already in the group, then they will be removed.  If the contact is not yet in this group, they will first be added and then unsubscribed</p>
+<p>Contacts who are in the Unsubscription Group but do not match your search critera will not be included in the mailing.  If you wish to include these contacts please include the group using the form below</p>
 {/htxt}
 
 {htxt id="include-groups"}

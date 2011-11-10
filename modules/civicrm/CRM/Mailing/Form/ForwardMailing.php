@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,13 +29,13 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
 
 require_once 'CRM/Core/Form.php';
-require_once 'api/Mailer.php';
+civicrm_api_include('mailer', false, 2);
 
 class CRM_Mailing_Form_ForwardMailing extends CRM_Core_Form
 {
@@ -140,9 +140,15 @@ class CRM_Mailing_Form_ForwardMailing extends CRM_Core_Form
         
         $forwarded = null;
         foreach ($emails as $email) {
-            $result = crm_mailer_event_forward( $job_id, $queue_id, 
-                                                $hash, $email, $this->_fromEmail, $params );
-            if ( $result ) {
+            $params = array ( 'job_id'         => $job_id,
+                              'event_queue_id' => $queue_id,
+                              'hash'           => $hash,
+                              'email'          => $email,
+                              'fromEmail'      => $this->_fromEmail,
+                              'params'         => $params
+                              );
+            $result = civicrm_mailer_event_forward( $params );
+            if ( !civicrm_error($result) ) {
                 $forwarded++;
             }
         }

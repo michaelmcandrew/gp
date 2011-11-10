@@ -1,9 +1,9 @@
 <?php
 /*
 +--------------------------------------------------------------------+
-| CiviCRM version 3.2                                                |
+| CiviCRM version 3.4                                                |
 +--------------------------------------------------------------------+
-| Copyright CiviCRM LLC (c) 2004-2010                                |
+| Copyright CiviCRM LLC (c) 2004-2011                                |
 +--------------------------------------------------------------------+
 | This file is a part of CiviCRM.                                    |
 |                                                                    |
@@ -27,7 +27,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -79,7 +79,7 @@ class CRM_Price_DAO_Set extends CRM_Core_DAO
      * @var boolean
      * @static
      */
-    static $_log = false;
+    static $_log = true;
     /**
      * Price Set
      *
@@ -135,6 +135,12 @@ class CRM_Price_DAO_Set extends CRM_Core_DAO
      */
     public $extends;
     /**
+     * FK to Contribution Type(for membership price sets only).
+     *
+     * @var int unsigned
+     */
+    public $contribution_type_id;
+    /**
      * class constructor
      *
      * @access public
@@ -155,6 +161,7 @@ class CRM_Price_DAO_Set extends CRM_Core_DAO
         if (!(self::$_links)) {
             self::$_links = array(
                 'domain_id' => 'civicrm_domain:id',
+                'contribution_type_id' => 'civicrm_contribution_type:id',
             );
         }
         return self::$_links;
@@ -228,6 +235,12 @@ class CRM_Price_DAO_Set extends CRM_Core_DAO
                     'required' => true,
                     'maxlength' => 255,
                     'size' => CRM_Utils_Type::HUGE,
+                ) ,
+                'contribution_type_id' => array(
+                    'name' => 'contribution_type_id',
+                    'type' => CRM_Utils_Type::T_INT,
+                    'default' => 'UL',
+                    'FKClassName' => 'CRM_Contribute_DAO_ContributionType',
                 ) ,
             );
         }

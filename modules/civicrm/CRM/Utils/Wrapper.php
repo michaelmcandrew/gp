@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -34,8 +34,8 @@
  * run method as explained below.
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
- * $Id$
+ * @copyright CiviCRM LLC (c) 2004-2011
+ * $Id: $
  *
  */
 
@@ -113,5 +113,8 @@ class CRM_Utils_Wrapper
 
         $this->_controller->process();
         $this->_controller->run();
+        
+
+        
     }
 }

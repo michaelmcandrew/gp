@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,19 +29,25 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
 
 require_once 'CRM/Contribute/Form/ContributionPage.php';
 require_once 'CRM/Contribute/PseudoConstant.php';
+require_once 'CRM/Member/BAO/Membership.php';
 
 /**
  * form to process actions on Membership
  */
 class CRM_Member_Form_MembershipBlock extends CRM_Contribute_Form_ContributionPage 
 {
+    /**
+     * store membership price set id
+     */
+    protected $_memPriceSetId = null;
+    
     /**
      * This function sets the default values for the form. Note that in edit/view mode
      * the default values are retrieved from the database
@@ -53,13 +59,8 @@ class CRM_Member_Form_MembershipBlock extends CRM_Contribute_Form_ContributionPa
     {
         //parent::setDefaultValues();
         $defaults = array();
-        if ( isset($this->_id ) ) {
-            require_once 'CRM/Member/DAO/MembershipBlock.php';
-            $dao = new CRM_Member_DAO_MembershipBlock();
-            $dao->entity_table = 'civicrm_contribution_page';
-            $dao->entity_id = $this->_id; 
-            $dao->find(true);
-            CRM_Core_DAO::storeValues( $dao, $defaults );
+        if ( isset( $this->_id ) ) {
+            $defaults = CRM_Member_BAO_Membership::getMembershipBlock( $this->_id );
         }
 
         // for membership_types
@@ -68,9 +69,12 @@ class CRM_Member_Form_MembershipBlock extends CRM_Contribute_Form_ContributionPa
             $newMembershipType = array();  
             foreach( $membershipType as $k => $v ) {
                 $newMembershipType[$v] = 1;
+                $defaults["auto_renew_$v"] = $defaults['auto_renew'][$v];
             }
             $defaults['membership_type'] = $newMembershipType;
         }
+
+        $defaults['member_is_active'] = $defaults['is_active'];
 
         // Set Display Minimum Fee default to true if we are adding a new membership block
         if ( ! isset( $defaults['id'] ) ) {
@@ -78,6 +82,13 @@ class CRM_Member_Form_MembershipBlock extends CRM_Contribute_Form_ContributionPa
         } else {
             $this->assign('membershipBlockId', $defaults['id']);
         }
+        require_once 'CRM/Price/BAO/Set.php';
+        if ( $this->_id &&
+           ( $priceSetId = CRM_Price_BAO_Set::getFor( 'civicrm_contribution_page', $this->_id, 3 )) ) {
+           $defaults['member_price_set_id'] = $priceSetId;
+           $this->_memPriceSetId = $priceSetId; 
+        }
+
         return $defaults;
     }
     
@@ -90,12 +101,11 @@ class CRM_Member_Form_MembershipBlock extends CRM_Contribute_Form_ContributionPa
      */
     public function buildQuickForm()
     {
-             
         require_once 'CRM/Member/BAO/MembershipType.php';
-        $membershipTypes = CRM_Member_BAO_MembershipType::getMembershipTypes(); 
-
+        $membershipTypes = CRM_Member_BAO_MembershipType::getMembershipTypes();
+        
         if (! empty( $membershipTypes ) ) {
-            $this->addElement('checkbox', 'is_active', ts('Membership Section Enabled?') , null, array( 'onclick' => "memberBlock(this);" ));
+            $this->addElement('checkbox', 'member_is_active', ts('Membership Section Enabled?') );
         
             $this->addElement('text', 'new_title', ts('Title - New Membership'), CRM_Core_DAO::getAttribute('CRM_Member_DAO_MembershipBlock', 'new_title'));
             
@@ -109,19 +119,49 @@ class CRM_Member_Form_MembershipBlock extends CRM_Contribute_Form_ContributionPa
             $this->addElement('checkbox', 'display_min_fee', ts('Display Membership Fee') );
             $this->addElement('checkbox', 'is_separate_payment', ts('Separate Membership Payment') );
             
+            $paymentProcessor = CRM_Core_PseudoConstant::paymentProcessor( false, false, 'is_recur = 1' );
+            
+            $paymentProcessorId = CRM_Core_DAO::getFieldValue( 'CRM_Contribute_DAO_ContributionPage', 
+                                                               $this->_id, 'payment_processor_id' );
+            $isRecur = false;
             $membership        = array();
             $membershipDefault = array();
             foreach ( $membershipTypes as $k => $v ) {
                 $membership[]      = HTML_QuickForm::createElement('advcheckbox', $k , null, $v );
                 $membershipDefault[] = HTML_QuickForm::createElement('radio',null ,null,null, $k );
+                if ( is_array( $paymentProcessor ) && 
+                     CRM_Utils_Array::value( $paymentProcessorId, $paymentProcessor ) ) {
+                    $isRecur = true;
+                    $autoRenew = CRM_Core_DAO::getFieldValue('CRM_Member_DAO_MembershipType', $k, 'auto_renew' );
+                    $autoRenewOptions = array( );
+                    if ( $autoRenew ) {
+                        $autoRenewOptions = array( ts('Not offered'), ts('Give option'), ts('Required') );
+                        $this->addElement('select', "auto_renew_$k", ts('Auto-renew'), $autoRenewOptions );
+                        $this->_renewOption[$k] = $autoRenew;
+                    } 
+                } else {
+                    $isRecur = false;
+                }
             }
             
+            $this->assign( 'is_recur', $isRecur );
+            if ( isset( $this->_renewOption ) ) {
+                $this->assign( 'auto_renew', $this->_renewOption );
+            }
             $this->addGroup($membership, 'membership_type', ts('Membership Types'));
             $this->addGroup($membershipDefault, 'membership_type_default', ts('Membership Types Default'));
             
             $this->addFormRule(array('CRM_Member_Form_MembershipBlock', 'formRule') , $this->_id);
         }
-
+        require_once 'CRM/Price/BAO/Set.php';
+        $price = CRM_Price_BAO_Set::getAssoc( false, 'CiviMember');
+        if ( CRM_Utils_System::isNull( $price ) ) {
+            $this->assign('price', false );
+        } else {
+            $this->assign('price', true );
+        }
+        $this->add( 'select', 'member_price_set_id', ts( 'Membership Price Set' ), (array( '' => ts( '- none -' )) + $price) );
+        
         $session = CRM_Core_Session::singleton();
         $single = $session->get('singleForm');
         if ( $single ) {
@@ -137,7 +177,6 @@ class CRM_Member_Form_MembershipBlock extends CRM_Contribute_Form_ContributionPa
         } else {
             parent::buildQuickForm( );
         }
-        //$session->set('single', false );
     }
 
     /**
@@ -152,15 +191,27 @@ class CRM_Member_Form_MembershipBlock extends CRM_Contribute_Form_ContributionPa
     static function formRule( $params, $files, $contributionPageId = null ) 
     {
         $errors = array( );
-        if ( CRM_Utils_Array::value( 'is_active', $params ) ) {
+        if ( CRM_Utils_Array::value( 'member_is_active', $params ) ) {
             
             // don't allow price set w/ membership signup, CRM-5095 
             require_once 'CRM/Price/BAO/Set.php';
-            if ( $contributionPageId && CRM_Price_BAO_Set::getFor( 'civicrm_contribution_page', $contributionPageId ) ) {
-                $errors['is_active'] = ts( 'You cannot enable both Membership Signup and Price Set on the same online contribution page.' );  
-                return $errors;
+            if ( $contributionPageId && ( $setID = CRM_Price_BAO_Set::getFor( 'civicrm_contribution_page', $contributionPageId ) ) ) {
+
+                $extends = CRM_Core_DAO::getFieldValue( 'CRM_Price_DAO_Set', $setID, 'extends' );
+                if ( $extends != CRM_Core_Component::getComponentID( 'CiviMember' ) ) {
+                    $errors['member_is_active'] = ts( 'You cannot enable both Membership Signup and a Contribution Price Set on the same online contribution page.' );  
+                    return $errors;
+                }
             }
             
+            if ( $contributionPageId && CRM_Utils_Array::value('member_price_set_id', $params) && CRM_Core_DAO::getFieldValue('CRM_Contribute_DAO_ContributionPage', $contributionPageId, 'amount_block_is_active') ) {
+                $errors['member_price_set_id'] = ts( 'You cannot use Membership Price Sets with the Contribution Amounts section. However, a membership price set may include additional fields for non-membership options that requires an additional fee (e.g. magazine subscription) or an additional voluntary contribution.' );
+            }
+            
+            if ( CRM_Utils_Array::value('member_price_set_id', $params) ) {
+                return $errors; 
+            }
+
             if ( !  isset ( $params['membership_type'] ) ||
                  ( ! is_array( $params['membership_type'] ) ) ) {
                 $errors['membership_type'] = ts( 'Please select at least one Membership Type to include in the Membership section of this page.' );
@@ -185,7 +236,7 @@ class CRM_Member_Form_MembershipBlock extends CRM_Contribute_Form_ContributionPa
             }
 
             if ( $contributionPageId ) {
-                require_once "CRM/Contribute/DAO/ContributionPage.php";
+                require_once 'CRM/Contribute/DAO/ContributionPage.php';
                 $amountBlock = CRM_Core_DAO::getFieldValue( 'CRM_Contribute_DAO_ContributionPage', $contributionPageId, 'amount_block_is_active' );
                 
                 if ( !$amountBlock &&  CRM_Utils_Array::value( 'is_separate_payment', $params ) ) {
@@ -207,7 +258,6 @@ class CRM_Member_Form_MembershipBlock extends CRM_Contribute_Form_ContributionPa
     {
         // get the submitted form values.
         $params = $this->controller->exportValues( $this->_name );
-
         if ( $params['membership_type'] ) {
             // we do this in case the user has hit the forward/back button
             require_once 'CRM/Member/DAO/MembershipBlock.php';
@@ -224,26 +274,44 @@ class CRM_Member_Form_MembershipBlock extends CRM_Contribute_Form_ContributionPa
             if ( is_array($params['membership_type']) ) {
                 foreach( $params['membership_type'] as $k => $v) {
                     if ( $v ) {
-                        $membershipTypes[] = $k;
+                        $membershipTypes[$k] = CRM_Utils_Array::value( "auto_renew_$k", $params );
                     }
                 }
             }
             
-            $params['membership_type_default']       =  CRM_Utils_Array::value( 'membership_type_default', $params, 'null' );
-            $params['membership_types']              =  implode(',', $membershipTypes);
-            $params['is_required']                   =  CRM_Utils_Array::value( 'is_required', $params, false );
-            $params['is_active']                     =  CRM_Utils_Array::value( 'is_active', $params, false );
-            $params['display_min_fee']               =  CRM_Utils_Array::value( 'display_min_fee', $params, false );
-            $params['is_separate_payment']           =  CRM_Utils_Array::value( 'is_separate_payment', $params, false );
-            $params['entity_table']                  = 'civicrm_contribution_page';
-            $params['entity_id']                     =  $this->_id;
+            $params['is_required'] = CRM_Utils_Array::value( 'is_required', $params, false );
+            $params['is_active']   = CRM_Utils_Array::value( 'member_is_active', $params, false );
+
+            // check for price set.
+            $priceSetID = CRM_Utils_Array::value( 'member_price_set_id', $params );
+            if ( $priceSetID ) {
+                $params['membership_type_default'] = $params['membership_types']    = 'null';
+                $params['display_min_fee']         = $params['is_separate_payment'] = 'null';
+            } else {
+                $params['membership_type_default'] = CRM_Utils_Array::value( 'membership_type_default', $params, 'null' );
+                $params['membership_types']        = serialize( $membershipTypes );
+                $params['display_min_fee']         = CRM_Utils_Array::value( 'display_min_fee', $params, false );
+                $params['is_separate_payment']     = CRM_Utils_Array::value( 'is_separate_payment', $params, false );
+            }
+            $params['entity_table'] = 'civicrm_contribution_page';
+            $params['entity_id']    = $this->_id;
             
             $dao = new CRM_Member_DAO_MembershipBlock();
             $dao->copyValues($params);
-            $dao->save();
+            $dao->save();            
+           
+            if ( $priceSetID && $params['is_active'] ) {
+                CRM_Price_BAO_Set::addTo( 'civicrm_contribution_page', $this->_id, $priceSetID );
+            } else {
+                if ( $this->_memPriceSetId ) {
+                    CRM_Price_BAO_Set::removeFrom( 'civicrm_contribution_page', $this->_id );
+                }
+            }
+
         }
+        parent::endPostProcess( );
     }
-    
+        
     /** 
      * Return a descriptive name for the page, used in wizard header 
      * 

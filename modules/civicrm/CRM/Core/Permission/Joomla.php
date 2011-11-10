@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -99,6 +99,28 @@ class CRM_Core_Permission_Joomla {
         return true;
     }
 
+    /**
+     * Get all the contact emails for users that have a specific permission
+     *
+     * @param string $permissionName name of the permission we are interested in
+     *
+     * @return string a comma separated list of email addresses
+     */
+    public static function permissionEmails( $permissionName ) {
+        return '';
+    }
+
+    /**
+     * Get all the contact emails for users that have a specific role
+     *
+     * @param string $roleName name of the role we are interested in
+     *
+     * @return string a comma separated list of email addresses
+     */
+    public static function roleEmails( $roleName ) {
+        return '';
+    }
+    
 }
 
 

@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -130,7 +130,7 @@ class CRM_Contact_Page_View_UserDashBoard extends CRM_Core_Page
         $this->_userOptions  = CRM_Core_BAO_Preferences::valueOptions( 'user_dashboard_options' );
 
         $components = CRM_Core_Component::getEnabledComponents();
-
+        $this->assign('contactId',$this->_contactId);
         foreach( $components as $name => $component ) {
             $elem = $component->getUserDashboardElement();
             if ( ! $elem ) {
@@ -172,6 +172,14 @@ class CRM_Contact_Page_View_UserDashBoard extends CRM_Core_Page
             $this->assign( 'pcpBlock', $pcpBlock );
             $this->assign( 'pcpInfo', $pcpInfo );
         }
+
+        // Add Activities
+        $dashboardElements[] = array( 'templatePath' => 'CRM/Activity/Page/UserDashboard.tpl',
+                                      'sectionTitle' => ts( 'Your Activities' ),
+                                      'weight'       => 5 );
+        require_once 'CRM/Activity/Page/UserDashboard.php';
+        $userDashboard = new CRM_Activity_Page_UserDashboard;
+        $userDashboard->run();
 
         require_once 'CRM/Utils/Sort.php';
         usort( $dashboardElements, array( 'CRM_Utils_Sort', 'cmpFunc' ) );
@@ -229,20 +237,28 @@ class CRM_Contact_Page_View_UserDashBoard extends CRM_Core_Page
                                                                     'qs'    => 'reset=1&id=%%cbid%%',
                                                                     'title' => ts('View Relationship')
                                                                     ),
-                                  CRM_Core_Action::DISABLE => array(
+                                 );
+
+
+            if ( CRM_Core_Permission::check( 'access CiviCRM' ) ) {
+                self::$_links = array_merge( self::$_links, array(  CRM_Core_Action::DISABLE => array(
                                                                     'name'  => ts('Disable'),
                                                                     'url'   => 'civicrm/contact/view/rel',
                                                                     'qs'    => 'action=disable&reset=1&cid=%%cid%%&id=%%id%%&rtype=%%rtype%%&selectedChild=rel%%&context=dashboard',
                                                                     'extra' => 'onclick = "return confirm(\'' . $disableExtra . '\');"',
                                                                     'title' => ts('Disable Relationship')
-                                                                    ),
-                                  );
+                                                                    )
+                                                                 ) );
+            }
         }
 
         // call the hook so we can modify it
         require_once 'CRM/Utils/Hook.php';
-        CRM_Utils_Hook::links( 'view.contact.userDashBoard', 'Contact',
-                               CRM_Core_DAO::$_nullObject, self::$_links );
+        CRM_Utils_Hook::links( 'view.contact.userDashBoard',
+                               'Contact',
+                               CRM_Core_DAO::$_nullObject,
+                               self::$_links,
+                               CRM_Core_DAO::$_nullObject );
         return self::$_links;
     }
 }

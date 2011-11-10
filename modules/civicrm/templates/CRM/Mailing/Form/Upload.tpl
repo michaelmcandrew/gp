@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -35,6 +35,21 @@
 <table class="form-layout-compressed">
     <tr class="crm-mailing-upload-form-block-from_email_address"><td class="label">{$form.from_email_address.label}</td>
         <td>{$form.from_email_address.html} {help id ="id-from_email"}</td>
+    </tr>
+    {if $trackReplies}
+    <tr class="crm-mailing-upload-form-block-reply_to_address">
+        <td style="color:#3E3E3E;"class="label">{ts}Reply-To{/ts}<span class="crm-marker">*</span></td>
+        <td>{ts}Auto-Generated{/ts}</td>
+    </tr>
+    {else}
+    <tr class="crm-mailing-upload-form-block-reply_to_address">
+        <td class="label">{$form.reply_to_address.label}</td>
+        <td>{$form.reply_to_address.html}</td>
+    </tr>
+    {/if}
+    <tr class="crm-mailing-upload-form-block-template">
+    	<td class="label">{$form.template.label}</td>
+	<td>{$form.template.html}</td>
     </tr>
     <tr class="crm-mailing-upload-form-block-subject"><td class="label">{$form.subject.label}</td>
         <td colspan="2">{$form.subject.html|crmReplace:class:huge}
@@ -103,9 +118,11 @@
     { 
 	if (document.getElementsByName("upload_type")[0].checked) {
             hide('compose_id');
+	    cj('.crm-mailing-upload-form-block-template').hide();
 	    show('upload_id');	
         } else {
             show('compose_id');
+	    cj('.crm-mailing-upload-form-block-template').show();
 	    hide('upload_id');
             verify( );
         }

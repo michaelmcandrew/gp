@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -35,7 +35,7 @@
 {foreach from=$events key=uid item=event}
 <item>
 <title>{$event.title|escape:'htmlall'}</title>
-<link>{crmURL p='civicrm/event/info' q="reset=1&id=`$event.event_id`"}</link>
+<link>{crmURL p='civicrm/event/info' q="reset=1&id=`$event.event_id`" fe=1 a=1}</link>
 <description>
 {if $event.summary}{$event.summary|escape:'htmlall'}
 {/if}

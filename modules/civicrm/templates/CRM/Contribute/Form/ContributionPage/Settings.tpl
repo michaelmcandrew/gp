@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,8 +23,6 @@
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
 *}
-{* WizardHeader.tpl provides visual display of steps thru the wizard as well as title for current step *}
-{include file="CRM/common/WizardHeader.tpl"}
 <div class="crm-block crm-form-block crm-contribution-contributionpage-settings-form-block">
 <div id="help">
     {if $action eq 0}
@@ -36,19 +34,41 @@
 </div>
     <div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl" location="top"}</div> 
 	<table class="form-layout-compressed">
-	<tr class="crm-contribution-contributionpage-settings-form-block-title"><td class="label">{$form.title.label} {if $action == 2}{include file='CRM/Core/I18n/Dialog.tpl' table='civicrm_contribution_page' field='title' id=$id}{/if}</td><td>{$form.title.html}<br/>
+	<tr class="crm-contribution-contributionpage-settings-form-block-title"><td class="label">{$form.title.label} {if $action == 2}{include file='CRM/Core/I18n/Dialog.tpl' table='civicrm_contribution_page' field='title' id=$contributionPageID}{/if}</td><td>{$form.title.html}<br/>
             <span class="description">{ts}This title will be displayed at the top of the page.<br />Please use only alphanumeric, spaces, hyphens and dashes for Title.{/ts}</td>
 	</tr>
 	<tr class="crm-contribution-contributionpage-settings-form-block-contribution_type_id"><td class="label">{$form.contribution_type_id.label}</td><td>{$form.contribution_type_id.html}<br />	
             <span class="description">{ts}Select the corresponding contribution type for contributions made using this page.{/ts}</span> {help id="id-contribution_type"}</td>
 	</tr>
-	<tr class="crm-contribution-contributionpage-settings-form-block-is_organization"><td>&nbsp;</td><td>{$form.is_organization.html} {$form.is_organization.label}</td></tr>
+	
+	{* CRM-7362 --add campaign to contribution page *}
+	{include file="CRM/Campaign/Form/addCampaignToComponent.tpl"
+	campaignTrClass="crm-contribution-contributionpage-settings-form-block-campaign_id"}
+
+	<tr class="crm-contribution-contributionpage-settings-form-block-is_organization"><td>&nbsp;</td><td>{$form.is_organization.html} {$form.is_organization.label} {help id="id-is_organization"}</td></tr>
 	<tr id="for_org_option" class="crm-contribution-form-block-is_organization">
         <td>&nbsp;</td>
         <td>
             <table class="form-layout-compressed">
+            <tr class="crm-contribution-for_organization_help">
+                <td class="description" colspan="2">
+                    {capture assign="profileURL"}{crmURL p='civicrm/admin/uf/group' q='reset=1'}{/capture}
+                    {if $invalidProfiles}
+                      {ts 1=$profileURL}You must <a href="%1">configure a valid organization profile</a> in order to allow individuals to contribute on behalf of an organization. Valid profiles include Contact and / or Organization fields, and may include Contribution and Membership fields.{/ts}
+                    {else}
+                      {ts 1=$profileURL}To change the organization data collected use the "On Behalf Of Organization" profile (<a href="%1">Administer > Customize > CiviCRM Profile</a>).{/ts}
+                    {/if}
+                </td>
+            </tr>
+            {if !$invalidProfiles}
+              <tr class="crm-contribution-onbehalf_profile_id">
+                <td class="label">{$form.onbehalf_profile_id.label}</td>
+                <td>{$form.onbehalf_profile_id.html}</td>
+              </tr>
+            {/if}
             <tr id="for_org_text" class="crm-contribution-contributionpage-settings-form-block-for_organization">
-                <td class="label">{$form.for_organization.label} {if $action == 2}{include file='CRM/Core/I18n/Dialog.tpl' table='civicrm_contribution_page' field='for_organization' id=$id}{/if}</td><td>{$form.for_organization.html}<br />
+                <td class="label">{$form.for_organization.label} {if $action == 2}{include file='CRM/Core/I18n/Dialog.tpl' table='civicrm_contribution_page' field='for_organization' id=$contributionPageID}{/if}</td>
+                <td>{$form.for_organization.html}<br />
                     <span class="description">{ts}Text displayed next to the checkbox on the contribution form.{/ts}</span>
                 </td>
             </tr>
@@ -87,21 +107,21 @@
 	</tr>
 </table>
 <table class="form-layout-compressed" id="honor">
-    <tr class="crm-contribution-contributionpage-settings-form-block-honor_block_title"><td class="label">{$form.honor_block_title.label} {if $action == 2}{include file='CRM/Core/I18n/Dialog.tpl' table='civicrm_contribution_page' field='honor_block_title' id=$id}{/if}</td><td>{$form.honor_block_title.html}<br />
+    <tr class="crm-contribution-contributionpage-settings-form-block-honor_block_title"><td class="label">{$form.honor_block_title.label} {if $action == 2}{include file='CRM/Core/I18n/Dialog.tpl' table='civicrm_contribution_page' field='honor_block_title' id=$contributionPageID}{/if}</td><td>{$form.honor_block_title.html}<br />
 	    <span class="description">{ts}Title for the Honoree section (e.g. &quot;Honoree Information&quot;).{/ts}</span></td>
 	</tr>
 	<tr class="crm-contribution-contributionpage-settings-form-block-honor_block_text">
-    	<td class="label">{$form.honor_block_text.label} {if $action == 2}{include file='CRM/Core/I18n/Dialog.tpl' table='civicrm_contribution_page' field='honor_block_text' id=$id}{/if}</td><td>{$form.honor_block_text.html}<br />
+    	<td class="label">{$form.honor_block_text.label} {if $action == 2}{include file='CRM/Core/I18n/Dialog.tpl' table='civicrm_contribution_page' field='honor_block_text' id=$contributionPageID}{/if}</td><td>{$form.honor_block_text.html}<br />
     	<span class="description">{ts}Optional explanatory text for the Honoree section (displayed above the Honoree fields).{/ts}</span></td>
 	</tr>
 </table>
 <table class="form-layout-compressed">
 		<tr class="crm-contribution-contributionpage-settings-form-block-is_active"><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td><td>{$form.is_active.html} {$form.is_active.label}<br />
-	{if $id}
+	{if $contributionPageID}
     		<span class="description">
         	{if $config->userFramework EQ 'Drupal'}
             	{ts}When your page is active, you can link people to the page by copying and pasting the following URL:{/ts}<br />
-            	<strong>{crmURL a=true p='civicrm/contribute/transact' q="reset=1&id=`$id`"}</strong>
+            	<strong>{crmURL a=true p='civicrm/contribute/transact' q="reset=1&id=`$contributionPageID`"}</strong>
         	{elseif $config->userFramework EQ 'Joomla'}
             	{ts 1=$title}When your page is active, create front-end links to the contribution page using the Menu Manager. Select <strong>CiviCRM &raquo; Contribution Pages</strong> and select <strong>%1</strong> for the contribution page.{/ts}
         	{/if}

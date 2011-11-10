@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -72,6 +72,10 @@ class CRM_Core_BAO_FinancialTrxn extends CRM_Core_DAO_FinancialTrxn
                                           
         $trxn->save();
         
+        $contributionAmount = CRM_Utils_Array::value( 'net_amount', $params );
+        if ( !$contributionAmount && isset( $params['total_amount'] ) ) {
+            $contributionAmount = $params['total_amount'];
+        }
         // save to entity_financial_trxn table
         $entity_financial_trxn_params =
 	  array(
@@ -79,10 +83,10 @@ class CRM_Core_BAO_FinancialTrxn extends CRM_Core_DAO_FinancialTrxn
 		'entity_id'         => $params['contribution_id'],
 		'financial_trxn_id' => $trxn->id,
 		//use net amount to include all received amount to the contribution
-		'amount'            => $params['net_amount'],
+		'amount'            => $contributionAmount,
 		'currency'          => $trxn->currency,
 		);
-        $entity_trxn =& new CRM_Core_DAO_EntityFinancialTrxn();
+        $entity_trxn = new CRM_Core_DAO_EntityFinancialTrxn();
         $entity_trxn->copyValues($entity_financial_trxn_params);
         if ( $fids['entityFinancialTrxnId'] ) {
             $entity_trxn->id = $fids['entityFinancialTrxnId'];

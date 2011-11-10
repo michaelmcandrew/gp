@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -49,15 +49,14 @@ function {/literal}{$list}{literal}viewActivity( activityID, contactID, list ) {
         },
 
         open:function() {
-            cj("#activity-content" + list ).html("");
+            cj("#activity-content" + list , this).html("");
             var viewUrl = {/literal}"{crmURL p='civicrm/case/activity/view' h=0 q="snippet=4" }"{literal};
-            cj("#activity-content" + list ).load( viewUrl + "&cid="+contactID + "&aid=" + activityID);
+            cj("#activity-content" + list , this).load( viewUrl + "&cid="+contactID + "&aid=" + activityID + "&type="+list);
             
         },
 
         buttons: { 
             "Done": function() { 	    
-                cj(this).dialog("close"); 
                 cj(this).dialog("destroy"); 
             }
         }

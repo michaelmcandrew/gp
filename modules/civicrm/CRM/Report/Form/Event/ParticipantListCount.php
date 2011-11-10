@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2		                         				  |
+ | CiviCRM version 3.4		                         				  |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010							      |
+ | Copyright CiviCRM LLC (c) 2004-2011							      |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.								      |
  |																      |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -43,6 +43,8 @@ class CRM_Report_Form_Event_ParticipantListCount extends CRM_Report_Form {
     
 	protected $_summary = null;
     
+    protected $_customGroupExtends = array( 'Participant' );
+
     function __construct( ) {
 		$this->_columns = 
 			array( 
@@ -106,7 +108,7 @@ class CRM_Report_Form_Event_ParticipantListCount extends CRM_Report_Form {
                               array('name'			=> 'status_id',
                                     'title'			=> ts( 'Participant Status' ),
                                     'operatorType' => CRM_Report_Form::OP_MULTISELECT,
-                                    'options'		=> CRM_Event_PseudoConstant::participantStatus( ), ),
+                                    'options'		=> CRM_Event_PseudoConstant::participantStatus( null, null, 'label' ), ),
                               'rid'								=> 
                               array('name'			=> 'role_id',
                                     'title'			=> ts( 'Participant Role' ),
@@ -169,9 +171,10 @@ class CRM_Report_Form_Event_ParticipantListCount extends CRM_Report_Form {
                   array('title'	=> ts('Blank column at the End'),
                         'type'	=> 'select',
                         'options'=> array('' => '-select-',
-                                          1	=> 'One', 
-                                          2	=> 'Two',
-                                          3	=> 'Three', ), ),
+                                          1	 => ts( 'One' ),
+                                          2	 => ts( 'Two' ),
+                                          3	 => ts( 'Three' ),
+                                          ), ),
                   );
         parent::__construct( );
     }
@@ -292,8 +295,17 @@ class CRM_Report_Form_Event_ParticipantListCount extends CRM_Report_Form {
                         if ( $relative || $from || $to ) {
                             $clause = $this->dateClause( $field['name'], $relative, $from, $to, $field['type'] );
                         }
-						  } else { 
+                    } else { 
                         $op = CRM_Utils_Array::value( "{$fieldName}_op", $this->_params );
+                        
+                        if ( $fieldName == 'rid' ) {
+                            $value =  CRM_Utils_Array::value("{$fieldName}_value", $this->_params);
+                            if ( !empty($value) ) {
+                                $clause = "( {$field['dbAlias']} REGEXP '[[:<:]]" . implode( '[[:>:]]|[[:<:]]',  $value ) . "[[:>:]]' )";
+                            }
+                            $op = null;
+                        }
+
                         if ( $op ) {
                             $clause = 
                                 $this->whereClause( $field,
@@ -441,8 +453,12 @@ class CRM_Report_Form_Event_ParticipantListCount extends CRM_Report_Form {
 				// handle participant role id
             if ( array_key_exists('civicrm_participant_role_id', $row) ) {
                 if ( $value = $row['civicrm_participant_role_id'] ) {
-                    $rows[$rowNum]['civicrm_participant_role_id'] = 
-                        CRM_Event_PseudoConstant::participantRole( $value, false );
+                    $roles = explode( CRM_Core_DAO::VALUE_SEPARATOR, $value ); 
+                    $value = array( );
+                    foreach( $roles as $role) {
+                        $value[$role] = CRM_Event_PseudoConstant::participantRole( $role, false );
+                    }
+                    $rows[$rowNum]['civicrm_participant_role_id'] = implode( ', ', $value );
                 }
                 $entryFound = true;
             }

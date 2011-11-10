@@ -1,9 +1,9 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -31,8 +31,9 @@
  * @package CiviCRM_APIv2
  * @subpackage API_Tag
  * 
- * @copyright CiviCRM LLC (c) 2004-2010
- * @version $Id: Tag.php 28934 2010-07-28 18:44:12Z mover $
+ * @copyright CiviCRM LLC (c) 2004-2011
+ * @version $Id: Tag.php 32998 2011-03-14 22:00:35Z kurund $
+ * @todo Erik Hommel 15/12/2010 version to be implemented
  */
 
 /**
@@ -49,29 +50,17 @@ require_once 'api/v2/utils.php';
  * 
  * @return array of newly created tag property values.
  * @access public
+ * @todo Erik Hommel 15/12/2010 : check if function is ok for update
  */
 function civicrm_tag_create( &$params ) 
 {
-    _civicrm_initialize( );
+  _civicrm_initialize( true );
+  try {
     
-    if ( ! is_array( $params ) ) {
-        return civicrm_create_error( ts( 'Input parameters is not an array' ) );
-    }
+    civicrm_verify_mandatory ($params,'CRM_Core_DAO_Tag',array ('name'));
 
-    if ( empty( $params ) ) {
-        return civicrm_create_error( ts( 'No input parameters present' ) );
-    }
-    
     if ( !array_key_exists ('used_for', $params)) {
       $params ['used_for'] = "civicrm_contact";
-    }
-    $error = _civicrm_check_required_fields($params, 'CRM_Core_DAO_Tag');
-    
-    if ( $error['is_error'] ) {
-        return civicrm_create_error( $error['error_message'] );
-    }
-    if( ! CRM_Utils_Array::value( 'name',$params )  ) {
-        return civicrm_create_error( 'Missing required parameter' );
     }
     
     require_once 'CRM/Core/BAO/Tag.php';
@@ -79,8 +68,9 @@ function civicrm_tag_create( &$params )
     if ( CRM_Utils_Array::value( 'tag', $params ) ) {
         $ids['tag'] = $params['tag'];
     }
+
     $tagBAO = CRM_Core_BAO_Tag::add($params, $ids);
-    
+
     if ( is_a( $tagBAO, 'CRM_Core_Error' ) ) {
         return civicrm_create_error( "Tag is not created" );
     } else {
@@ -88,9 +78,15 @@ function civicrm_tag_create( &$params )
         _civicrm_object_to_array($tagBAO, $values);
         $tag = array( );
         $tag['tag_id']   = $values['id'];
+        $tag['name']     = $values['name'];
         $tag['is_error'] = 0;
     }
     return $tag;
+  } catch (PEAR_Exception $e) {
+    return civicrm_create_error( $e->getMessage() );
+  } catch (Exception $e) {
+    return civicrm_create_error( $e->getMessage() );
+  }
 }
 
 /**
@@ -103,17 +99,17 @@ function civicrm_tag_create( &$params )
  */
 function civicrm_tag_delete( &$params ) 
 {
-    if ( ! is_array( $params ) ) {
-        return civicrm_create_error( ts( 'Input parameters is not an array' ) );
-    }
-
+  _civicrm_initialize( true );
+  try {
+    civicrm_verify_mandatory ($params,null,array ('tag_id'));
     $tagID = CRM_Utils_Array::value( 'tag_id', $params );
-    if ( ! $tagID ) {
-        return civicrm_create_error( ts( 'Could not find tag_id in input parameters' ) );
-    }
-    
+
     require_once 'CRM/Core/BAO/Tag.php';
     return CRM_Core_BAO_Tag::del( $tagID ) ? civicrm_create_success( ) : civicrm_create_error(  ts( 'Could not delete tag' )  );
+  } catch (Exception $e) {
+    if (CRM_Core_Error::$modeException) throw $e;
+    return civicrm_create_error( $e->getMessage() );
+  }
 }
 
 /**
@@ -154,5 +150,6 @@ function civicrm_tag_get($params)
     }
 
     _civicrm_object_to_array($tagBAO, $tag);
+    $tag['is_error'] = 0;    
     return $tag;
 }

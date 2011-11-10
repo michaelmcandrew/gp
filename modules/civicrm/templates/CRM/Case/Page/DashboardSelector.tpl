@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,38 +29,33 @@
   <tr class="columnheader">
     <th></th>
     <th>{ts}Client{/ts}</th>
+    <th>{ts}Subject{/ts}</th>
     <th>{ts}Status{/ts}</th>
     <th>{ts}Type{/ts}</th>
     <th>{ts}My Role{/ts}</th>
     <th>{ts}Case Manager{/ts}</th>      
-    <th>{if $list EQ 'upcoming'}{ts}Next Sched.{/ts}{else}{ts}Most Recent{/ts}{/if}</th>
-
+    <th>{if $list EQ 'upcoming'}{ts}Next Sched.{/ts}{elseif $list EQ 'recent'}{ts}Most Recent{/ts}{/if}</th>
     <th></th>
   </tr>
 
   {counter start=0 skip=1 print=false}
   {foreach from=$rows item=row}
  
-  <tr id='{$list}Rowid{$row.case_id}' class="crm-case crm-case_{$row.case_id}">
+  <tr id='{$context}-{$list}-rowid-{$row.case_id}' class="crm-case crm-case_{$row.case_id}">
 	<td>
         {* &nbsp;{$row.contact_type_icon}<br /> *}
-        <span id="{$list}{$row.case_id}_show">
-	    <a href="#" onclick="show('{$list}CaseDetails{$row.case_id}', 'table-row');
-                             {$list}CaseDetails('{$row.case_id}','{$row.contact_id}', '{$list}'); 
-                             hide('{$list}{$row.case_id}_show');
-                             show('minus{$list}{$row.case_id}_hide');
-                             show('{$list}{$row.case_id}_hide','table-row');
+        <span id="{$context}{$list}{$row.case_id}_show">
+	    <a href="#" onclick="{$context}{$list}CaseDetails('{$row.case_id}','{$row.contact_id}', '{$list}', '{$context}'); 
+	       			 showCaseActivities('{$row.case_id}','{$list}', '{$context}');
                              return false;"><img src="{$config->resourceBase}i/TreePlus.gif" class="action-icon" alt="{ts}open section{/ts}"/></a>
 	</span>
-	<span id="minus{$list}{$row.case_id}_hide">
-	    <a href="#" onclick="hide('{$list}CaseDetails{$row.case_id}');
-                             show('{$list}{$row.case_id}_show', 'table-row');
-                             hide('{$list}{$row.case_id}_hide');
-                             hide('minus{$list}{$row.case_id}_hide');
+	<span id="minus{$context}{$list}{$row.case_id}_hide">
+	    <a href="#" onclick="hideCaseActivities('{$row.case_id}','{$list}', '{$context}');
                              return false;"><img src="{$config->resourceBase}i/TreeMinus.gif" class="action-icon" alt="{ts}open section{/ts}"/></a>
 	</td>
 
     <td class="crm-case-phone"><a href="{crmURL p='civicrm/contact/view' q="reset=1&cid=`$row.contact_id`"}">{$row.sort_name}</a>{if $row.phone}<br /><span class="description">{$row.phone}</span>{/if}<br /><span class="description">{ts}Case ID{/ts}: {$row.case_id}</span></td>
+    <td class="crm-case-case_subject">{$row.case_subject}</td>
     <td class="{$row.class} crm-case-case_status">{$row.case_status}</td>
     <td class="crm-case-case_type">{$row.case_type}</td>
     <td class="crm-case-case_role">{if $row.case_role}{$row.case_role}{else}---{/if}</td>
@@ -93,18 +88,17 @@
 	 </td>   
     {/if}
 
-    <td>{$row.action}</td>
+    <td>{$row.action}{$row.moreActions}</td>
    </tr>
    <tr id="{$list}{$row.case_id}_hide" class="crm-case_{$row.case_id}">
      <td>
      </td>
      <td colspan="7" width="99%" class="enclosingNested crm-case_{$row.case_id}">
-        <div id="{$list}CaseDetails{$row.case_id}"></div>
+        <div id="{$context}-{$list}-casedetails-{$row.case_id}"></div>
      </td>
    </tr>
  <script type="text/javascript">
-     hide('{$list}{$row.case_id}_hide');
-     hide('minus{$list}{$row.case_id}_hide');
+     hide('minus{$context}{$list}{$row.case_id}_hide');
  </script>
   {/foreach}
 
@@ -127,22 +121,33 @@
 {* Build case details*}
 {literal}
 <script type="text/javascript">
-
-function {/literal}{$list}{literal}CaseDetails( caseId, contactId, type )
+function {/literal}{$context}{$list}{literal}CaseDetails( caseId, contactId, type, context )
 {
-
-  var dataUrl = {/literal}"{crmURL p='civicrm/case/details' h=0 q='snippet=4&caseId='}{literal}" + caseId +'&cid=' + contactId + '&type=' + type;
-  cj.ajax({
+    var dataUrl = {/literal}"{crmURL p='civicrm/case/details' h=0 q='snippet=4&caseId='}{literal}" + caseId +'&cid=' + contactId + '&type=' + type;
+    cj.ajax({
             url     : dataUrl,
             dataType: "html",
             timeout : 5000, //Time in milliseconds
             success : function( data ){
-                           cj( '#{/literal}{$list}{literal}CaseDetails' + caseId ).html( data );
+			            cj( '#'+ context + '-' + type +'-casedetails-' + caseId ).html( data );
                       },
             error   : function( XMLHttpRequest, textStatus, errorThrown ) {
-                              console.error( 'Error: '+ textStatus );
-                    }
+                        console.error( 'Error: '+ textStatus );
+                      }
          });
 }
+
+function showCaseActivities( caseId, type, context ) {
+    show( context + '-' + type +'-casedetails-'+ caseId , 'table-row' );
+    hide( context+type+caseId+'_show' );
+    show( 'minus'+context+type+caseId+'_hide' );
+}
+
+function hideCaseActivities( caseId , type, context ) {
+    hide( context + '-' + type +'-casedetails-' + caseId );
+    show( context+type+caseId+'_show', 'table-row' );
+    hide( 'minus'+context+type+caseId+'_hide' );
+}
+
 </script>
 {/literal}

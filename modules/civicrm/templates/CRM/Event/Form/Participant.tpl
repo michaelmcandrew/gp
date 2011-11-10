@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,13 +25,116 @@
 *}
 {* This template is used for adding/editing/deleting offline Event Registrations *}
 {if $showFeeBlock }
+
+    {if $priceSet}
+    <div id='validate_pricefield' class='messages crm-error hiddenElement'></div>
+    {literal}
+    <script type="text/javascript">
+
+    var fieldOptionsFull = new Array( );
+    {/literal}
+    {foreach from=$priceSet.fields item=fldElement key=fldId}
+    {if $fldElement.options}
+      {foreach from=$fldElement.options item=fldOptions key=opId}
+      {if $fldOptions.is_full}
+        {literal}
+	fieldOptionsFull[{/literal}{$fldId}{literal}] = new Array( );
+        fieldOptionsFull[{/literal}{$fldId}{literal}][{/literal}{$opId}{literal}] = 1; 
+        {/literal}
+      {/if} 
+      {/foreach}
+    {/if}
+    {/foreach}
+    {literal}
+
+    if ( fieldOptionsFull.length > 0 ) {
+    cj(document).ready( function( ) {
+      cj("input,#priceset select,#priceset").each(function () {
+        if ( cj(this).attr('price') ) {
+            switch( cj(this).attr('type') ) { 
+              case 'checkbox':
+              case 'radio':
+                cj(this).click( function() { 
+                  validatePriceField(this);    
+                });
+                break;
+
+	      case 'select-one':
+	        cj(this).change( function() {
+	          validatePriceField(this); 
+	        });
+	        break;
+	      case 'text':
+		cj(this).bind( 'keyup', function() { validatePriceField(this) });
+		break;
+            }
+        }
+      });
+    });
+    
+    function validatePriceField( obj ) {
+	         var namePart =  cj(obj).attr('name').split('_');
+		 var fldVal  =  cj(obj).val();
+		 if ( cj(obj).attr('type') == 'checkbox') {
+		   var eleIdpart = namePart[1].split('[');
+		   var eleId = eleIdpart[0];
+		 } else {
+		   var eleId  = namePart[1];
+		 }		 
+		 var showError = false;
+		 
+		 switch( cj(obj).attr('type') ) {
+		  case 'text':
+		       if ( fieldOptionsFull[eleId] && fldVal ) {
+		       	  showError = true;
+			  cj(obj).parent( ).parent( ).children('.label').addClass('crm-error');	   
+		       } else {
+		          cj(obj).parent( ).parent( ).children('.label').removeClass('crm-error');
+			  cj('#validate_pricefield').hide( ).html('');	       
+		       }
+		       break;
+
+		  case 'checkbox':  
+		      var checkBoxValue = eleIdpart[1].split(']');
+		      if ( cj(obj).attr("checked") == true &&
+		           fieldOptionsFull[eleId] &&
+		           fieldOptionsFull[eleId][checkBoxValue[0]]) {
+		           showError = true;
+		           cj(obj).parent( ).addClass('crm-error');	       
+		      } else {
+		   	cj(obj).parent( ).removeClass('crm-error');
+		      }
+		      break;   
+    
+		  default:
+		      if ( fieldOptionsFull[eleId] &&
+		           fieldOptionsFull[eleId][fldVal]  ) {
+		           showError = true;
+		           cj(obj).parent( ).addClass('crm-error');	       
+		      } else {
+		   	cj(obj).parent( ).removeClass('crm-error');
+		      }
+		 }
+		 
+		 if ( showError ) {
+  		   cj('#validate_pricefield').show().html("<span class='icon red-icon alert-icon'></span>{/literal}{ts}This Option is already full for this event.{/ts}{literal}");
+		 } else {
+		   cj('#validate_pricefield').hide( ).html('');
+		 }
+		             		 	   
+        }
+	}
+    </script>
+    {/literal}
+    {/if}
     {include file="CRM/Event/Form/EventFees.tpl"}
+    
 {elseif $cdType }
     {include file="CRM/Custom/Form/CustomData.tpl"}
 {else}
     {if $participantMode == 'test' }
         {assign var=registerMode value="TEST"}
-        {else if $participantMode == 'live'}
+    {elseif $participantMode == 'live'}
         {assign var=registerMode value="LIVE"}
     {/if}
     <h3>{if $action eq 1}{ts}New Event Registration{/ts}{elseif $action eq 8}{ts}Delete Event Registration{/ts}{else}{ts}Edit Event Registration{/ts}{/if}</h3>
@@ -60,10 +163,13 @@
                 </div>
     			{if $additionalParticipant}
                     <div class="crm-content">
-                        {ts 1=$additionalParticipant} There are %1 more Participant(s) registered by this participant. Deleting this registration will also result in deletion of these additional participant(s).{/ts}
+                        {ts 1=$additionalParticipant} There are %1 more Participant(s) registered by this participant.{/ts}
                     </div>
     			{/if}
             </div>
+	    {if $additionalParticipant}
+              {$form.delete_participant.html}
+            {/if}
         {else} {* If action is other than Delete *}
             <div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl" location="top"}</div>
             <table class="form-layout-compressed">
@@ -73,8 +179,31 @@
     			    <td class="font-size12pt view-value">{$displayName}&nbsp;</td>
     			</tr>
     	    {else}
+	        {if !$participantMode and !$email and $outBound_option != 2 }
+		    {assign var='profileCreateCallback' value=1} 
+		{/if} 
                 {include file="CRM/Contact/Form/NewContact.tpl"}
-            {/if}	
+            {/if}
+            {if $action EQ 2}
+            	{if $additionalParticipants} {* Display others registered by this participant *}
+                    <tr class="crm-participant-form-block-additionalParticipants">
+                        <td class="label"><label>{ts}Also Registered by this Participant{/ts}</label></td>
+                        <td>
+                            {foreach from=$additionalParticipants key=apName item=apURL}
+                                <a href="{$apURL}" title="{ts}view additional participant{/ts}">{$apName}</a><br />
+                            {/foreach}
+                        </td>
+                    </tr>
+            	{/if}
+            	{if $registered_by_contact_id}
+                    <tr class="crm-participant-form-block-registered-by">
+                        <td class="label"><label>{ts}Registered By{/ts}</label></td>
+                        <td class="view-value">
+            	            <a href="{crmURL p='civicrm/contact/view/participant' q="reset=1&id=$participant_registered_by_id&cid=$registered_by_contact_id&action=view"}" title="{ts}view primary participant{/ts}">{$registered_by_display_name}</a>
+                        </td>
+                    </tr>
+            	{/if}
+            {/if}
             {if $participantMode}
                 <tr class="crm-participant-form-block-payment_processor_id"><td class="label nowrap">{$form.payment_processor_id.label}</td><td>{$form.payment_processor_id.html}</td></tr>
             {/if}
@@ -86,6 +215,11 @@
     				{/if}
                 </td>
             </tr> 
+	    
+	    {* CRM-7362 --add campaign *}
+	    {include file="CRM/Campaign/Form/addCampaignToComponent.tpl"
+	    campaignTrClass="crm-participant-form-block-campaign_id"}
+
             <tr class="crm-participant-form-block-role_id"><td class="label">{$form.role_id.label}</td><td>{$form.role_id.html}</td></tr>
             <tr class="crm-participant-form-block-register_date">
                 <td class="label">{$form.register_date.label}</td>
@@ -150,7 +284,7 @@
                     cj( elementID ).get(0).add(new Option(response[i].name, response[i].value), document.all ? i : null);
                 }
                 cj('#past-event').hide( );
-                cj('input[name=past_event]').val(1);
+                cj('input[name="past_event"]').val(1);
                 cj("#feeBlock").html( '' );
             }
         );
@@ -230,19 +364,177 @@
         } else {
           cj( "#eventFullMsg" ).hide( );
         }
-	}
+	}    
+
 </script>
 {/literal}
 {*include custom data js file*}
 {include file="CRM/common/customData.tpl"}
 {literal}
 <script type="text/javascript">
+    var roleGroupMapper = new Array( );
+    {/literal}{foreach from=$participantRoleIds item="grps" key="rlId"}{literal}
+      roleGroupMapper[{/literal}{$rlId}{literal}] = '{/literal}{$grps}{literal}';
+    {/literal}{/foreach}{literal}
+
+    function buildParticipantRole( eventID )
+    {
+         var dataUrl = "{/literal}{crmURL p='civicrm/ajax/rest' q='className=CRM_Event_Page_AJAX&fnName=participantRole&json=1&context=participant' h=0 }"{literal};
+         
+         if ( !eventId ) {
+	         var eventId  = document.getElementById( 'event_id' ).value;
+		 }
+         if ( eventId ) {
+	         dataUrl = dataUrl + '&eventId=' + eventID;  
+         }
+         cj.ajax({
+			url: dataUrl,
+			async: false,
+			global: false,
+            dataType: "json",
+			success: function ( response ) {
+                     
+			    if ( response.role ) {
+                    for ( var i in roleGroupMapper ) {
+                        if ( i != 0 ) {
+                            if ( i == response.role ) {
+                                document.getElementById("role_id[" +i+ "]"  ).checked = true;
+                            } else {
+                                document.getElementById("role_id[" +i+ "]"  ).checked = false;
+                            }  
+                            showCustomData( 'Participant', i, {/literal} {$roleCustomDataTypeID} {literal} );
+                        }
+                    }
+                }
+			}
+    	});  
+    }
+
+  
+    function showCustomData( type, subType, subName )
+    {
+        var dataUrl = {/literal}"{crmURL p=$urlPath h=0 q='snippet=4&type='}"{literal} + type;
+       	
+        var roleid = "role_id["+subType+"]";
+               
+        var loadData = false;
+     
+        if ( document.getElementById( roleid ).checked == true ) {
+            if ( roleGroupMapper[subType] ) {
+                var splitGroup = roleGroupMapper[subType].split(",");
+                for ( i = 0; i < splitGroup.length; i++ ) {
+                    var roleCustomGroupId = splitGroup[i];
+                    if ( cj( '#'+roleCustomGroupId ).length > 0 ) {
+                        cj( '#'+roleCustomGroupId ).remove( );
+                    }
+                } 
+                loadData = true;  
+            }
+           
+            if ( loadData && roleGroupMapper[0] ) {
+                var splitGroup = roleGroupMapper[0].split(",");
+                for ( i = 0; i < splitGroup.length; i++ ) {
+                    var roleCustomGroupId = splitGroup[i];
+                    if ( cj( '#'+roleCustomGroupId ).length > 0 ) {
+                        cj( '#'+roleCustomGroupId ).remove( );
+                    }
+                } 
+            }
+        } else {
+            var groupUnload = new Array( );
+            var x = 0;
+                
+            if ( roleGroupMapper[0] ) {
+                var splitGroup = roleGroupMapper[0].split(",");
+                for ( x = 0; x < splitGroup.length; x++ ) {
+                    groupUnload[x] = splitGroup[x];
+                }
+            }
+
+            for ( var i in roleGroupMapper ) {
+                if ( ( i > 0 ) && ( document.getElementById( "role_id["+i+"]" ).checked ) ) {
+                    var splitGroup = roleGroupMapper[i].split(",");
+                    for ( j = 0; j < splitGroup.length; j++ ) {
+                        groupUnload[x+j+1] = splitGroup[j];
+                    }
+                }
+            } 
+
+            if ( roleGroupMapper[subType] ) {
+                var splitGroup = roleGroupMapper[subType].split(",");
+                for ( i = 0; i < splitGroup.length; i++ ) {
+                    var roleCustomGroupId = splitGroup[i];
+                    if ( cj( '#'+roleCustomGroupId ).length > 0 ) {
+                        if ( cj.inArray( roleCustomGroupId, groupUnload ) == -1  ) {
+                            cj( '#'+roleCustomGroupId ).remove( );
+                        }
+                    }
+                } 
+            }        
+        }
+
+        if ( !( loadData ) ) {
+           return false;
+        }       
+ 
+        if ( subType ) {
+            dataUrl = dataUrl + '&subType=' + subType;
+        }
+  
+        if ( subName ) {
+            dataUrl = dataUrl + '&subName=' + subName;
+            cj( '#customData' + subName ).show( );
+        } else {
+            cj( '#customData' ).show( );		
+        }
+  
+       {/literal}
+       {if $urlPathVar}
+           dataUrl = dataUrl + '&' + '{$urlPathVar}'
+       {/if}
+       {if $groupID}
+           dataUrl = dataUrl + '&groupID=' + '{$groupID}'
+       {/if}
+       {if $qfKey}
+           dataUrl = dataUrl + '&qfKey=' + '{$qfKey}'
+       {/if}
+       {if $entityID}
+           dataUrl = dataUrl + '&entityID=' + '{$entityID}'
+       {/if}
+ 
+       {literal}
+       
+           if ( subName && subName != 'null' ) {		
+               var fname = '#customData' + subName;
+           } else {
+               var fname = '#customData';
+           }		
+  
+       var response = cj.ajax({url: dataUrl,
+ 	 		  async: false
+       }).responseText;
+
+       if ( subType != 'null' ) {
+           if ( document.getElementById(roleid).checked == true ) {
+               var response_text = '<div style="display:block;" id = '+subType+'_chk >'+response+'</div>';
+               cj( fname ).append(response_text);
+           } else {
+               cj('#'+subType+'_chk').remove();
+           }
+       }                 
+   }
 	cj(function() {				
 		{/literal}
 		buildCustomData( '{$customDataType}', 'null', 'null' );
-		{if $roleID}
-		    buildCustomData( '{$customDataType}', {$roleID}, {$roleCustomDataTypeID} );
-		{/if}
+		{literal}
+        for ( var i in roleGroupMapper ) {
+            if ( ( i > 0 ) && ( document.getElementById( "role_id["+i+"]" ).checked ) ) {
+               {/literal}
+               showCustomData( '{$customDataType}', i, {$roleCustomDataTypeID} );
+               {literal}  
+            }
+        }
+        {/literal}
 		{if $eventID}
 		    buildCustomData( '{$customDataType}', {$eventID}, {$eventNameCustomDataTypeID} );
 		{/if}
@@ -285,7 +577,21 @@
          var mapping = eval('(' + eventAndTypeMapping + ')');
          buildCustomData( 'Participant', mapping[eventID], eventTypeCustomDataTypeID );
     }
+
+    function loadCampaign( eventId, campaigns ) {
+       cj( "#campaign_id" ).val( campaigns[eventId] );
+    }
+    
 {/literal}
+{if $profileCreateCallback}
+{literal}
+function profileCreateCallback( blockNo ) {
+  if( cj('#event_id').val( ) &&  cj('#email-receipt').length > 0 ) {
+    checkEmail( );
+  }
+}
+{/literal}
+{/if}
 </script>
 {literal}
 <script type="text/javascript">

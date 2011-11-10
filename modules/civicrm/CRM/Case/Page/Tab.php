@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -55,21 +55,20 @@ class CRM_Case_Page_Tab extends CRM_Core_Page
     
     function preProcess( )
     {
-        $this->_action = CRM_Utils_Request::retrieve('action', 'String', $this, false, 'browse');
+        $this->_action    = CRM_Utils_Request::retrieve('action', 'String', $this, false, 'browse');
+        $this->_contactId = CRM_Utils_Request::retrieve( 'cid', 'Positive', $this );
         
-        // Make sure case types have been configured for the component
-        require_once 'CRM/Core/OptionGroup.php';        
-        $caseType = CRM_Core_OptionGroup::values( 'case_type', false, false, false, null, 'label', false );
-        if ( empty( $caseType ) ){
-            $this->assign('notConfigured', 1);
+        //validate case configuration.
+        require_once 'CRM/Case/BAO/Case.php';
+        $configured = CRM_Case_BAO_Case::isCaseConfigured( $this->_contactId );
+        $this->assign( 'notConfigured',       !$configured['configured'] );
+        $this->assign( 'allowToAddNewCase',   $configured['allowToAddNewCase'] );
+        $this->assign( 'redirectToCaseAdmin', $configured['redirectToCaseAdmin'] );
+        if ( !$configured['configured'] || $configured['redirectToCaseAdmin'] ) {
             return;
         }
-
-        $activeCaseTypes = CRM_Core_OptionGroup::values( 'case_type' );
-        $this->assign( 'allowToAddNewCase', empty( $activeCaseTypes ) ? false : true );
-
+        
         $this->_id        = CRM_Utils_Request::retrieve( 'id' , 'Positive', $this );
-        $this->_contactId = CRM_Utils_Request::retrieve( 'cid', 'Positive', $this );
         $this->_context   = CRM_Utils_Request::retrieve( 'context', 'String', $this );
         
         if ( $this->_contactId ) {
@@ -233,7 +232,7 @@ class CRM_Case_Page_Tab extends CRM_Core_Page
             $deleteExtra = ts('Are you sure you want to delete this case?');
             self::$_links = array(
                                   CRM_Core_Action::VIEW    => array(
-                                                                    'name'  => ts('Manage Case'),
+                                                                    'name'  => ts('Manage'),
                                                                     'url'   => 'civicrm/contact/view/case',
                                                                     'qs'    => 'action=view&reset=1&cid=%%cid%%&id=%%id%%',
                                                                     'title' => ts('Manage Case')
@@ -280,10 +279,9 @@ class CRM_Case_Page_Tab extends CRM_Core_Page
             $url = CRM_Utils_System::url( 'civicrm/case/search', $urlParams );
             break;
             
+        case 'dashlet':
+        case 'dashletFullscreen':    
         case 'home':
-            $url = CRM_Utils_System::url( 'civicrm/dashboard', 'reset=1' );
-            break;
-          
         case 'standalone':
             $url = CRM_Utils_System::url( 'civicrm/dashboard', 'reset=1' );
             break;

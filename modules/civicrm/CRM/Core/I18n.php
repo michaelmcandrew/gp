@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -73,7 +73,7 @@ class CRM_Core_I18n
 
         if (!$all) {
             require_once 'CRM/Core/I18n/PseudoConstant.php';
-            $all =& CRM_Core_I18n_PseudoConstant::languages();
+            $all = CRM_Core_I18n_PseudoConstant::languages();
 
             // check which ones are available; add them to $all if not there already
             $config = CRM_Core_Config::singleton();
@@ -157,6 +157,16 @@ class CRM_Core_I18n
         if (isset($params['escape'])) {
             $escape = $params['escape'];
             unset($params['escape']);
+        }
+
+        // sometimes we need to {ts}-tag a string, but don’t want to
+        // translate it in the template (like civicrm_navigation.tpl),
+        // because we handle the translation in a different way (CRM-6998)
+        // in such cases we return early, only doing SQL/JS escaping
+        if (isset($params['skip']) and $params['skip']) {
+            if (isset($escape) and ($escape == 'sql')) $text = mysql_escape_string($text);
+            if (isset($escape) and ($escape == 'js'))  $text = addcslashes($text, "'");
+            return $text;
         }
 
         if (isset($params['plural'])) {

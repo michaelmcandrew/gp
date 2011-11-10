@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -32,14 +32,14 @@
        {if ( $context eq 'fulltext' || $context eq 'search' ) && $searchKey}
        {assign var='urlParams' value="reset=1&id=$id&cid=$contact_id&action=update&context=$context&key=$searchKey"}	   
        {/if}
-       <a class="button" href="{crmURL p='civicrm/contact/view/contribution' q=$urlParams}" accesskey="e"><span><div class="icon edit-icon"></div> Edit</span></a>
+       <a class="button" href="{crmURL p='civicrm/contact/view/contribution' q=$urlParams}" accesskey="e"><span><div class="icon edit-icon"></div>{ts}Edit{/ts}</span></a>
     {/if}
     {if call_user_func(array('CRM_Core_Permission','check'), 'delete in CiviContribute')}
        {assign var='urlParams' value="reset=1&id=$id&cid=$contact_id&action=delete&context=$context"}
        {if ( $context eq 'fulltext' || $context eq 'search' ) && $searchKey}
        {assign var='urlParams' value="reset=1&id=$id&cid=$contact_id&action=delete&context=$context&key=$searchKey"}	   
        {/if}
-       <a class="button" href="{crmURL p='civicrm/contact/view/contribution' q=$urlParams}"><span><div class="icon delete-icon"></div> Delete</span></a>
+       <a class="button" href="{crmURL p='civicrm/contact/view/contribution' q=$urlParams}"><span><div class="icon delete-icon"></div>{ts}Delete{/ts}</span></a>
     {/if}
     {include file="CRM/common/formButtons.tpl" location="top"}
     </div>
@@ -51,7 +51,7 @@
     </tr>
     <tr>
         <td class="label">{ts}Contribution Type{/ts}</td>
-    	<td>{$contribution_type}&nbsp; {if $is_test} {ts}(test){/ts} {/if}</td>
+    	<td>{$contribution_type}{if $is_test} {ts}(test){/ts} {/if}</td>
     </tr>
     {if $lineItem}
     <tr>
@@ -64,7 +64,7 @@
         <td><strong>{$total_amount|crmMoney:$currency}</strong>&nbsp; 
             {if $contribution_recur_id}
               <strong>{ts}Recurring Contribution{/ts}</strong> <br/>
-              {ts}Installments{/ts}: {$recur_installments}, {ts}Interval{/ts}: {$recur_frequency_interval} {$recur_frequency_unit}(s)
+              {ts}Installments{/ts}: {if $recur_installments}{$recur_installments}{else}{ts}(ongoing){/ts}{/if}, {ts}Interval{/ts}: {$recur_frequency_interval} {$recur_frequency_unit}(s)
             {/if}
         </td>
     </tr>
@@ -125,6 +125,20 @@
 	    <td class="label">{ts}Source{/ts}</td>
     	<td>{$source}</td>
 	</tr>
+
+	{if $campaign}
+	<tr>
+	    <td class="label">{ts}Campaign{/ts}</td>
+    	    <td>{$campaign}</td>
+	</tr>
+	{/if}
+	
+	{if $contribution_page_title}
+        <tr>
+            <td class="label">{ts}Online Contribution Page{/ts}</td>
+        	<td>{$contribution_page_title}</td>
+        </tr>
+    {/if}
 	{if $receipt_date}
     	<tr>
     	    <td class="label">{ts}Receipt Sent{/ts}</td>
@@ -150,7 +164,7 @@
 	    <tr>
 	        <td class="label">{ts}Invoice ID{/ts}</td>
 	        <td>{$invoice_id}&nbsp;</td>
-	    </tr
+	    </tr>
 	{/if} 
 
 	{if $honor_display}
@@ -167,7 +181,7 @@
 	    </tr>
 	{/if}
 	
-	{if $softCreditToName}
+	{if $softCreditToName and !$pcp_id} {* We show soft credit name with PCP section if contribution is linked to a PCP. *}
     <tr>
     	<td class="label">{ts}Soft Credit To{/ts}</td>
         <td><a href="{crmURL p="civicrm/contact/view" q="reset=1&cid=`$soft_credit_to`"}" id="view_contact" title="{ts}View contact record{/ts}">{$softCreditToName}</a></td>
@@ -192,7 +206,7 @@
 {/if}
 
 {if $pcp_id}
-    <div class="crm-accordion-wrapper crm-accordion_title-accordion crm-accordion-open">
+    <div id='PCPView' class="crm-accordion-wrapper crm-accordion_title-accordion crm-accordion-open">
          <div class="crm-accordion-header">
               <div class="icon crm-accordion-pointer"></div> 
               {ts}Personal Campaign Page Contribution Information{/ts}
@@ -200,10 +214,14 @@
          <div class="crm-accordion-body">			   
             <table class="crm-info-panel">
                 <tr>
-            	    <td class="label">{ts}Campaign Page{/ts}</td>
+            	    <td class="label">{ts}Personal Campaign Page{/ts}</td>
                     <td><a href="{crmURL p="civicrm/contribute/pcp/info" q="reset=1&id=`$pcp_id`"}">{$pcp}</a><br />
                         <span class="description">{ts}Contribution was made through this personal campaign page.{/ts}</span>
                     </td>
+                </tr>
+                <tr>
+                	<td class="label">{ts}Soft Credit To{/ts}</td>
+                    <td><a href="{crmURL p="civicrm/contact/view" q="reset=1&cid=`$soft_credit_to`"}" id="view_contact" title="{ts}View contact record{/ts}">{$softCreditToName}</a></td>
                 </tr>
                 <tr><td class="label">{ts}In Public Honor Roll?{/ts}</td><td>{if $pcp_display_in_roll}{ts}Yes{/ts}{else}{ts}No{/ts}{/if}</td></tr>
                 {if $pcp_roll_nickname}
@@ -233,14 +251,14 @@
        {if ( $context eq 'fulltext' || $context eq 'search' ) && $searchKey}
        {assign var='urlParams' value="reset=1&id=$id&cid=$contact_id&action=update&context=$context&key=$searchKey"}	   
        {/if}
-       <a class="button" href="{crmURL p='civicrm/contact/view/contribution' q=$urlParams}" accesskey="e"><span><div class="icon edit-icon"></div> Edit</span></a>
+       <a class="button" href="{crmURL p='civicrm/contact/view/contribution' q=$urlParams}" accesskey="e"><span><div class="icon edit-icon"></div>{ts}Edit{/ts}</span></a>
     {/if}
     {if call_user_func(array('CRM_Core_Permission','check'), 'delete in CiviContribute')}
        {assign var='urlParams' value="reset=1&id=$id&cid=$contact_id&action=delete&context=$context"}
        {if ( $context eq 'fulltext' || $context eq 'search' ) && $searchKey}
        {assign var='urlParams' value="reset=1&id=$id&cid=$contact_id&action=delete&context=$context&key=$searchKey"}	   
        {/if}
-       <a class="button" href="{crmURL p='civicrm/contact/view/contribution' q=$urlParams}"><span><div class="icon delete-icon"></div> Delete</span></a>
+       <a class="button" href="{crmURL p='civicrm/contact/view/contribution' q=$urlParams}"><span><div class="icon delete-icon"></div>{ts}Delete{/ts}</span></a>
     {/if}
     {include file="CRM/common/formButtons.tpl" location="bottom"}
 </div>

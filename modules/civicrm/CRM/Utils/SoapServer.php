@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -39,14 +39,12 @@
  * This class handles all SOAP client requests.
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
 
-require_once 'api/utils.php';
-require_once 'api/Mailer.php';
-
+require_once 'api/v2/Mailer.php';
 class CRM_Utils_SoapServer
 {
     /**
@@ -124,9 +122,9 @@ class CRM_Utils_SoapServer
      * @access public
      * @static
      */
-    public function authenticate($name, $pass) {
+    public function authenticate($name, $pass, $loadCMSBootstrap = true ) {
         require_once( str_replace( '_', DIRECTORY_SEPARATOR, $this->ufClass ) . '.php' );
-        eval ('$result =& ' . $this->ufClass . '::authenticate($name, $pass);');
+        eval ('$result =& ' . $this->ufClass . '::authenticate($name, $pass, $loadCMSBootstrap );');
 
         if (empty($result)) {
             throw new SoapFault('Client', 'Invalid login');
@@ -142,48 +140,85 @@ class CRM_Utils_SoapServer
     /*** MAILER API ***/
     public function mailer_event_bounce($key, $job, $queue, $hash, $body) {
         $this->verify($key);
-        return crm_mailer_event_bounce($job, $queue, $hash, $body);
+         $params = array ( 'job_id'         => $job,
+                           'event_queue_id' => $queue,
+                           'hash'           => $hash,
+                           'body'           => $body
+                           );
+         return civicrm_mailer_event_bounce( $params );
     }
-
+    
     public function mailer_event_unsubscribe($key, $job, $queue, $hash) {
         $this->verify($key);
-        return crm_mailer_event_unsubscribe($job, $queue, $hash);
+        $params = array ( 'job_id'         => $job,
+                          'event_queue_id' => $queue,
+                          'hash'           => $hash
+                          );
+        return civicrm_mailer_event_unsubscribe( $params );
     }
 
     public function mailer_event_domain_unsubscribe($key, $job, $queue, $hash) {
         $this->verify($key);
-        return crm_mailer_event_domain_unsubscribe($job, $queue, $hash);
+        $params = array ( 'job_id'         => $job,
+                          'event_queue_id' => $queue,
+                          'hash'           => $hash
+                          );
+        return civicrm_mailer_event_domain_unsubscribe( $params );
     }
 
     public function mailer_event_resubscribe($key, $job, $queue, $hash) {
         $this->verify($key);
-        return crm_mailer_event_resubscribe($job, $queue, $hash);
+        $params = array ( 'job_id'         => $job,
+                          'event_queue_id' => $queue,
+                          'hash'           => $hash
+                          );
+        return civicrm_mailer_event_resubscribe( $params );
     }
 
     public function mailer_event_subscribe($key, $email, $domain, $group) {
         $this->verify($key);
-        return crm_mailer_event_subscribe($email, $domain, $group);
+        $params = array ( 'email'          => $email,
+                          'group_id'       => $group
+                          );
+        return civicrm_mailer_event_subscribe( $params );
     }
-
+    
     public function mailer_event_confirm($key, $contact, $subscribe, $hash) {
         $this->verify($key);
-        return crm_mailer_event_confirm($contact, $subscribe, $hash);
+        $params = array ( 'contact_id'   => $contact,
+                          'subscribe_id' => $subscribe,
+                          'hash'         => $hash
+                          );
+        return civicrm_mailer_event_confirm( $params );
     }
-
+    
     public function mailer_event_reply($key, $job, $queue, $hash, $bodyTxt, $rt, $bodyHTML = null, $fullEmail = null) {
         $this->verify($key);
-        return crm_mailer_event_reply($job, $queue, $hash, $bodyTxt, $rt, $bodyHTML, $fullEmail);
+        $params = array ( 'job_id'         => $job,
+                          'event_queue_id' => $queue,
+                          'hash'           => $hash,
+                          'bodyTxt'        => $bodyTxt,
+                          'replyTo'        => $rt,
+                          'bodyHTML'       => $bodyHTML,
+                          'fullEmail'      => $fullEmail
+                          );
+        return civicrm_mailer_event_reply( $params );
     }
-
+    
     public function mailer_event_forward($key, $job, $queue, $hash, $email) {
         $this->verify($key);
-        return crm_mailer_event_forward($job, $queue, $hash, $email);
+        $params = array ( 'job_id'         => $job,
+                          'event_queue_id' => $queue,
+                          'hash'           => $hash,
+                          'email'          => $email
+                          );
+        return civicrm_mailer_event_forward( $params );
     }
-
+    
     public function get_contact($key, $params) { 
-        $this->verify($key); 
-        require_once 'api/v2/Contact.php';
-        return civicrm_contact_get( $params );
+        $this->verify($key);
+        $params['version'] = 3;
+        return civicrm_api('contact', 'get', $params);
     }
 
 }

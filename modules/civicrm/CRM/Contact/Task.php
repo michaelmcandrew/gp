@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -40,8 +40,10 @@
  *
  */
 require_once 'CRM/Contact/BAO/ContactType.php';
-
-class CRM_Contact_Task {
+require_once 'CRM/Mailing/Info.php';
+ 
+class CRM_Contact_Task
+{
     const
         GROUP_CONTACTS        =     1,
         REMOVE_CONTACTS       =     2,
@@ -88,17 +90,13 @@ class CRM_Contact_Task {
         if ( ! self::$_tasks ) {
             self::$_tasks = array(
                                   1     => array( 'title'  => ts( 'Add Contacts to Group'         ),
-                                                  'class'  => 'CRM_Contact_Form_Task_AddToGroup',
-                                                  'result' => true ),
+                                                  'class'  => 'CRM_Contact_Form_Task_AddToGroup' ),
                                   2     => array( 'title'  => ts( 'Remove Contacts from Group'    ),
-                                                  'class'  => 'CRM_Contact_Form_Task_RemoveFromGroup',
-                                                  'result' => true ),
+                                                  'class'  => 'CRM_Contact_Form_Task_RemoveFromGroup' ),
                                   3     => array( 'title'  => ts( 'Tag Contacts (assign tags)'    ),
-                                                  'class'  => 'CRM_Contact_Form_Task_AddToTag',
-                                                  'result' => true ),
+                                                  'class'  => 'CRM_Contact_Form_Task_AddToTag' ),
                                   4     => array( 'title'  => ts( 'Untag Contacts (remove tags)'  ),  
-                                                  'class'  => 'CRM_Contact_Form_Task_RemoveFromTag',
-                                                  'result' => true ),
+                                                  'class'  => 'CRM_Contact_Form_Task_RemoveFromTag' ),
                                   5     => array( 'title'  => ts( 'Export Contacts'               ),
                                                   'class'  => array( 'CRM_Export_Form_Select',
                                                                      'CRM_Export_Form_Map' ),
@@ -114,8 +112,7 @@ class CRM_Contact_Task {
                                                   'result' => false ),
                                   
                                   11    => array( 'title'  => ts( 'Record Activity for Contacts'  ),
-                                                  'class'  => 'CRM_Activity_Form_Activity',
-                                                  'result' => true ),
+                                                  'class'  => 'CRM_Activity_Form_Activity' ),
                                   13    => array( 'title'  => ts( 'New Smart Group'               ),
                                                   'class'  => 'CRM_Contact_Form_Task_SaveSearch',
                                                   'result' => true ),
@@ -136,8 +133,7 @@ class CRM_Contact_Task {
                                                   'class'  => 'CRM_Contact_Form_Task_PDF',
                                                   'result' => true ),
                                   22    => array( 'title'  => ts('Unhold Emails'),
-                                                  'class'  => 'CRM_Contact_Form_Task_Unhold',
-                                                  'result' => true ),
+                                                  'class'  => 'CRM_Contact_Form_Task_Unhold' ),
                                   self::RESTORE => array(
                                       'title'  => ts('Restore Contacts'),
                                       'class'  => 'CRM_Contact_Form_Task_Delete',
@@ -153,16 +149,14 @@ class CRM_Contact_Task {
                 $label = CRM_Contact_BAO_ContactType::getLabel( 'Household' );
                 self::$_tasks[9] = array( 'title'  => ts( 'Add Contacts to %1',
                                                           array( 1=> $label ) ) ,
-                                          'class'  => 'CRM_Contact_Form_Task_AddToHousehold',
-                                          'result' => true
+                                          'class'  => 'CRM_Contact_Form_Task_AddToHousehold'
                                           );
             }
             if( CRM_Contact_BAO_ContactType::isActive( 'Organization' ) ) {
                 $label = CRM_Contact_BAO_ContactType::getLabel( 'Organization' );
                 self::$_tasks[10] = array( 'title'  => ts( 'Add Contacts to %1',
                                                            array( 1=> $label ) ) ,
-                                           'class'  => 'CRM_Contact_Form_Task_AddToOrganization',
-                                           'result' => true
+                                           'class'  => 'CRM_Contact_Form_Task_AddToOrganization'
                                            );
             }
             if ( CRM_Core_Permission::check( 'merge duplicate contacts' ) ) {
@@ -188,8 +182,7 @@ class CRM_Contact_Task {
  
             if ( CRM_Core_Permission::access( 'CiviEvent' ) ) {
                 self::$_tasks[18] = array( 'title'  => ts( 'Add Contacts to Event' ),
-                                           'class'  => 'CRM_Event_Form_Participant',
-                                           'result' => true );
+                                           'class'  => 'CRM_Event_Form_Participant' );
             }
             
             if ( CRM_Core_Permission::access( 'CiviMail' ) ) { 
@@ -199,6 +192,16 @@ class CRM_Contact_Task {
                                                               'CRM_Mailing_Form_Upload',
                                                               'CRM_Mailing_Form_Test',
                                                               'CRM_Mailing_Form_Schedule'
+                                                              ),
+                                           'result' => false
+                                           );
+            } elseif ( CRM_Mailing_Info::workflowEnabled( ) && 
+                       CRM_Core_Permission::check( 'create mailings' ) ) { 
+                self::$_tasks[20] = array( 'title'  => ts( 'Create a Mass Mailing' ),
+                                           'class'  => array( 'CRM_Mailing_Form_Group',
+                                                              'CRM_Mailing_Form_Settings',
+                                                              'CRM_Mailing_Form_Upload',
+                                                              'CRM_Mailing_Form_Test',
                                                               ),
                                            'result' => false
                                            );
@@ -247,10 +250,11 @@ class CRM_Contact_Task {
         }
 
         // CRM-6806
-        if (!CRM_Core_Permission::check('access deleted contacts')) {
+        if ( !CRM_Core_Permission::check( 'access deleted contacts' ) || 
+             !CRM_Core_Permission::check( 'delete contacts' ) ) {
             unset($titles[self::DELETE_PERMANENTLY]);
         }
-
+        asort( $titles );
         return $titles;
     }
 
@@ -268,21 +272,25 @@ class CRM_Contact_Task {
     {
         $tasks = array( );
         if ($deletedContacts) {
-            if (CRM_Core_Permission::check('access deleted contacts')) {
-                $tasks = array(
-                    self::RESTORE            => self::$_tasks[self::RESTORE           ]['title'],
-                    self::DELETE_PERMANENTLY => self::$_tasks[self::DELETE_PERMANENTLY]['title'],
-                );
+            if ( CRM_Core_Permission::check( 'access deleted contacts' ) ) {
+                $tasks = array( self::RESTORE => self::$_tasks[self::RESTORE]['title'] );
+                if ( CRM_Core_Permission::check( 'delete contacts' ) ) {
+                    $tasks[self::DELETE_PERMANENTLY] = self::$_tasks[self::DELETE_PERMANENTLY]['title'];
+                } 
             }
         } elseif ($permission == CRM_Core_Permission::EDIT) {
             $tasks = self::taskTitles( );
         } else {
             $tasks = array( 
                            5  => self::$_tasks[ 5]['title'],
-                           6  => self::$_tasks[ 6] ['title'],
+                           6  => self::$_tasks[ 6]['title'],
                            12 => self::$_tasks[12]['title'],
                            16 => self::$_tasks[16]['title'],
+                           20 => self::$_tasks[20]['title'],
                            );
+            if ( ! self::$_tasks[20]['title'] ) {
+                unset( $tasks[20] );
+            }
             if ( ! self::$_tasks[12]['title'] ) {
                 //usset it, No edit permission and Map provider info
                 //absent, drop down shows blank space
@@ -319,8 +327,8 @@ class CRM_Contact_Task {
         if ( ! CRM_Utils_Array::value( $value, self::$_tasks ) ) {
             $value = 15; // make it the print task by default
         }
-        return array( self::$_tasks[$value]['class' ],
-                      self::$_tasks[$value]['result'] );
+        return array( CRM_Utils_Array::value( 'class', self::$_tasks[$value] ),
+                      CRM_Utils_Array::value( 'result', self::$_tasks[$value] ) );
     }
 
 }

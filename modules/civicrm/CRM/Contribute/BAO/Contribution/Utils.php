@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,12 +29,13 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
 
-class CRM_Contribute_BAO_Contribution_Utils {
+class CRM_Contribute_BAO_Contribution_Utils
+{
 
     /**
      * Function to process payment after confirmation
@@ -58,20 +59,25 @@ class CRM_Contribute_BAO_Contribution_Utils {
                                     &$premiumParams,
                                     $contactID,
                                     $contributionTypeId,
-                                    $component = 'contribution' )
+                                    $component = 'contribution', 
+                                    $fieldTypes = null )
     { 
         require_once 'CRM/Core/Payment/Form.php';
         CRM_Core_Payment_Form::mapParams( $form->_bltID, $form->_params, $paymentParams, true );
         
         require_once 'CRM/Contribute/DAO/ContributionType.php';
         $contributionType = new CRM_Contribute_DAO_ContributionType( );
-        if( isset( $paymentParams['contribution_type'] ) ) {
+        if ( isset( $paymentParams['contribution_type'] ) ) {
             $contributionType->id = $paymentParams['contribution_type'];
+        } else if ( CRM_Utils_Array::value( 'pledge_id', $form->_values ) ) {
+            $contributionType->id = CRM_Core_DAO::getFieldValue( 'CRM_Pledge_DAO_Pledge', 
+                                                                 $form->_values['pledge_id'], 
+                                                                 'contribution_type_id' );
         } else {
             $contributionType->id = $contributionTypeId;
         }
         if ( ! $contributionType->find( true ) ) {
-            CRM_Core_Error::fatal( "Could not find a system table" );
+            CRM_Core_Error::fatal( 'Could not find a system table' );
         }
         
         // add some contribution type details to the params list
@@ -86,7 +92,7 @@ class CRM_Contribute_BAO_Contribution_Utils {
         
         if ( $form->_values['is_monetary'] && $form->_amount > 0.0 && is_array( $form->_paymentProcessor ) ) {
             require_once 'CRM/Core/Payment.php';
-            $payment =& CRM_Core_Payment::singleton( $form->_mode, 'Contribute', $form->_paymentProcessor, $form );
+            $payment =& CRM_Core_Payment::singleton( $form->_mode, $form->_paymentProcessor, $form );
         }
         
         //fix for CRM-2062
@@ -128,7 +134,7 @@ class CRM_Contribute_BAO_Contribution_Utils {
                     return $membershipResult;
                 } else {
                     if ( ! $form->_params['is_pay_later'] ) {
-                        $result =& $payment->doTransferCheckout( $form->_params );
+                        $result =& $payment->doTransferCheckout( $form->_params, 'contribute' );
                     } else {
                         // follow similar flow as IPN
                         // send the receipt mail
@@ -147,7 +153,7 @@ class CRM_Contribute_BAO_Contribution_Utils {
                             $form->_values['priceSetID'] = $form->_priceSetId;
                         }
                         
-                        require_once "CRM/Contribute/BAO/ContributionPage.php";
+                        require_once 'CRM/Contribute/BAO/ContributionPage.php';
                         $form->_values['contribution_id'] = $contribution->id;
                         CRM_Contribute_BAO_ContributionPage::sendMail( $contactID,
                                                                        $form->_values,
@@ -159,17 +165,17 @@ class CRM_Contribute_BAO_Contribution_Utils {
         } elseif ( $form->_contributeMode == 'express' ) {
             if ( $form->_values['is_monetary'] && $form->_amount > 0.0 ) {
 				
-				//LCD determine if express + recurring and direct accordingly
+				// determine if express + recurring and direct accordingly
 				if ( $paymentParams['is_recur'] == 1 ) {
 					$result =& $payment->createRecurringPayments( $paymentParams );
 				} else {
-                $result =& $payment->doExpressCheckout( $paymentParams );
+                    $result =& $payment->doExpressCheckout( $paymentParams );
 				}
 				
             }
         } elseif ( $form->_values['is_monetary'] && $form->_amount > 0.0 ) {
-           
-            if ( $paymentParams['is_recur']  && $form->_contributeMode == 'direct' ) {
+            if ( CRM_Utils_Array::value( 'is_recur', $paymentParams ) &&
+                 $form->_contributeMode == 'direct' ) {
 
                 // For recurring contribution, create Contribution Record first.
                 // Contribution ID, Recurring ID and Contact ID needed 
@@ -198,9 +204,18 @@ class CRM_Contribute_BAO_Contribution_Utils {
         
         if ( $component == 'membership' ) {
             $membershipResult = array( );
-        }       
+        } 
         
         if ( is_a( $result, 'CRM_Core_Error' ) ) {
+            
+            //make sure to cleanup db for recurring case.
+            if ( CRM_Utils_Array::value( 'contributionID', $paymentParams ) ) {
+                CRM_Contribute_BAO_Contribution::deleteContribution( $paymentParams['contributionID'] );
+            }
+            if ( CRM_Utils_Array::value( 'contributionRecurID', $paymentParams ) ) {
+                CRM_Contribute_BAO_ContributionRecur::deleteRecurContribution( $paymentParams['contributionRecurID'] );
+            }
+            
             if ( $component !== 'membership' ) {
                 CRM_Core_Error::displaySessionError( $result );
                 CRM_Utils_System::redirect( CRM_Utils_System::url( 'civicrm/contribute/transact', 
@@ -234,7 +249,7 @@ class CRM_Contribute_BAO_Contribution_Utils {
                                          $form->_params ) ) {
                 $pending = true;
             }
-            if ( !($paymentParams['is_recur'] && $form->_contributeMode == 'direct') ) {
+            if ( !(!empty($paymentParams['is_recur']) && $form->_contributeMode == 'direct') ) {
                 $contribution =
                     CRM_Contribute_Form_Contribution_Confirm::processContribution( $form,
                                                                                    $form->_params, $result,
@@ -250,8 +265,8 @@ class CRM_Contribute_BAO_Contribution_Utils {
             return $membershipResult;
         }
         //Do not send an email if Recurring contribution is done via Direct Mode
-        //Email will we send once the IPN will receive.
-        if ( $paymentParams['is_recur'] && $form->_contributeMode == 'direct' ) {
+        //We will send email once the IPN is received.
+        if ( !empty($paymentParams['is_recur']) && $form->_contributeMode == 'direct' ) {
             return true;
         }
         
@@ -262,9 +277,10 @@ class CRM_Contribute_BAO_Contribution_Utils {
         }
         
         // finally send an email receipt
-        require_once "CRM/Contribute/BAO/ContributionPage.php";
+        require_once 'CRM/Contribute/BAO/ContributionPage.php';
         $form->_values['contribution_id'] = $contribution->id;
-        CRM_Contribute_BAO_ContributionPage::sendMail( $contactID, $form->_values, $contribution->is_test );
+        CRM_Contribute_BAO_ContributionPage::sendMail( $contactID, $form->_values, $contribution->is_test,
+                                                       false, $fieldTypes );
     }
 
     /**
@@ -286,17 +302,18 @@ class CRM_Contribute_BAO_Contribution_Utils {
             $param = array( 1 => array( $param, 'Integer' ) );
         }
         
-        $query = 
-        "SELECT sum(contrib.total_amount) AS ctAmt,
-                MONTH( contrib.receive_date) AS contribMonth
-        FROM civicrm_contribution AS contrib,
-             civicrm_contact AS contact
-        WHERE contrib.contact_id = contact.id
-              AND contrib.is_test = 0
-              AND contrib.contribution_status_id = 1
-              AND date_format(contrib.receive_date,'%Y') = %1 
-        GROUP BY contribMonth
-        ORDER BY month(contrib.receive_date)";
+        $query = "
+    SELECT   sum(contrib.total_amount) AS ctAmt,
+             MONTH( contrib.receive_date) AS contribMonth
+      FROM   civicrm_contribution AS contrib
+INNER JOIN   civicrm_contact AS contact ON ( contact.id = contrib.contact_id ) 
+     WHERE   contrib.contact_id = contact.id
+       AND   ( contrib.is_test = 0 OR contrib.is_test IS NULL )
+       AND   contrib.contribution_status_id = 1
+       AND   date_format(contrib.receive_date,'%Y') = %1 
+       AND   contact.is_deleted = 0 
+  GROUP BY   contribMonth
+  ORDER BY   month(contrib.receive_date)";
         
         $dao = CRM_Core_DAO::executeQuery( $query, $param );
         
@@ -320,14 +337,16 @@ class CRM_Contribute_BAO_Contribution_Utils {
      */
     static function contributionChartYearly( ) 
     {
-        $query = 
-        "SELECT sum(contrib.total_amount) AS ctAmt,
-            year(contrib.receive_date) as contribYear
-        FROM civicrm_contribution AS contrib
-        WHERE contrib.is_test = 0
-              AND contrib.contribution_status_id = 1
-        GROUP BY contribYear
-        ORDER BY contribYear";
+        $query = '
+    SELECT   sum(contrib.total_amount) AS ctAmt,
+             year(contrib.receive_date) as contribYear
+      FROM   civicrm_contribution AS contrib
+INNER JOIN   civicrm_contact contact ON ( contact.id = contrib.contact_id ) 
+     WHERE   ( contrib.is_test = 0 OR contrib.is_test IS NULL )
+       AND   contrib.contribution_status_id = 1
+       AND   contact.is_deleted = 0 
+  GROUP BY   contribYear
+  ORDER BY   contribYear';
         $dao = CRM_Core_DAO::executeQuery( $query );
         
         $params = null;
@@ -350,7 +369,7 @@ class CRM_Contribute_BAO_Contribution_Utils {
 
         if ( CRM_Utils_Array::value( 'cms_create_account', $params ) ) {
             $params['contactID'] = $contactID;
-            require_once "CRM/Core/BAO/CMSUser.php";
+            require_once 'CRM/Core/BAO/CMSUser.php';
             if ( ! CRM_Core_BAO_CMSUser::create( $params, $mail ) ) {
                 CRM_Core_Error::statusBounce( ts('Your profile is not saved and Account is not created.') );
             }
@@ -453,6 +472,16 @@ class CRM_Contribute_BAO_Contribution_Utils {
                             $unix_timestamp = strtotime($val);
                             $transaction[$mapper['transaction'][$detail]] = date('YmdHis', $unix_timestamp);
                             break;
+                    case 'note'     :
+                    case 'custom'   :
+                    case 'l_number0':
+                        if ( $val ) {
+                            $val = "[PayPal_field:{$detail}] {$val}";
+                            $transaction[$mapper['transaction'][$detail]] = 
+                                !empty( $transaction[$mapper['transaction'][$detail]] ) ? 
+                                $transaction[$mapper['transaction'][$detail]] . " <br/> " . $val : $val;
+                        }
+                        break;
                         default:
                             $transaction[$mapper['transaction'][$detail]] = $val;
                     }
@@ -537,6 +566,33 @@ class CRM_Contribute_BAO_Contribution_Utils {
                     $localMapper['latest-charge-fee'] = $apiParams[2]['latest-charge-fee']['total']['VALUE'];
                     $localMapper['net-amount'] = $localMapper['total-charge-amount'] - $localMapper['latest-charge-fee'];
                 }
+                
+                // This is a subscription (recurring) donation.
+                if ( array_key_exists('subscription', $newOrder['shopping-cart']['items']['item']) ) {
+                    $subscription = $newOrder['shopping-cart']['items']['item']['subscription'];
+                    $localMapper['amount'] = $newOrder['order-total']['VALUE'];
+                    $localMapper['times'] = $subscription['payments']['subscription-payment']['times'];
+                    // Convert Google's period to one compatible with the CiviCRM db field.
+                    $freqUnits = array (
+                                        'DAILY' => 'day',
+                                        'WEEKLY' => 'week',
+                                        'MONHTLY' => 'month',
+                                        'YEARLY' => 'year'
+                                        );
+                    $localMapper['period'] = $freqUnits[$subscription['period']];
+                    // Unlike PayPal, Google has no concept of freq. interval, it is always 1.
+                    $localMapper['frequency_interval'] = '1';
+                    // Google Checkout dates are in ISO-8601 format. We need a format that
+                    // MySQL likes
+                    $unix_timestamp = strtotime($localMapper['timestamp']);
+                    $mysql_date = date('YmdHis', $unix_timestamp);
+                    $localMapper['modified_date'] = $mysql_date;
+                    $localMapper['start_date'] = $mysql_date;
+                    // This is PayPal's nomenclature, but just use it for Google as well since
+                    // we act on the value of trxn_type in processAPIContribution().
+                    $localMapper['trxn_type'] = 'subscrpayment';
+                }
+
                 foreach ( $localMapper as $localKey => $localVal ) {
                     if ( CRM_Utils_Array::value($localKey, $mapper['transaction']) ) {
                         $transaction[$mapper['transaction'][$localKey]] = $localVal;

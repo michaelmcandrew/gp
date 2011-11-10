@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -272,6 +272,7 @@ class CRM_Contribute_Page_Tab extends CRM_Core_Page
         $context     = CRM_Utils_Request::retrieve( 'context', 'String',
                                                     $this, false, 'search' );
         $compContext = CRM_Utils_Request::retrieve( 'compContext', 'String', $this );
+
         //swap the context.
         if ( $context == 'search' && $compContext ) {
             $context = $compContext;
@@ -318,13 +319,18 @@ class CRM_Contribute_Page_Tab extends CRM_Core_Page
             break;
             
         case 'search':
+        case 'advanced':
             $extraParams = "force=1";
             if ( $qfKey ) {
                 $extraParams .= "&qfKey=$qfKey";
             }
 
             $this->assign( 'searchKey',  $qfKey );
-            $url = CRM_Utils_System::url( 'civicrm/contribute/search', $extraParams );
+            if ( $context == 'advanced' ) {
+                $url = CRM_Utils_System::url( 'civicrm/contact/search/advanced', $extraParams );
+            } else {
+                $url = CRM_Utils_System::url( 'civicrm/contribute/search', $extraParams );
+            }
             break;
 
         case 'home':

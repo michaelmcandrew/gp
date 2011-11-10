@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -113,7 +113,12 @@ class CRM_Utils_JSON
         $sOutput .= "[";
         foreach ( $selectorElements as $element ) {
             if ( $addcomma )  $sOutput .= ",";
-            $sOutput .= '"'.addslashes($value[$element]).'"';
+            //$sOutput .= '"'.addslashes($value[$element]).'"';
+            
+            //CRM-7130 --lets addslashes to only double quotes, 
+            //since we are using it to quote the field value.
+            $sOutput .= '"'. addcslashes( $value[$element], '"\\') . '"';
+            
             $addcomma = true;
         }
         $sOutput .= "],";

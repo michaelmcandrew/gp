@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -160,6 +160,12 @@ class CRM_Contact_Form_Edit_CommunicationPreferences
             $defaults['preferred_language'] = $languages[$defaults['preferred_language']];
         }                                                        
 
+        // CRM-7119: set preferred_language to default if unset
+        if (!isset($defaults['preferred_language']) or empty($defaults['preferred_language'])) {
+            $config =& CRM_Core_Config::singleton();
+            $defaults['preferred_language'] = $config->lcMessages;
+        }
+
         //set default from greeting types CRM-4575.
         $greetingTypes = array('addressee'       => 'addressee_id', 
                                'email_greeting'  => 'email_greeting_id', 
@@ -223,10 +229,6 @@ class CRM_Contact_Form_Edit_CommunicationPreferences
                                                                           )
                                );
             
-            if ( $contactType == 'Organization' ) {
-                unset( self::$greetings[$contactType]['email_greeting' ] );
-                unset( self::$greetings[$contactType]['postal_greeting'] );
-            }
         }
         
         return self::$greetings[$contactType];   

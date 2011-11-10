@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -96,11 +96,28 @@ class CRM_Contact_Page_View_Relationship extends CRM_Core_Page
         $groupTree =& CRM_Core_BAO_CustomGroup::getTree('Relationship', $this, $this->_id,0,$relType);
         CRM_Core_BAO_CustomGroup::buildCustomDataView( $this, $groupTree );
 
+        $rType = CRM_Utils_Array::value('rtype', $viewRelationship[$this->_id] );
         // add viewed contribution to recent items list
         require_once 'CRM/Utils/Recent.php';
         $url = CRM_Utils_System::url( 'civicrm/contact/view/rel', 
                                       "action=view&reset=1&id={$viewRelationship[$this->_id]['id']}&cid={$this->_contactId}&context=home" );
         
+        require_once 'CRM/Core/Session.php';
+        require_once 'CRM/Contact/BAO/Contact/Permission.php';
+
+        $session      = CRM_Core_Session::singleton( );
+        $recentOther  = array( );
+
+        if ( ( $session->get( 'userID' ) == $this->_contactId ) ||
+             CRM_Contact_BAO_Contact_Permission::allow( $this->_contactId, CRM_Core_Permission::EDIT ) ) {
+            $recentOther = 
+                array( 'editUrl'   => CRM_Utils_System::url( 'civicrm/contact/view/rel', 
+                                                             "action=update&reset=1&id={$viewRelationship[$this->_id]['id']}&cid={$this->_contactId}&rtype={$rType}&context=home" )  ,
+                       'deleteUrl' => CRM_Utils_System::url( 'civicrm/contact/view/rel', 
+                                                             "action=delete&reset=1&id={$viewRelationship[$this->_id]['id']}&cid={$this->_contactId}&rtype={$rType}&context=home" )
+                       );
+        }
+
         $displayName = CRM_Contact_BAO_Contact::displayName( $this->_contactId );
         $this->assign( 'displayName', $displayName );
         
@@ -114,7 +131,8 @@ class CRM_Contact_Page_View_Relationship extends CRM_Core_Page
                                $viewRelationship[$this->_id]['id'],
                                'Relationship',
                                $this->_contactId,
-                               null );
+                               null,
+                               $recentOther );
     }
 
     /**
@@ -140,7 +158,7 @@ class CRM_Contact_Page_View_Relationship extends CRM_Core_Page
                                                                               CRM_Contact_BAO_Relationship::CURRENT  ,
                                                                               0, 0, 0,
                                                                               $links, $mask );
-        
+
         $inactiveRelationships = CRM_Contact_BAO_Relationship::getRelationship( $this->_contactId,
                                                                                 CRM_Contact_BAO_Relationship::INACTIVE ,        
                                                                                 0, 0, 0,
@@ -328,6 +346,14 @@ class CRM_Contact_Page_View_Relationship extends CRM_Core_Page
                                                                     'qs'    => 'action=delete&reset=1&cid=%%cid%%&id=%%id%%&rtype=%%rtype%%',
                                                                     'extra' => 'onclick = "if (confirm(\'' . $deleteExtra . '\') ) this.href+=\'&amp;confirmed=1\'; else return false;"',
                                                                     'title' => ts('Delete Relationship')
+                                                                    ),
+// FIXME: Not sure what to put as the key.
+// We want to use it differently later anyway (see CRM_Contact_BAO_Relationship::getRelationship). NONE should make it hidden by default.
+                                  CRM_Core_Action::NONE  => array(
+                                                                    'name'  => ts('Manage Case'),
+                                                                    'url'   => 'civicrm/contact/view/case',
+                                                                    'qs'    => 'action=view&reset=1&cid=%%clientid%%&id=%%caseid%%',
+                                                                    'title' => ts('Manage Case')
                                                                     ),
                                   );
         }

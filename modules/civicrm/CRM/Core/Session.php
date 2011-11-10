@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -258,10 +258,12 @@ class CRM_Core_Session {
             require_once 'CRM/Core/BAO/Cache.php';
             $values = CRM_Core_BAO_Cache::getItem( 'CiviCRM Session', "CiviCRM_{$prefix}" );
         }
-
-        foreach ($values as $name => $value) {
-            $vars[$name] = $value;
-        }
+        
+        if ( $values ) {
+            foreach ($values as $name => $value) {
+                $vars[$name] = $value;
+            }
+        }         
     }
 
     /**
@@ -398,6 +400,9 @@ class CRM_Core_Session {
      * @return void
      */
     static function setStatus( $status, $append = true ) {
+        // make sure session is initialized, CRM-8120
+        $session = self::singleton( );
+
         if ( isset( self::$_singleton->_session[self::$_singleton->_key]['status'] ) ) {
             if ( $append ) {
                 if ( is_array( $status ) ) {

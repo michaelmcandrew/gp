@@ -2,7 +2,7 @@
 
 /*
  +----------------------------------------------------------------------------+
- | Elavon (Nova) Virtual Merchant Core Payment Module for CiviCRM version 3.2 |
+ | Elavon (Nova) Virtual Merchant Core Payment Module for CiviCRM version 3.4 |
  +----------------------------------------------------------------------------+
  | Licensed to CiviCRM under the Academic Free License version 3.0            |
  |                                                                            |
@@ -57,6 +57,23 @@ class CRM_Core_Payment_Elavon extends CRM_Core_Payment
         $this->_processorName    = ts('Elavon');
     }
 
+    /** 
+     * singleton function used to manage this object 
+     * 
+     * @param string $mode the mode of operation: live or test
+     *
+     * @return object 
+     * @static 
+     * 
+     */ 
+    static function &singleton( $mode, &$paymentProcessor ) {
+        $processorName = $paymentProcessor['name'];
+        if (self::$_singleton[$processorName] === null ) {
+            self::$_singleton[$processorName] = new CRM_Core_Payment_Elavon( $mode, $paymentProcessor );
+        }
+        return self::$_singleton[$processorName];
+    }
+
     /**********************************************************
      * This function is set up and put here to make the mapping of fields
      * from the params object  as visually clear as possible for easy editing
@@ -88,6 +105,7 @@ class CRM_Core_Payment_Elavon extends CRM_Core_Payment
         $requestFields['ssl_invoice_number']	     = $params['invoiceID'];//32 character string
         $requestFields['ssl_transaction_type']	     = "CCSALE";
         $requestFields['ssl_description']	     = $params['description'];
+        $requestFields['ssl_customer_number']     = substr($params['credit_card_number'], -4);
 
         /************************************************************************************
          *  Fields available from civiCRM not implemented for Elavon

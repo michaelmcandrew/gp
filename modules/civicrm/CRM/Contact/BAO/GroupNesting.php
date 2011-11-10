@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
  | Copyright U.S. PIRG Education Fund (c) 2007                        |
  | Licensed to CiviCRM under the Academic Free License version 3.0.   |
@@ -48,15 +48,18 @@ class CRM_Contact_BAO_GroupNesting extends CRM_Contact_DAO_GroupNesting implemen
     private $_lastParentlessGroup;
     
     private $_styleLabels;
+
+    private $_styleIndent;
     
     private $_alreadyStyled = false;
     
     /**
      * class constructor
      */
-    function __construct( $styleLabels = false ) {
+    function __construct( $styleLabels = false, $styleIndent="&nbsp;--&nbsp;" ) {
         parent::__construct( );
         $this->_styleLabels = $styleLabels;
+        $this->_styleIndent = $styleIndent;
     }
     
     function setSortOrder( $sortOrder ) {
@@ -102,9 +105,9 @@ class CRM_Contact_BAO_GroupNesting extends CRM_Contact_DAO_GroupNesting implemen
              ! $this->_alreadyStyled ) {
             $styledGroup = clone( $this->_current );
             $nestingLevel = $this->getCurrentNestingLevel( );
-            $indent = "";
+            $indent = '';
             while ( $nestingLevel-- ) {
-                $indent .= "&nbsp;--&nbsp;";
+                $indent .= $this->_styleIndent;
             }
             $styledGroup->title = $indent . $styledGroup->title;
 
@@ -122,7 +125,7 @@ class CRM_Contact_BAO_GroupNesting extends CRM_Contact_DAO_GroupNesting implemen
         }
         $key = implode( '-', $ids );
         if ( strlen( $key ) > 0 ) {
-            $key .= "-";
+            $key .= '-';
         }
         $key .= $group->id;
         return $key;
@@ -142,6 +145,7 @@ class CRM_Contact_BAO_GroupNesting extends CRM_Contact_DAO_GroupNesting implemen
                     // since we pop this array everytime, we should be
                     // reasonably safe from infinite loops, I think :)
                     $ancestor = array_pop( $this->_parentStack );
+                    $this->_current =& $ancestor;
                     if ( $ancestor == null ) {
                         break;
                     }
@@ -169,7 +173,7 @@ class CRM_Contact_BAO_GroupNesting extends CRM_Contact_DAO_GroupNesting implemen
         require_once 'CRM/Contact/BAO/Group.php';
         $lastParentlessGroup = $this->_lastParentlessGroup;
         $nextGroup = new CRM_Contact_BAO_Group( );
-        $nextGroup->order_by = "title " . self::$_sortOrder;
+        $nextGroup->order_by = 'title ' . self::$_sortOrder;
         $nextGroup->find( );
         if ( $group == null ) {
             $sawLast = true;
@@ -205,7 +209,7 @@ class CRM_Contact_BAO_GroupNesting extends CRM_Contact_DAO_GroupNesting implemen
             while ( $childGroup->fetch( ) ) {
                 if ( $sawLast ) {
                     return $childGroup;
-                } else if ( $currentGroup == $childGroup ) {
+                } else if ( $currentGroup->id === $childGroup->id ) {
                     $sawLast = true;
                 }
             }

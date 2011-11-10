@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
@@ -120,10 +120,10 @@ class CRM_Event_Form_ManageEvent_Fee extends CRM_Event_Form_ManageEvent
                 
                 list( $defaults["discount_start_date[$i]"] ) = 
                     CRM_Utils_Date::setDateDefaults(CRM_Core_DAO::getFieldValue( 'CRM_Core_DAO_Discount', $optionGroupId, 
-                                                                          'start_date', 'option_group_id' ));
+                                                                                 'start_date', 'option_group_id' ));
                 list( $defaults["discount_end_date[$i]"] ) =
                     CRM_Utils_Date::setDateDefaults(CRM_Core_DAO::getFieldValue( 'CRM_Core_DAO_Discount', $optionGroupId, 
-                                                                          'end_date', 'option_group_id' ));
+                                                                                 'end_date', 'option_group_id' ));
                 CRM_Core_OptionGroup::getAssoc( "civicrm_event.amount.{$eventId}.discount.{$name}", $defaultDiscounts[] );
                 $i++;
             }
@@ -251,6 +251,9 @@ class CRM_Event_Form_ManageEvent_Fee extends CRM_Event_Form_ManageEvent
                          null,
                          array( 'onclick' => "return showHideByValue('is_monetary','0','event-fees','block','radio',false);" ) );
         
+        //add currency element.
+        $this->addCurrency( 'currency', ts( 'Currency' ), false );
+        
         require_once 'CRM/Contribute/PseudoConstant.php';
         $paymentProcessor =& CRM_Core_PseudoConstant::paymentProcessor( );
         $this->assign('paymentProcessor',$paymentProcessor);
@@ -353,6 +356,14 @@ class CRM_Event_Form_ManageEvent_Fee extends CRM_Event_Form_ManageEvent
             $this->add('text','discount_name['.$i.']', ts('Discount Name'), 
                        CRM_Core_DAO::getAttribute('CRM_Core_DAO_OptionValue', 'label'));
             
+            // add a rule to ensure that discount name is not more than 24 characters to prevent overflow
+            // in option group name, CRM-7915
+            // 24 characters will make the option group name less than 64 characters
+            $this->addRule( "discount_name[$i]",
+                            ts( 'Discount Name cannot be more than 24 characters' ),
+                            'maxlength',
+                            24 );
+
             //discount start date
             $this->addDate( 'discount_start_date['.$i.']', ts('Discount Start Date'), false, array( 'formatType' => 'activityDate') );
             
@@ -569,7 +580,7 @@ class CRM_Event_Form_ManageEvent_Fee extends CRM_Event_Form_ManageEvent
         }
                 
         if ( $params['is_monetary'] ) {
-            if ( $params['price_set_id'] ) {
+            if ( CRM_Utils_Array::value( 'price_set_id',  $params ) ) {
                 CRM_Price_BAO_Set::addTo( 'civicrm_event', $this->_id, $params['price_set_id'] );
             } else {
                 // if there are label / values, create custom options for them

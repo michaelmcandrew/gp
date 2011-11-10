@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -24,8 +24,6 @@
  +--------------------------------------------------------------------+
 *}
 {* Configure Membership signup/renewal block for an Online Contribution page *}
-{* WizardHeader.tpl provides visual display of steps thru the wizard as well as title for current step *}
-{include file="CRM/common/WizardHeader.tpl"}
 <div id="form" class="crm-block crm-form-block crm-member-membershipblock-form-block">
 <div id="help">
     {ts}Use this form to enable and configure a Membership Signup and Renewal section for this Online Contribution Page. If you're not using this page for membership signup, leave the <strong>Enabled</strong> box un-checked..{/ts} {docURL page="Configure Membership"}
@@ -33,8 +31,8 @@
   {if $form.membership_type.html}   
   <div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl" location="top"}</div> 
     <table class="form-layout-compressed">   
-        <tr class="crm-member-membershipblock-form-block-is_active">
-            <td class="label"></td><td class="html-adjust">{$form.is_active.html}&nbsp;{$form.is_active.label}<br />
+        <tr class="crm-member-membershipblock-form-block-member_is_active">
+            <td class="label"></td><td class="html-adjust">{$form.member_is_active.html}&nbsp;{$form.member_is_active.label}<br />
             <span class="description">{ts}Include a Membership Signup section in this Online Contribution page?{/ts}</span></td>
         </tr>
     </table>
@@ -60,14 +58,25 @@
               <td>{$form.renewal_text.html}<br />
               <span class="description">{ts}Membership section introductory text - displayed to renewing members.{/ts}</span><br /></td>
           </tr>
-          <tr class="crm-member-membershipblock-form-block-membership_type">
-              <td>{$form.membership_type.label}</td> 
+    	  <tr class="crm-member-membershipblock-form-block-member_price_set_id">
+              <td class="label">{$form.member_price_set_id.label}</td>
+              <td>
+              {if $price eq false}
+                {capture assign=adminPriceSetsURL}{crmURL p="civicrm/admin/price" q="reset=1"}{/capture}
+	    	    <div class="status message">{ts 1=$adminPriceSetsURL}No Membership Price Sets have been configured / enabled for your site. Price sets allow you to configure more complex membership signup and renewal options, including allowing constituents to sign up for multiple memberships at the same time. Click <a href='%1'>here</a> if you want to configure price sets for your site.{/ts}</div>
+	    	  {else}
+		          {$form.member_price_set_id.html}
+		      {/if}
+		      </td>
+    	  </tr>   
+          <tr id="membership_type-block" class="crm-member-membershipblock-form-block-membership_type">
+              <td class="label">{$form.membership_type.label}</td> 
               <td>
                 {assign var="count" value="1"}
                 {strip}
                   <table class="report">
                     <tr class="columnheader" style="vertical-align:top;"><th style="border-right: 1px solid #4E82CF;">{ts}Include these membership types{/ts}:</th><th>{ts}Default{/ts}:<br />
-                    <span class="crm-clear-link">(<a href="#" title="unselect" onclick="unselectRadio('membership_type_default', 'MembershipBlock'); return false;" >unselect</a>)</span></th></tr>
+                    <span class="crm-clear-link">(<a href="#" title="unselect" onclick="unselectRadio('membership_type_default', 'MembershipBlock'); return false;" >unselect</a>)</span></th>{if $is_recur}<th>{ts}Auto-renew:{/ts}</th>{/if}</tr>
                       {assign var="index" value="1"}
                       {foreach name=outer key=key item=item from=$form.membership_type}
                         {if $index < 10}
@@ -76,23 +85,35 @@
                          <tr>  
                           <td class="labels font-light">{$form.membership_type.$key.html}</td>
                           <td class="labels font-light">{$form.membership_type_default.$key.html}</td>
+                          {if $is_recur}
+                              <td class="labels font-light">
+                                {if $auto_renew.$key}
+                                   {assign var="element" value="auto_renew"|cat:_|cat:$key}{$form.$element.html}
+                                {else} 
+                                   {ts}(Not Available){/ts}
+                                {/if}
+                              </td>
+                         {/if}
                          </tr>
                         {/if}
                       {/foreach}
                   </table>
                 {/strip}
-              </td>    
-          <tr class="crm-member-membershipblock-form-block-is_required">
+              </td>
+          </tr>    
+          <tr id="requiredSignup" class="crm-member-membershipblock-form-block-is_required">
               <td class="label"></td><td class="html-adjust">{$form.is_required.html}&nbsp;{$form.is_required.label}<br />
               <span class="description">{ts}If checked, user must signup for one of the displayed membership options before continuing.{/ts}</span></td>
           </tr>
-          <tr class="crm-member-membershipblock-form-block-is_separate_payment">
+          <tr id="separatePayment" class="crm-member-membershipblock-form-block-is_separate_payment">
               <td class="label"></td><td class="html-adjust">{$form.is_separate_payment.html}&nbsp;{$form.is_separate_payment.label} {help id="id-separate-pay"}<br />
               <span class="description">{ts}Check this box if you are including both Membership Signup/Renewal AND a Contribution Amount section, AND you want the membership fee to be charged separately from any additional contribution amount.{/ts}</span></td>
           </tr>
-          <tr class="crm-member-membershipblock-form-block-display_min_fee">
+          <tr id="displayFee" class="crm-member-membershipblock-form-block-display_min_fee">
               <td class="label"></td><td class="html-adjust">{$form.display_min_fee.html}&nbsp;{$form.display_min_fee.label} {help id="id-display-fee"}<br />
               <span class="description">{ts}Display the membership fee along with the membership name and description for each membership option?{/ts}</span></td>
+	  </tr>
+           	    
       </table>
    </div>
   {else}
@@ -106,19 +127,43 @@
 
 {literal}
 <script type="text/javascript">
-	var is_act = document.getElementsByName('is_active');
-  	if ( ! is_act[0].checked) {
-           hide('memberFields');
-	}
-       function memberBlock(chkbox) {
-           if (chkbox.checked) {
-	      show('memberFields');
-	      return;
-           } else {
-	      hide('memberFields');
-    	      return;
-	   }
-       }
+    cj( function() {
+        //show/hide membership block
+        showHideMembershipBlock();
+        cj('#member_is_active').click( function() {
+            showHideMembershipBlock();
+        });
+
+        //show/ hide blocks if price sete is selected
+        checkIfPriceSetIsSelected( );
+        cj('#member_price_set_id').change( function(){
+            checkIfPriceSetIsSelected( );
+        });
+    });
+
+    // function to show/hide membership block fields
+    function showHideMembershipBlock( ) {
+      if ( cj('#member_is_active').attr('checked') ) {
+        cj('#memberFields').show();
+      } else {
+        cj('#memberFields').hide();
+      }
+    }
+
+    // function to handle show/hide of membership type and related blocks if price set is selected
+    function checkIfPriceSetIsSelected( ) {
+        if ( cj('#member_price_set_id').val() ) {
+            cj('#membership_type-block').hide();
+            cj('#requiredSignup').hide();
+            cj('#displayFee').hide();
+            cj('#separatePayment').hide();
+        } else {
+            cj('#membership_type-block').show();
+            cj('#requiredSignup').show();
+            cj('#displayFee').show();
+            cj('#separatePayment').show();
+        }
+    }
 </script>
 {/literal}
 

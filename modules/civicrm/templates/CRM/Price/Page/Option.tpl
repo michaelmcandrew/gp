@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -67,9 +67,9 @@
         {foreach from=$customOption item=row}
     	<tr id="row_{$row.id}"class=" crm-price-option crm-price-option_{$row.id} {cycle values="odd-row,even-row"} {$row.class}{if NOT $row.is_active} disabled{/if}">
             <td class="crm-price-option-label">{$row.label}</td>
-            <td class="crm-price-option-value">{$row.value|crmMoney}</td>
-	    <td class="crm-price-option-is_default">{$row.is_default}</td>
-            <td class="nowrap crm-price-option-order">{$row.order}</td>
+            <td class="crm-price-option-value">{$row.amount|crmMoney}</td>
+	    <td class="crm-price-option-is_default">{if $row.is_default}<img src="{$config->resourceBase}/i/check.gif" alt="{ts}Default{/ts}" />{/if}</td>
+            <td class="nowrap crm-price-option-order">{$row.weight}</td>
             <td id="row_{$row.id}_status" class="crm-price-option-is_active">{if $row.is_active eq 1} {ts}Yes{/ts} {else} {ts}No{/ts} {/if}</td>
             <td>{$row.action|replace:'xx':$row.id}</td>
             <td class="order hiddenElement">{$row.weight}</td>
@@ -80,7 +80,7 @@
         {/strip}
         {if $addMoreFields}
         <div class="action-link">
-            <a href="{crmURL q="reset=1&action=add&fid=$fid"}" class="button"><span>&raquo; {ts 1=$fieldTitle}New Option for '%1'{/ts}</span></a>
+            <a href="{crmURL q="reset=1&action=add&fid=$fid&sid=$sid"}" class="button"><span>&raquo; {ts 1=$fieldTitle}New Option for '%1'{/ts}</span></a>
         </div>
 	{/if}
     </div>
@@ -89,7 +89,7 @@
     {if $action eq 16}
         <div class="messages status">
           <img src="{$config->resourceBase}i/Inform.gif" alt="{ts}status{/ts}"/> 
-           {capture assign=crmURL}{crmURL p='civicrm/admin/price/field/option' q="action=add&fid=$fid"}{/capture}{ts 1=$fieldTitle 2=$crmURL}There are no options for the price field '%1', <a href='%2'>add one</a>.{/ts}
+           {capture assign=crmURL}{crmURL p='civicrm/admin/price/field/option' q="action=add&fid=$fid&sid=$sid"}{/capture}{ts 1=$fieldTitle 2=$crmURL}There are no options for the price field '%1', <a href='%2'>add one</a>.{/ts}
         </div>
     {/if}
 {/if}

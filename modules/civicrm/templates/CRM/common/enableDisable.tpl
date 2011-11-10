@@ -1,8 +1,8 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -27,17 +27,17 @@
 <div id="enableDisableStatusMsg" class="success-status" style="display:none;"></div>
 {literal}
 <script type="text/javascript">
-function modifyLinkAttributes( recordID, op, recordBAO ) {
+function modifyLinkAttributes( recordID, op, recordBAO, reloadPage, rowId ) {
     //we changed record from enable to disable
     if ( op == 'enable-disable' ) {
-        var fieldID     = "#row_"+ recordID + " a." + "disable-action";
+        var fieldID     = '#' + rowId + '_' + recordID + " a." + "disable-action";
         var operation   = "disable-enable";
         var htmlContent = {/literal}'{ts escape="js"}Enable{/ts}'{literal};
         var newClass    = 'action-item enable-action';
         var newTitle    = {/literal}'{ts escape="js"}Enable{/ts}'{literal};
         var newText     = {/literal}' {ts escape="js"}No{/ts} '{literal};
     } else if ( op == 'disable-enable' ) {
-        var fieldID     = "#row_"+ recordID + " a." + "enable-action";
+        var fieldID     = '#' + rowId + '_' + recordID + " a." + "enable-action";
         var operation   = "enable-disable";
         var htmlContent = {/literal}'{ts escape="js"}Disable{/ts}'{literal};
         var newClass    = 'action-item disable-action';
@@ -53,19 +53,23 @@ function modifyLinkAttributes( recordID, op, recordBAO ) {
 
     //need to update js - change op from js to new allow operation. 
     //set updated js
-    var newAction = 'enableDisable( ' + recordID + ',"' + recordBAO + '","' + operation + '" );';
+    var newAction = 'enableDisable( ' + recordID    + ',"'  + 
+                                        recordBAO   + '","' + 
+                                        operation   + '","' + 
+                                        reloadPage  + '","' + 
+                                        rowId       + '"'   + ' );';
     cj( fieldID ).attr("onClick", newAction );
     
     //set the updated status
-    var fieldStatus = "#row_"+ recordID + "_status";
+    var fieldStatus = '#' + rowId + '_' + recordID + "_status";
     cj( fieldStatus ).text( newText );
 
     //finally change class to enable-action.
     cj( fieldID ).attr( 'class', newClass );
 }
 
-function modifySelectorRow( recordID, op ) {
-    var elementID = "#row_" + recordID;
+function modifySelectorRow( recordID, op, rowId ) {
+    var elementID =  '#' + rowId + '_' + recordID;
     if ( op == "disable-enable" ) {
         cj( elementID ).removeClass("disabled");
     } else if ( op == "enable-disable" )  {
@@ -79,7 +83,12 @@ function hideEnableDisableStatusMsg( ) {
 }
 
 cj( '#enableDisableStatusMsg' ).hide( );
-function enableDisable( recordID, recordBAO, op ) {
+function enableDisable( recordID, recordBAO, op, reloadPage, rowId ) {
+
+	//CRM-7487 -need to have unique row id, 
+	//for multiple selectors on same page.
+	if ( ! rowId ) rowId = 'row';
+
     	if ( op == 'enable-disable' ) {
        	   var st = {/literal}'{ts escape="js"}Disable Record{/ts}'{literal};
     	} else if ( op == 'disable-enable' ) {
@@ -96,10 +105,6 @@ function enableDisable( recordID, recordBAO, op ) {
 			opacity: 0.5, 
 			background: "black" 
 		},
-
-        	beforeclose: function(event, ui) {
-            	        cj(this).dialog("destroy");
-        	},
 
 		open:function() {
        		        var postUrl = {/literal}"{crmURL p='civicrm/ajax/statusmsg' h=0 }"{literal};
@@ -126,12 +131,10 @@ function enableDisable( recordID, recordBAO, op ) {
 		buttons: { 
 			"Cancel": function() { 
 				cj(this).dialog("close"); 
-				cj(this).dialog("destroy"); 
 			},
 			"OK": function() { 	    
-			        saveEnableDisable( recordID, recordBAO, op );
-			        cj(this).dialog("close"); 
-			        cj(this).dialog("destroy");
+			        saveEnableDisable( recordID, recordBAO, op, reloadPage, rowId );
+			        cj(this).dialog("close");			        
 			}
 		} 
 	});
@@ -147,7 +150,7 @@ function noServerResponse( ) {
     }
 }
 
-function saveEnableDisable( recordID, recordBAO, op ) {
+function saveEnableDisable( recordID, recordBAO, op, reloadPage, rowId ) {
     cj( '#enableDisableStatusMsg' ).hide( );
     var postUrl = {/literal}"{crmURL p='civicrm/ajax/ed' h=0 }"{literal};
 
@@ -158,11 +161,14 @@ function saveEnableDisable( recordID, recordBAO, op ) {
         //this is custom status set when record update success.
         if ( html.status == 'record-updated-success' ) {
            
+            if ( reloadPage ) {
+                document.location.reload( );
+            }
             //change row class and show/hide action links.
-            modifySelectorRow( recordID, op );
+            modifySelectorRow( recordID, op, rowId );
 
             //modify action link html        
-            modifyLinkAttributes( recordID, op, recordBAO ); 
+            modifyLinkAttributes( recordID, op, recordBAO, reloadPage, rowId ); 
         } 
 
             //cj( '#enableDisableStatusMsg' ).show( ).html( successMsg );

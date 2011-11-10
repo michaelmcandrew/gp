@@ -2,9 +2,9 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 3.2                                                |
+ | CiviCRM version 3.4                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2010                                |
+ | Copyright CiviCRM LLC (c) 2004-2011                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,13 +29,14 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2010
+ * @copyright CiviCRM LLC (c) 2004-2011
  * $Id$
  *
  */
 
 require_once 'CRM/Core/Page.php';
 require_once 'CRM/Event/BAO/Event.php';
+require_once 'CRM/Campaign/BAO/Campaign.php';
 
 /**
  * Page for displaying list of events
@@ -71,18 +72,6 @@ class CRM_Event_Page_ManageEvent extends CRM_Core_Page
             $deleteExtra = ts('Are you sure you want to delete this Event?');
             
             self::$_actionLinks = array(
-                                        CRM_Core_Action::UPDATE  => array(
-                                                                          'name'  => ts('Configure'),
-                                                                          'url'   => CRM_Utils_System::currentPath( ),
-                                                                          'qs'    => 'action=update&id=%%id%%&reset=1',
-                                                                          'title' => ts('Configure Event') 
-                                                                          ),
-                                        CRM_Core_Action::PREVIEW => array(
-                                                                          'name'  => ts('Test-drive'),
-                                                                          'url'   => 'civicrm/event/info',
-                                                                          'qs'    => 'reset=1&action=preview&id=%%id%%',
-                                                                          'title' => ts('Preview') 
-                                                                          ),
                                         CRM_Core_Action::DISABLE => array(
                                                                           'name'  => ts('Disable'),
                                                                           'extra' => 'onclick = "enableDisable( %%id%%,\''. 'CRM_Event_BAO_Event' . '\',\'' . 'enable-disable' . '\' );"',
@@ -221,6 +210,9 @@ ORDER BY start_date desc
         
         $dao = CRM_Core_DAO::executeQuery( $query, $params, true, 'CRM_Event_DAO_Event' );
         $permissions = CRM_Event_BAO_Event::checkPermission( );
+        
+        //get all campaigns.
+        $allCampaigns = CRM_Campaign_BAO_Campaign::getCampaigns( null, null, false, false, false, true );
 
         while ($dao->fetch()) {
             if ( in_array( $dao->id, $permissions[CRM_Core_Permission::VIEW] ) ) {
@@ -246,8 +238,9 @@ ORDER BY start_date desc
                 $manageEvent[$dao->id]['action'] = CRM_Core_Action::formLink( self::links(), 
                                                                               $action, 
                                                                               array( 'id' => $dao->id ),
+                                                                              ts( 'more' ),
                                                                               true );
-
+                
                 $params = array( 'entity_id'    => $dao->id, 
                                  'entity_table' => 'civicrm_event',
                                  'is_active'    => 1
@@ -265,6 +258,9 @@ ORDER BY start_date desc
                 if ( isset( $defaults['location']['address'][1]['state_province_id'] )) {
                     $manageEvent[$dao->id]['state_province'] = CRM_Core_PseudoConstant::stateProvince($defaults['location']['address'][1]['state_province_id']);
                 }
+                
+                //show campaigns on selector.
+                $manageEvent[$dao->id]['campaign'] = CRM_Utils_Array::value( $dao->campaign_id, $allCampaigns );
             }
         }
         $this->assign('rows', $manageEvent);
@@ -383,7 +379,13 @@ ORDER BY start_date desc
             $clauses[] = 'title LIKE %6';
             $params[6] = array( $this->_sortByCharacter . '%', 'String' );
         }
-
+        
+        $campainIds = $this->get( 'campaign_id' );
+        if ( !CRM_Utils_System::isNull( $campainIds ) ) {
+            if ( !is_array( $campainIds ) ) $campaignIds = array( $campaignIds );
+            $clauses[] = '( campaign_id IN ( ' . implode( ' , ', array_values( $campainIds ) ). ' ) )';
+        }
+        
         // dont do a the below assignment when doing a 
         // AtoZ pager clause
         if ( $sortBy ) {
