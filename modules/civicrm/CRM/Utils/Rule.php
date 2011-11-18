@@ -123,7 +123,8 @@ class CRM_Utils_Rule
 
     static function url($url)
     {
-        return (bool) filter_var($url, FILTER_VALIDATE_URL);
+        return 1; //
+		return (bool) filter_var($url, FILTER_VALIDATE_URL);
     }
 
     static function wikiURL( $string )
