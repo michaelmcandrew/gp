@@ -45,6 +45,8 @@ class CRM_Report_Form_Member_GPDetail extends CRM_Report_Form {
 
 	protected $_phoneField = false;
 
+	protected $_mobileField = false;
+
 	protected $_summary = null;
 
 	protected $_customGroupExtends = array('Contact', 'Organization', 'Individual', 'Membership');
@@ -77,6 +79,9 @@ class CRM_Report_Form_Member_GPDetail extends CRM_Report_Form {
 					),
 					'do_not_mail' => array(
 						'title' => ts('Do not mail'),
+					),
+    				'addressee_display' => array(
+    					'title' => ts('Addressee'),
 					),
 					'id' => array(
 						'no_display' => true, 
@@ -162,6 +167,9 @@ class CRM_Report_Form_Member_GPDetail extends CRM_Report_Form {
 					'supplemental_address_2' => null,
 					'city' => null,
 					'postal_code' => null,
+					'country_id' => 
+				     array( 'title'   => ts( 'Country' ),  
+                            'default' => false ),
 				),
 				'grouping' => 'contact-fields',
 			),
@@ -175,9 +183,22 @@ class CRM_Report_Form_Member_GPDetail extends CRM_Report_Form {
 			
 			'civicrm_phone' => array(
 				'dao' => 'CRM_Core_DAO_Phone',
-				'fields' => array('phone' => null),
+			    'fields' => array('phone' => array(
+			    'title'   => ts( 'Phone (primary)' ),  
+                'default' => false )
+            ),
 				'grouping'=> 'contact-fields',
  			),
+
+    		'civicrm_mobile' => array(
+    			'dao' => 'CRM_Core_DAO_Phone',
+    			'fields' => array('mobile' => array(
+    			    'title'   => ts( 'Mobile' ),  
+    			    'dbAlias'   => 'mobile_civireport.phone',  
+                    'default' => false )
+                ),
+    			'grouping'=> 'contact-fields',
+    		),
 			
 			'civicrm_group' => array(
 				'dao' => 'CRM_Contact_DAO_GroupContact',
@@ -213,6 +234,8 @@ class CRM_Report_Form_Member_GPDetail extends CRM_Report_Form {
 							$this->_emailField = true;
 						} else if ( $tableName == 'civicrm_phone') {
 							$this->_phoneField = true;
+						} else if ( $tableName == 'civicrm_mobile') {
+							$this->_mobileField = true;
 						}
 						$select[] = "{$field['dbAlias']} as {$tableName}_{$fieldName}";
 						$this->_columnHeaders["{$tableName}_{$fieldName}"]['title'] = $field['title'];
@@ -268,6 +291,13 @@ class CRM_Report_Form_Member_GPDetail extends CRM_Report_Form {
 			ON {$this->_aliases['civicrm_contact']}.id = 
 			{$this->_aliases['civicrm_phone']}.contact_id AND 
 			{$this->_aliases['civicrm_phone']}.is_primary = 1\n";
+		}
+		if ( $this->_mobileField ) {
+			$this->_from .= "
+			LEFT JOIN civicrm_phone {$this->_aliases['civicrm_mobile']} 
+			ON {$this->_aliases['civicrm_contact']}.id = 
+			{$this->_aliases['civicrm_mobile']}.contact_id AND 
+			{$this->_aliases['civicrm_mobile']}.phone_type_id = 2\n";
 		}
 	}
  
