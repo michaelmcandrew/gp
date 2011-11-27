@@ -66,7 +66,7 @@ class CRM_Import_DataSource_CSV extends CRM_Import_DataSource
         $form->addRule('uploadFile', ts('Input file must be in CSV format'), 'utf8File');
         $form->addRule('uploadFile', ts('A valid file must be uploaded.'), 'uploadedfile');
 
-        $form->addElement('checkbox', 'skipColumnHeader', ts('First row contains column headers'));
+        $form->addElement('checkbox', 'skipColumnHeader', ts('First row contains column headers'))->setChecked(true);
     }
 
     function postProcess(&$params, &$db)

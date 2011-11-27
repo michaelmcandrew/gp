@@ -135,7 +135,7 @@ class CustomImport_Parser_DDPaymentPaper extends CustomImport_Parser_DD
 			
 			$MembershipParams=array('contact_id'=>$this->current['contact_id']);
 			$memberships=civicrm_membership_contact_get($MembershipParams);
-			$membership=current(current($memberships));
+			$memResult=$membership=current(current($memberships));
 
 			
 
@@ -170,17 +170,8 @@ class CustomImport_Parser_DDPaymentPaper extends CustomImport_Parser_DD
 				$this->addReportLine('info', "End date according to DD payment ({$potentialEndDate->format('Y-m-d')}) for {$this->getContactLink()} BEFORE membership end date ({$currentMembershipEndDate->format('Y-m-d')}) so will not extend membership.");	
 			}
 			//Link it up!
-			$mcl=array(
-				'contribution_id' => $contResult['id'],
-				'membership_id' => $memResult['membership_id']
-			);
 			if(!$this->test){
-				$mclResult=civicrm_membershipcontributionlink_create($mcl);
-				if(!$memResult['is_error']) {
-					$this->addReportLine('info', "Linked contribution to membership");
-				} else {
-					$this->addReportLine('warning', "Could not link contribution to membership for {$this->getContactLink()} by {$freqTrans[$this->current['frequency']]}");
-				}
+				CRM_Core_DAO::executeQuery("INSERT INTO civicrm_membership_payment (SELECT NULL, {$memResult['id']}, {$contResult['id']})");
 			}
 		}
 }
