@@ -1,4 +1,3 @@
-
 <?php
 
 // the directory name for your 'sites' location in drupal. We use the below location
