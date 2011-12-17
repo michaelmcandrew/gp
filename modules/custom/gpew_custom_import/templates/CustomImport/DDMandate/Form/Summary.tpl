@@ -39,7 +39,6 @@
 </div>    
 
 <h3>Summary</h3>
-{$final_report}
 <table class="report">
 {foreach from=$final_report item=line}
 	{if $line.type eq 'warning'}

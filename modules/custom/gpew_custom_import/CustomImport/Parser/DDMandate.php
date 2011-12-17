@@ -266,13 +266,14 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 		}
 		
 		// add location params
-		$location_params=array(
-			'location_type'=>'Home',
+		$address=array(
+			'location_type_id'=>1,
 			'street_address'=>$this->getCurrent('address_line_1'),
 			'supplemental_address_1'=>$this->getCurrent('address_line_2'),
 			'supplemental_address_2'=>$this->getCurrent('address_line_3'),
 			'city'=>$this->getCurrent('city'),
-			'postal_code'=>$this->getCurrent('postal_code')
+			'postal_code'=>$this->getCurrent('postal_code'),
+			'version'=>3
 		);
 		
 		$location_params['email'][]=array(
@@ -303,8 +304,11 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 				$this->addReportLine('note', "Added contact ({$this->getContactLink($contact_result)}) for TGP: {$this->getCurrent('tgp')}.");
 			}
 			$this->setCurrentContactID($contact_result['contact_id']);
-			$location_params['contact_id'] = $contact_result['contact_id'];
+			$address['contact_id']=$location_params['contact_id'] = $contact_result['contact_id'];
+			
 			$location_result=civicrm_location_add($location_params);
+			//the very beginnings of the move to civicrm api v3 :)
+			$result=civicrm_api('address', 'create', $address);
 			if($location_result['is_error']) {
 				$this->addReportLine('warning', "Could not add location information for contact with payment integration reference: {$this->getCurrent('tgp')}.");
 			}
