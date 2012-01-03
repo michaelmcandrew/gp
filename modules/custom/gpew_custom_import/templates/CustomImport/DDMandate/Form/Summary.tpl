@@ -39,9 +39,8 @@
 </div>    
 
 <h3>Summary</h3>
-
 <table class="report">
-{foreach from=$report item=line}
+{foreach from=$final_report item=line}
 	{if $line.type eq 'warning'}
 		<tr><td style="color:red">{$line.type}</td><td style="color:red">{$line.message}</td></tr>
 	{/if}	
@@ -54,7 +53,7 @@
 <h3>Full report</h3>
 
 <table class="report">
-{foreach from=$report item=line}
+{foreach from=$final_report item=line}
 	{if $line.type eq 'warning'}
 		<tr><td style="color:red">{$line.type}</td><td style="color:red">{$line.message}</td></tr>
 	{elseif $line.type eq 'interesting'}
