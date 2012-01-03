@@ -1,0 +1,124 @@
+<?php
+/*
+ * Copyright (C) 2011 Peter McAndrew
+ * Licensed to CiviCRM under the Academic Free License version 3.0.
+ *
+ */
+function gpew_renew_menu() {
+	$items['renew'] = array(
+		'title' => 'Membership renewal',
+		'page callback' => 'gpew_renew_page',
+		'access callback' => TRUE,
+		'menu_name' => 'menu-tertiary-links',
+	);
+	return $items;
+}
+
+function gpew_renew_theme() {
+	return array(
+			'gpew_renew_page' => array(
+									'template' => 'gpew-renew-page',
+									'arguments' => array('membership' => NULL,
+									 					'relationship' => NULL, 
+														'renew_link' => NULL,
+														'is_primary' => NULL,
+														'more_info' => NULL
+														),
+									)		
+  				);
+}
+
+function gpew_renew_page()
+{
+	 // get membership information from civicrm (membership type, expiry date, status, for joint members whether or not they are the primary member).  If they have neither, direct them to the join page and / or tell them they should contact the office if they think this is an error.
+
+	$membership = get_membership();
+	$relationship = get_relationship();
+	$renew_link = renew_link();
+	$is_primary = is_primary();
+	$more_info = "<a href='join'>More information about membership types</a>";
+	//	$isJoint = is_joint();
+
+	//íf there is no membership
+		if (!$membership)
+	{	
+		return "You have no membership on record, please <a href='nfp'>click here to join</a>.  </br>If you think this is an error please contact the Green Party office</br>".$more_info; 
+	}
+
+	return theme('gpew_renew_page', $membership, $relationship, $renew_link, $is_primary, $more_info);
+}
+
+function get_membership() {
+	civicrm_initialize();
+	$params = array( 
+		'contact_id' => getCiviId(),
+		'version' => 3 );
+	$results=civicrm_api("Membership","get", $params);
+	//get the id
+	$array_id = $results['id'];
+	$membership=$results['values'][$array_id];
+	//print_r($membership['membership_name']);exit;
+	return $membership;
+}
+
+function getCiviId()
+{
+	civicrm_initialize();
+	$params = array ('version' =>'3',
+					'uf_id' => getDrupalId(),
+					'return' => 'contact_id' );
+	$results=civicrm_api("UFMatch","getvalue",$params );
+	return $results;
+	//return "20206";
+}
+function getDrupalId()
+{
+	global $user;
+	return $user->uid;
+}
+
+function get_relationship()
+{
+	civicrm_initialize();
+	$params = array( 
+		'contact_id' => getCiviId(),
+		'return' => 'relation',
+		'version' => 3,
+	);
+	$results=civicrm_api("Relationship","getvalue", $params);
+	//print_r($results);exit;
+	return $results;
+}
+function is_joint()
+{
+	$membership = get_membership();
+	$membership_name = $membership['membership_name'];	
+	if (strpos($membership_name,"Joint")!== false) 
+		{
+		return '7';
+		}
+	else {
+		return '6';
+		}
+}
+function is_primary()
+{
+	if (get_relationship()=='receives membership from')
+	{
+		return FALSE;
+	}
+	else 
+	{
+		return TRUE;
+	}
+}
+
+function renew_link()
+{
+	$link = 'http://gp.local/civicrm/contribute/transact?reset=1&id='.is_joint();
+	return $link;
+}
+	
+
+// create renew button that links to correct contibution page, or says, 'you are not the primary member. only the primary member [member name] can renew')
+?>
