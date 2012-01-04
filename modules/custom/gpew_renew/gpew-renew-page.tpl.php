@@ -8,9 +8,7 @@
 	<?php if ($is_primary) : ?>
 	<p><a href='<?php echo $renew_link; ?>'>To renew your <?php echo $membership['membership_name']; ?> membership click here.</a></p>
 	<?php else : ?>
-	<p><b>You cannot renew this membership, the primary member must be logged in.</b></p>
+	<p><b>You cannot renew this joint membership, the primary member must be logged in.</b></p>
 	<?php endif; ?>
-	
 	<?php echo $more_info; ?>
-	
 	</p>

@@ -4,6 +4,9 @@
  * Licensed to CiviCRM under the Academic Free License version 3.0.
  *
  */
+
+$multiple_membership = NULL;
+
 function gpew_renew_menu() {
 	$items['renew'] = array(
 		'title' => 'Membership renewal',
@@ -36,14 +39,21 @@ function gpew_renew_page()
 	$relationship = get_relationship();
 	$renew_link = renew_link();
 	$is_primary = is_primary();
-	$more_info = "<a href='join'>More information about membership types</a>";
+	$more_info = "<a href='membership-info'>More information about membership types</a>";
 	//	$isJoint = is_joint();
 
+
+	//íf there are multiple memberships
+		if ($GLOBALS['multiple_membership'])
+	{	
+		return "You have more than one membership on record and we cannot proceed, please contact the Green Party office</br>".$more_info; 
+	}
 	//íf there is no membership
 		if (!$membership)
 	{	
 		return "You have no membership on record, please <a href='nfp'>click here to join</a>.  </br>If you think this is an error please contact the Green Party office</br>".$more_info; 
 	}
+
 
 	return theme('gpew_renew_page', $membership, $relationship, $renew_link, $is_primary, $more_info);
 }
@@ -54,7 +64,7 @@ function get_membership() {
 		'contact_id' => getCiviId(),
 		'version' => 3 );
 	$results=civicrm_api("Membership","get", $params);
-	//get the id
+	if ($results['count'] >1) {$GLOBALS['multiple_membership'] = TRUE;}
 	$array_id = $results['id'];
 	$membership=$results['values'][$array_id];
 	//print_r($membership['membership_name']);exit;
