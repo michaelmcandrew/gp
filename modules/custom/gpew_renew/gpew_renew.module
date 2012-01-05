@@ -7,6 +7,17 @@
 
 $multiple_membership = NULL;
 
+//Build form hook to add fields to joint contibutution pages
+
+function gpew_renew_civicrm_buildForm( $formName, &$form ){
+	if($form->_id == 7){
+		$form->addElement('text', 'JointMemberFirstName', ts('First name'),'required');
+		$form->addElement('text', 'JointMemberLastName', ts('Last name'), 'required');
+	}
+	
+}
+
+
 function gpew_renew_menu() {
 	$items['renew'] = array(
 		'title' => 'Membership renewal',
