@@ -74,7 +74,7 @@ function gpew_renew_menu() {
 	$items['membership/form'] = array(
 	    'title' => "Membership sign-up | Green Party members' website",
 	    'page callback' => 'gp_renew_form_redirect',
-	    'access arguments' => array('access content'), 
+		'access callback' => TRUE,
 	    'type' => MENU_CALLBACK,
 	);
 	return $items;
