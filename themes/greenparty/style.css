@@ -647,3 +647,8 @@ div#pri .view-News .more-link a:visited,
 div#pri .view-News .more-link a:hover,
 div#pri .view-News .more-link a:focus,
 div#pri .view-News .more-link a:active { color: #f58a24; }
+
+/* Sign up to news and updates form */
+#crm-profile-block #editrow-group { margin-top: 15px; }
+#crm-container #crm-profile-block .form-layout-compressed td { padding: 0; } 
+#crm-container #crm-profile-block .form-layout-compressed td td { padding: 5px; } 
