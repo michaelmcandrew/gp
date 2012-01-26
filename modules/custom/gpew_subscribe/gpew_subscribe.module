@@ -1,0 +1,24 @@
+<?php
+
+function gpew_subscribe_menu() {
+	$items['subscribe'] = array(
+	    'title' => "Membership sign-up | Green Party members' website",
+	    'page callback' => 'gp_subscribe_redirect',
+		'access callback' => TRUE,
+	    'type' => MENU_CALLBACK,
+	);
+	$items['civicrm/mailing/subscribe'] = array(
+	    'title' => "Membership sign-up | Green Party members' website",
+	    'page callback' => 'gp_subscribe_redirect',
+		'access callback' => TRUE,
+	    'type' => MENU_CALLBACK,
+	);
+	return $items;
+}
+
+function gp_subscribe_redirect() {
+	civicrm_initialize();
+	CRM_Utils_System::redirect("/civicrm/profile/create/?gid=22&reset=1");
+}
+
+?>
