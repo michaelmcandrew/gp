@@ -1,0 +1,14 @@
+
+name = "ThemeKey Properties"
+description = "Provides additional properties for ThemeKey"
+core = 6.x
+dependencies[] = themekey
+package = ThemeKey
+
+
+; Information added by drupal.org packaging script on 2011-05-05
+version = "6.x-3.0"
+core = "6.x"
+project = "themekey_properties"
+datestamp = "1304583717"
+

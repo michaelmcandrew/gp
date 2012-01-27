@@ -1,0 +1,121 @@
+ThemeKey Properties 6.x-3.0, 2011-05-05
+---------------------------------------
+[#1142402] mkalkbrenner: new property for POST variables: system:post
+
+
+ThemeKey Properties 6.x-2.4, 2011-01-10
+---------------------------------------
+[       ] mkalkbrenner, cspitzlay: fixed signature of help form functions so default value for "collapsed" works
+[#958830] LoMo: Extend themekey_browser_detection to include recognition of Windows 7 as useragent.
+[#958198] LoMo: Edited English strings
+
+
+ThemeKey Properties 6.x-2.3, 2010-08-20
+---------------------------------------
+[       ] mkalkbrenner: fixed undefined index QUERY_STRING when running ThemeKey 6.x-3.x cron
+
+
+ThemeKey Properties 6.x-2.2, 2010-08-10
+---------------------------------------
+[       ] mkalkbrenner: fixed warning when using Pressflow or Cocomore Drupal Core: Undefined variable: _SESSION in themekey_properties_dummy2session()
+[       ] mkalkbrenner: changed code according to drupal coding standards
+
+
+ThemeKey Properties 6.x-2.1, 2010-07-22
+---------------------------------------
+[       ] mkalkbrenner: fixed some warnings
+[#812114] mkalkbrenner: introduced classification of page cache support for themekey properties as required by ThemeKey 6.x-3.x
+[       ] mkalkbrenner: use default time zone for time based properties if drupal isn't configured to use user specific time zones
+
+
+ThemeKey Properties 6.x-2.0, 2010-05-26
+---------------------------------------
+[#751642] mkalkbrenner: provide new mobile devices detections: added missing documentation
+[#808634] mkalkbrenner: Faulty warning about user roles shown.
+
+
+ThemeKey Properties 6.x-2.0-rc2, 2010-05-03
+---------------------------------------------
+[#751642] Phil_b: provide new mobile devices detections: Blackberry, Android, iPad, Symbian, WebOs, Blazer, Fennec, Maemo
+[#780210] mkalkbrenner: provide new property: random
+
+
+ThemeKey Properties 6.x-2.0-rc1, 2010-03-22
+---------------------------------------------
+[#741448] mkalkbrenner: provide new property system:session
+[#719122] mkalkbrenner: provide new property system:day_of_week
+
+
+ThemeKey Properties 6.x-2.0-beta2, 2009-01-12
+---------------------------------------------
+[       ] mkalkbrenner: improved ThemeKey's help
+[       ] mkalkbrenner: integrated ThemeKey Properties Debug into ThemeKey
+
+
+ThemeKey Properties 6.x-2.0-beta1, 2009-01-04
+---------------------------------------------
+[       ] mkalkbrenner: adjusted examples in README.txt according to the new user interface provided by ThemeKey 6.x-2.0beta1 
+[       ] mkalkbrenner: moved modules into package ThemeKey
+[       ] Carsten Müller, mkalkbrenner: added validation functions for properties
+[       ] mkalkbrenner: applied "coder" and fixed warnings
+[       ] mkalkbrenner: commented more source code
+[       ] mkalkbrenner: cleaned up code and API
+[       ] mkalkbrenner: introduced hook_themekey_load_validators()
+[       ] mkalkbrenner: added help section
+
+
+ThemeKey Properties 6.x-2.0-alpha2, 2009-11-25
+----------------------------------------------
+[       ] mkalkbrenner: debug mode caused errors on some node properties
+
+
+ThemeKey Properties 6.x-2.0-alpha1, 2009-11-24
+----------------------------------------------
+[       ] mkalkbrenner: property values in debug messages are clickable to start creating a corresponding Theme Switching Rule
+[       ] mkalkbrenner: moved extra logic to set more sophisticated properties to mapping functions to be compatible to ThemeKey 6.x-2.x API 
+
+
+ThemeKey Properties 6.x-1.2, 2009-11-12
+----------------------------------------------
+[       ] mkalkbrenner: improved property debugging - requires at least ThemeKey 6.x-1.2beta5
+
+
+ThemeKey Properties 6.x-1.1, 2009-11-05
+----------------------------------------------
+[#588104] mkalkbrenner: extend debug module to show all properties of ThemeKey
+[#434242] mkalkbrenner: removed unnecessary path attributes because ThemeKey now handles a missing path attribute correctly
+[       ] mkalkbrenner: fixed function names in themekey_properties_debug.module
+
+
+ThemeKey Properties 6.x-1.0, 2009-08-21
+----------------------------------------------
+[#545500] designerbrent, mkalkbrenner: added property user:role
+
+
+ThemeKey Properties 6.x-1.0-rc2, 2009-08-03
+----------------------------------------------
+[#533226] gaele, mkalkbrenner: fixed description of property drupal:base_path
+
+
+ThemeKey Properties 6.x-1.0-rc1, 2009-08-03
+----------------------------------------------
+[#520922] mkalkbrenner: added property drupal:is_front_page
+
+
+ThemeKey Properties 6.x-1.0-beta2, 2009-07-30
+----------------------------------------------
+[       ] mkalkbrenner: only site admin is able to debug properties
+[       ] mkalkbrenner: only set and debug enabled properties
+[#533226] gaele, mkalkbrenner: added property drupal:base_path
+
+
+ThemeKey Properties 6.x-1.0-beta1, 2009-07-28
+----------------------------------------------
+[       ] mkalkbrenner: added debug mode as module
+[       ] mkalkbrenner: added date time properties
+[#509730] mkalkbrenner: added browser and os properties
+
+
+ThemeKey Properties 6.x-1.0-alpha1, 2009-07-03
+----------------------------------------------
+[       ] mkalkbrenner: first public release
