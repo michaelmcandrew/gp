@@ -12,7 +12,7 @@
 // 
 // function gpew_renew_civicrm_buildForm( $formName, &$form ){
 // 	
-// 	if(!($formName == 'CRM_Contribute_Form_Contribution_Main' && $form->_id == 7)){
+// 	if(!($formName == 'CRM_Contribute_Form_Contribution_Main' && $form->_id == 6)){
 // 		return;
 // 	}
 // 
@@ -40,9 +40,10 @@
 // 		
 // 	$result = CRM_Core_DAO::executeQuery( $query, $params );	
 // 	$result->fetch();
+// 	print_r($result);exit;
 // 	
-// 	$form->addElement('text', 'JointMemberFirstName', ts('First name'))->setValue($result->first_name);
-// 	$form->addElement('text', 'JointMemberLastName', ts('Last name'))->setValue($result->last_name);
+// 	// $form->addElement('text', 'JointMemberFirstName', ts('First name'))->setValue($result->first_name);
+// 	// $form->addElement('text', 'JointMemberLastName', ts('Last name'))->setValue($result->last_name);
 // 	
 // 
 // 	if ($results['count']==1){
@@ -79,6 +80,64 @@ function gpew_renew_menu() {
 	);
 	return $items;
 }
+
+
+function gpew_renew_civicrm_buildForm($formName, &$form) {
+	if(!($formName == 'CRM_Contribute_Form_Contribution_Main' && $form->_id == 6)){
+		return;
+	}
+
+//	Get the current contact id and look up any related (gives membership to [id=22]) contacts.
+	$civiId = getCiviId();
+	$params[1] = array( $civiId, 'Integer');
+	$query="SELECT
+		cc.id,
+		cc.first_name,
+		cc.middle_name,
+		cc.last_name,
+		cc.birth_date,
+		ce.email,
+		cp.phone
+	FROM civicrm_contact AS cc
+	JOIN civicrm_relationship AS cr ON cc.id = cr.contact_id_a
+	LEFT JOIN civicrm_email AS ce ON cc.id=ce.contact_id AND ce.is_primary
+	LEFT JOIN civicrm_phone AS cp ON cc.id=cp.contact_id AND cp.is_primary
+	WHERE
+		cr.contact_id_b = %1 AND
+		cr.relationship_type_id = 22 AND
+		cr.is_active = 1 AND
+		cc.is_deleted = 0";
+		
+	$result = CRM_Core_DAO::executeQuery( $query, $params );	
+	$result->fetch();
+	//print_r($result->N);exit;
+	
+	
+	if ($result->N==1){// If there is exactly one id=22 relationship do the following
+		
+		//convert date into right format
+		$originalDate = $result->birth_date;
+		$newDate = date("m/d/Y", strtotime($originalDate));
+	
+		$form->addElement('text', 'JointMemberFirstName', ts('First Name'), array('value'=>$result->first_name) );
+		$form->addElement('text', 'JointMemberMiddleName', ts('Middle Name'), array('value'=>$result->middle_name) );
+		$form->addElement('text', 'JointMemberLastName', ts('Last Name'), array('value'=>$result->last_name) );
+		$form->addElement('text',"JointMemberEmailAddress", ts('Email'), array('value'=>$result->email), CRM_Core_DAO::getAttribute('CRM_Core_DAO_Email', 'email') );
+		$form->addRule( "JointMemberEmailAddress", ts('Email is not valid.'), 'email' );
+		$form->addElement('text', 'JointMemberMobile', ts('Mobile'), array('value'=>$result->phone) );
+		$form->addDate('JointMemberDateOfBirth', ts('Date of birth'), false, array( 'value'=>$newDate, 'formatType' => 'birth') );
+
+	}
+	else {//otherwise the user has no relationships or more than one 
+	// We don't want to let the user continue here so we need to display a message
+	}
+
+
+}
+
+
+
+
 
 // function gpew_renew_theme() {
 // 	return array(
@@ -127,35 +186,23 @@ function gp_renew_form_redirect() {
 	CRM_Utils_System::redirect("/civicrm/contribute/transact?reset=1&id=6");
 }
 
-// function get_membership() {
-// 	civicrm_initialize();
-// 	$params = array( 
-// 		'contact_id' => getCiviId(),
-// 		'version' => 3 );
-// 	$results=civicrm_api("Membership","get", $params);
-// 	if ($results['count'] >1) {$GLOBALS['multiple_membership'] = TRUE;}
-// 	$array_id = $results['id'];
-// 	$membership=$results['values'][$array_id];
-// 	//print_r($membership['membership_name']);exit;
-// 	return $membership;
-// }
-// 
-// function getCiviId()
-// {
-// 	civicrm_initialize();
-// 	$params = array ('version' =>'3',
-// 					'uf_id' => getDrupalId(),
-// 					'return' => 'contact_id' );
-// 	$results=civicrm_api("UFMatch","getvalue",$params );
-// 	return $results;
-// 	//return "20206";
-// }
-// function getDrupalId()
-// {
-// 	global $user;
-// 	return $user->uid;
-// }
-// 
+
+function getCiviId()
+{
+	civicrm_initialize();
+	$params = array ('version' =>'3',
+					'uf_id' => getDrupalId(),
+					'return' => 'contact_id' );
+	$results=civicrm_api("UFMatch","getvalue",$params );
+	return $results;
+	//return "20206";
+}
+function getDrupalId()
+{
+	global $user;
+	return $user->uid;
+}
+
 // function get_relationship()
 // {
 // 	civicrm_initialize();
