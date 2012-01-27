@@ -1,6 +1,0 @@
-name = Renew page for Green Party
-description = A renew page which is part of the renewal workflow, accessible to logged in people, displays the users current or previous membership, a renew button takes the user to the correct contribution page based on their previous membership (single or joint).  A renew menu item is also available next to the "my account" button
-dependencies[] = civicrm
-package = CiviCRM - Green Party extras
-core = 6.x
-version = 1.0

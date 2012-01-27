@@ -1,4 +1,5 @@
 <?php
+
 // /*
 //  * Copyright (C) 2011 Peter McAndrew
 //  * Licensed to CiviCRM under the Academic Free License version 3.0.
@@ -65,7 +66,7 @@
 // }
 // 
 
-function gpew_renew_menu() {
+function gpew_membership_menu() {
 	$items['renew'] = array(
 		'title' => 'Membership renewal',
 		'page callback' => 'gpew_renew_page',
@@ -74,7 +75,7 @@ function gpew_renew_menu() {
 	);
 	$items['membership/form'] = array(
 	    'title' => "Membership sign-up | Green Party members' website",
-	    'page callback' => 'gp_renew_form_redirect',
+	    'page callback' => 'gp_membership_form_redirect',
 		'access callback' => TRUE,
 	    'type' => MENU_CALLBACK,
 	);
@@ -82,7 +83,7 @@ function gpew_renew_menu() {
 }
 
 
-function gpew_renew_civicrm_buildForm($formName, &$form) {
+function gpew_membership_civicrm_buildForm($formName, &$form) {
 	if(!($formName == 'CRM_Contribute_Form_Contribution_Main' && $form->_id == 6)){
 		return;
 	}
@@ -181,7 +182,7 @@ function gpew_renew_civicrm_buildForm($formName, &$form) {
 // }
 
 
-function gp_renew_form_redirect() {
+function gp_membership_form_redirect() {
 	civicrm_initialize();
 	CRM_Utils_System::redirect("/civicrm/contribute/transact?reset=1&id=6");
 }
