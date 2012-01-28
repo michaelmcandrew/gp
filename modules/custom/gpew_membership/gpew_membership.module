@@ -11,60 +11,7 @@
 // 
 // //Build form hook to add fields to joint contibutution pages
 // 
-// function gpew_renew_civicrm_buildForm( $formName, &$form ){
-// 	
-// 	if(!($formName == 'CRM_Contribute_Form_Contribution_Main' && $form->_id == 6)){
-// 		return;
-// 	}
-// 
-// 	//If a relationship exists get information and populate fields about joint member, 
-// 	// contact_id_b=cid
-// 	//relationship_type_id=22 for gives membership to
-// 	// If a relationship doesn't exist create new contact and add membership relationship
-// 	
-// 	$params[1] = array( 4, 'Integer');
-// 	$query="SELECT
-// 		cc.id,
-// 		cc.first_name,
-// 		cc.last_name,
-// 		ce.email,
-// 		cp.phone
-// 	FROM civicrm_contact AS cc
-// 	JOIN civicrm_relationship AS cr ON cc.id = cr.contact_id_a
-// 	LEFT JOIN civicrm_email AS ce ON cc.id=ce.contact_id AND ce.is_primary
-// 	LEFT JOIN civicrm_phone AS cp ON cc.id=cp.contact_id AND cp.is_primary
-// 	WHERE
-// 		cr.contact_id_b = %1 AND
-// 		cr.relationship_type_id = 22 AND
-// 		cr.is_active = 1 AND
-// 		cc.is_deleted = 0";
-// 		
-// 	$result = CRM_Core_DAO::executeQuery( $query, $params );	
-// 	$result->fetch();
-// 	print_r($result);exit;
-// 	
-// 	// $form->addElement('text', 'JointMemberFirstName', ts('First name'))->setValue($result->first_name);
-// 	// $form->addElement('text', 'JointMemberLastName', ts('Last name'))->setValue($result->last_name);
-// 	
-// 
-// 	if ($results['count']==1){
-// 		//get contact a first name and last name and populate form
-// 	}
-// 	else {
-// 		
-// 	}
-// 	
-// }
-// 
-// function gp_renew_civicrm_postProcess( $formName, &$form ){
-// 	if(!($formName == 'CRM_Contribute_Form_Contribution_Main' && $form->_id == 7)){
-// 		return;
-// 	}
-// 	
-// 	//validate fields,  display fields on confirmation page (CRM/Contribute/Form/Contribution/Confirm.tpl) when confirmation page is submitted create relationship that gives membership to joint member (if )
-// 	//
-// }
-// 
+
 
 function gpew_membership_menu() {
 	$items['renew'] = array(
@@ -84,77 +31,123 @@ function gpew_membership_menu() {
 
 
 function gpew_membership_civicrm_buildForm($formName, &$form) {
+	global $user;
+	
 	if(!($formName == 'CRM_Contribute_Form_Contribution_Main' && $form->_id == 6)){
+	//	gpew_membership_process_young_green(33067, "1990-05-31");
 		return;
 	}
 
-//	Get the current contact id and look up any related (gives membership to [id=22]) contacts.
-	$civiId = getCiviId();
-	$params[1] = array( $civiId, 'Integer');
-	$query="SELECT
-		cc.id,
-		cc.first_name,
-		cc.middle_name,
-		cc.last_name,
-		cc.birth_date,
-		ce.email,
-		cp.phone
-	FROM civicrm_contact AS cc
-	JOIN civicrm_relationship AS cr ON cc.id = cr.contact_id_a
-	LEFT JOIN civicrm_email AS ce ON cc.id=ce.contact_id AND ce.is_primary
-	LEFT JOIN civicrm_phone AS cp ON cc.id=cp.contact_id AND cp.is_primary
-	WHERE
-		cr.contact_id_b = %1 AND
-		cr.relationship_type_id = 22 AND
-		cr.is_active = 1 AND
-		cc.is_deleted = 0";
+	if($user->uid){
+		civicrm_initialize();
+		$params = array ('version' =>'3',
+						'uf_id' => $user->uid,
+						'return' => 'contact_id' );
+		$civiId=civicrm_api("UFMatch","getvalue",$params );
+
+		$params[1] = array( $civiId, 'Integer');
+		$query="SELECT
+			cc.id,
+			cc.first_name,
+			cc.middle_name,
+			cc.last_name,
+			cc.birth_date,
+			ce.email,
+			cp.phone
+		FROM civicrm_contact AS cc
+		JOIN civicrm_relationship AS cr ON cc.id = cr.contact_id_a
+		LEFT JOIN civicrm_email AS ce ON cc.id=ce.contact_id AND ce.is_primary
+		LEFT JOIN civicrm_phone AS cp ON cc.id=cp.contact_id AND cp.is_primary
+		WHERE
+			cr.contact_id_b = %1 AND
+			cr.relationship_type_id = 22 AND
+			cr.is_active = 1 AND
+			cc.is_deleted = 0";
 		
-	$result = CRM_Core_DAO::executeQuery( $query, $params );	
-	$result->fetch();
-	//print_r($result->N);exit;
-	
-	
-	if ($result->N==1){// If there is exactly one id=22 relationship do the following
-		
-		//convert date into right format
+		$result = CRM_Core_DAO::executeQuery( $query, $params );	
+		$result->fetch();
+		//print_r($result);exit;
 		$originalDate = $result->birth_date;
 		$newDate = date("m/d/Y", strtotime($originalDate));
+	}
 	
-		$form->addElement('text', 'JointMemberFirstName', ts('First Name'), array('value'=>$result->first_name) );
-		$form->addElement('text', 'JointMemberMiddleName', ts('Middle Name'), array('value'=>$result->middle_name) );
-		$form->addElement('text', 'JointMemberLastName', ts('Last Name'), array('value'=>$result->last_name) );
-		$form->addElement('text',"JointMemberEmailAddress", ts('Email'), array('value'=>$result->email), CRM_Core_DAO::getAttribute('CRM_Core_DAO_Email', 'email') );
-		$form->addRule( "JointMemberEmailAddress", ts('Email is not valid.'), 'email' );
-		$form->addElement('text', 'JointMemberMobile', ts('Mobile'), array('value'=>$result->phone) );
-		$form->addDate('JointMemberDateOfBirth', ts('Date of birth'), false, array( 'value'=>$newDate, 'formatType' => 'birth') );
-
-	}
-	else {//otherwise the user has no relationships or more than one 
-	// We don't want to let the user continue here so we need to display a message
-	}
+	
+	$form->addElement('text', 'JointMemberFirstName', ts('First Name'), array('value'=>$result->first_name) );
+	$form->addElement('text', 'JointMemberMiddleName', ts('Middle Name'), array('value'=>$result->middle_name) );
+	$form->addElement('text', 'JointMemberLastName', ts('Last Name'), array('value'=>$result->last_name) );
+	$form->addElement('text',"JointMemberEmailAddress", ts('Email'), array('value'=>$result->email), CRM_Core_DAO::getAttribute('CRM_Core_DAO_Email', 'email') );
+	$form->addRule( "JointMemberEmailAddress", ts('Email is not valid.'), 'email' );
+	$form->addElement('text', 'JointMemberMobile', ts('Mobile'), array('value'=>$result->phone) );
+	$form->addDate('JointMemberDateOfBirth', ts('Date of birth'), false, array( 'value'=>$newDate, 'formatType' => 'birth') );
+	$form->addElement('hidden', 'JointMemberExists', null, array('value'=>1) );
 
 
 }
 
 
+function gpew_membership_civicrm_postProcess( $formName, &$form ){
+	
+	if(!($formName == 'CRM_Contribute_Form_Contribution_Confirm' )){
+		return;
+	}
+	else{
+		
+	}
+	// Process young green
+	gpew_membership_process_young_green($contact_id, $date_of_birth);
+		
+	//If this is a joint membership application / renewal
+	if ($jointMembership){
+		
+	}
+
+	//Do they already have the relationship set up? If not we need to create it
+	
+		//Create contact
+		
+		//Create relationship
+		
+	//Update the joint member contact fields using same details as primary member except for those explicitly collected about the secondary member with any data submitted in this form
+	
+	//When form is submitted if joint memebership continue otherwise break
+	
+	// Process young green for joint member 
+}
 
 
 
-// function gpew_renew_theme() {
-// 	return array(
-// 			'gpew_renew_page' => array(
-// 									'template' => 'gpew-renew-page',
-// 									'arguments' => array('membership' => NULL,
-// 									 					'relationship' => NULL, 
-// 														'renew_link' => NULL,
-// 														'is_primary' => NULL,
-// 														'more_info' => NULL
-// 														),
-// 									)		
-//   				);
-// }
+function gpew_membership_process_young_green($contact_id, $date_of_birth){
 
-// function gpew_renew_page()
+	//need to handle blank DOB or CID
+	if($date_of_birth=='' OR $contact_id==''){
+		return;
+	}
+	$age = CRM_Utils_Date::calculateAge($date_of_birth);
+	$age = $age['years'];
+		//if the contact ID field is not blank and they are under 30
+	if (!$contact_id OR $age > 30){
+		return;
+		}
+		
+	else{//check if they belong to young greens group	
+		$params[1] = array( $contact_id, 'Integer');
+		$query="SELECT *
+		FROM civicrm_group_contact
+		WHERE group_id =30
+		AND contact_id =%1";
+		$result = CRM_Core_DAO::executeQuery( $query, $params );
+		$result->fetch();
+		if ($result->N ==0){//add to young greens group 
+			$params = array ('version' =>'3',
+							'contact_id' => $contact_id,
+							'group_id' => '30'//Young greens group
+							);
+			$results=civicrm_api("GroupContact","create", $params);	
+		}
+	}
+} 
+
+// function x()
 // {
 // 	 // get membership information from civicrm (membership type, expiry date, status, for joint members whether or not they are the primary member).  If they have neither, direct them to the join page and / or tell them they should contact the office if they think this is an error.
 // 
@@ -188,21 +181,6 @@ function gp_membership_form_redirect() {
 }
 
 
-function getCiviId()
-{
-	civicrm_initialize();
-	$params = array ('version' =>'3',
-					'uf_id' => getDrupalId(),
-					'return' => 'contact_id' );
-	$results=civicrm_api("UFMatch","getvalue",$params );
-	return $results;
-	//return "20206";
-}
-function getDrupalId()
-{
-	global $user;
-	return $user->uid;
-}
 
 // function get_relationship()
 // {
