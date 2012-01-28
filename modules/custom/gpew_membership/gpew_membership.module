@@ -67,8 +67,11 @@ function gpew_membership_civicrm_buildForm($formName, &$form) {
 		$result = CRM_Core_DAO::executeQuery( $query, $params );	
 		$result->fetch();
 		//print_r($result);exit;
-		$originalDate = $result->birth_date;
-		$newDate = date("m/d/Y", strtotime($originalDate));
+		
+		$birthDate = $result->birth_date;
+		if ($birthDate){
+			$birthDate = date("m/d/Y", strtotime($birthDate));
+		}
 	}
 	
 	
