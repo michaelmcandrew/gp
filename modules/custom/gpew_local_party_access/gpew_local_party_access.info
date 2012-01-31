@@ -1,0 +1,7 @@
+name = Local Party Access
+description = Manages access for local party secretaries
+dependencies[] = civicrm
+package = CiviCRM - Green Party extras
+core = 6.x
+version = 0.1
+

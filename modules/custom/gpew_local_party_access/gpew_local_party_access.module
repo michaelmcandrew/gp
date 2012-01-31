@@ -1,0 +1,84 @@
+<?php
+
+/*
+ * Implements hook_civicrm_aclWhereClause().
+ */
+function gpew_local_party_access_civicrm_aclWhereClause( $type, &$tables, &$whereTables, &$contactID, &$where ) {
+  // 
+  // The starting point for this code was:
+  // sites/all/modules/civicrm/drupal/civitest.module.sample
+  // function civitest_civicrm_aclWhereClause
+  //
+  if ( ! $contactID ) {
+    return;
+  }
+
+  // These are the relationships which are allowed access to local party reports
+  $reltypeid_membership_secretary = 19;
+
+  // Let's find out if the currently logged in user is the membership secretary
+  // of any of the local parties.
+  // If this sql query returns, it will give us the local party id, where the 
+  // user is the membership secretary.
+  $relationshipTable = 'civicrm_relationship';
+  $fields = array(
+    'contact_id_b' => 'Integer',
+  );
+  $keys = implode( ', ', array_keys( $fields ) );
+
+  $params[1] = array( $reltypeid_membership_secretary, 'Integer' );
+
+  $sql = "
+    SELECT $keys
+    FROM {$relationshipTable}
+    WHERE contact_id_a = $contactID
+    AND relationship_type_id = %1;
+    ";
+
+  // This query will result in the key we want, which is the local party id.
+  $dao = CRM_Core_DAO::executeQuery( $sql, $params );
+
+  // If the user is not in a relationship with the local party, then return.
+  if ( ! $dao->fetch( ) ) {
+      return;
+  }
+
+  // 
+  // If we get here, then we know that the user should have access to local
+  // party reports.
+  // This will need to change if user in relationship with more than one local 
+  // party. 
+  //
+  if (empty($dao->contact_id_b)) {
+    return;
+  }
+  $local_party_id = $dao->contact_id_b;
+
+  $partyMembershipTable = 'civicrm_value_gpew_party_information';
+
+  // 
+  // This was the tricky bit to work out.
+  // contact_a.id must come as part of the preceding query, which we are now 
+  // appending to.
+  // 
+  // A good strategy here is to work out in advance what sql you think would
+  // work, and execute it against the database using phpmyadmin.
+  //
+  // For example, this seemed like a sensible query:
+  // SELECT * 
+  // FROM `civicrm_contact` contact_a
+  // LEFT JOIN `civicrm_value_gpew_party_information` partyMembershipTable
+  // ON contact_a.id = partyMembershipTable.entity_id
+  // WHERE partyMembershipTable.local_party_id = 22303
+  //
+  // The key thing to remember is that contact_a is part of the query which is
+  // in the process of being created; contact_a is not part of what we are
+  // doing, it's what came already.
+  //
+
+  $tables[$partyMembershipTable] = $whereTables[$partyMembershipTable] =
+    "LEFT JOIN {$partyMembershipTable} partyMembershipTable ON contact_a.id = partyMembershipTable.entity_id";
+
+  // This is the where clause which determines what data is accessible.
+  $where = "partyMembershipTable.local_party_id = $local_party_id";
+}
