@@ -31,6 +31,7 @@ function gpew_membership_menu() {
 
 
 function gpew_membership_civicrm_buildForm($formName, &$form) {
+	gpew_membership_civicrm_create_relationship(33040,7973);
 	global $user;
 	
 	if(!($formName == 'CRM_Contribute_Form_Contribution_Main' && $form->_id == 6)){
@@ -117,6 +118,20 @@ function gpew_membership_civicrm_postProcess( $formName, &$form ){
 	// Process young green for joint member 
 }
 
+function gpew_membership_civicrm_create_relationship($contactA, $contactB){
+	//print_r("$contactA");exit;
+	civicrm_initialize();
+	$params = array(
+				'version' =>'3',
+				'contact_id_a' => $contactA,
+				'contact_id_b' => $contactB,
+				'relationship_type_id' => '22'
+				);
+	$results=civicrm_api("Relationship","get",$params);
+	//print_r($results);exit;
+	
+
+}
 
 
 function gpew_membership_process_young_green($contact_id, $date_of_birth){
@@ -226,7 +241,4 @@ function gp_membership_form_redirect() {
 // 	$link = 'http://gp.local/civicrm/contribute/transact?reset=1&id='.is_joint();
 // 	return $link;
 // }
-// 	
-// 
-// // create renew button that links to correct contibution page, or says, 'you are not the primary member. only the primary member [member name] can renew')
 ?>
