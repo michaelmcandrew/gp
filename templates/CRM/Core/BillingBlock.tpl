@@ -103,6 +103,7 @@
 
                 <fieldset class="billing_name_address-group">
                 	<legend>{ts}Billing Name and Address{/ts}</legend>
+
                     <div class="crm-section billing_name_address-section">
                         <div class="crm-section billingNameInfo-section">	
                         	<div class="content description">
@@ -113,16 +114,49 @@
                         	  {/if}
                         	</div>
                         </div>
+				        <p><a id="billingcheckbox">Click here to copy your billing information from above</a></p>
+						<script type="text/javascript">
+						{literal}
+						cj( function( ) {
+						    cj('#billingcheckbox').click( function( ) {
+						        sameAddress( 1 );
+						        });
+						    });
+						function sameAddress( setValue ) {
+						    var locationTypeInProfile = 1;
+						    var orgID = field = fieldName = null;
+						    cj('.billing_name_address-section input').each( function( i ){
+						            orgID = cj(this).attr('id');
+						            field = orgID.split('-');
+						            fieldName = field[0].replace('billing_', '');
+						            if ( field[1] ) {
+						            fieldName = fieldName.replace('_id', '');
+						            fieldName =  fieldName + '-' + locationTypeInProfile;
+						            }
+						            if ( setValue ) {
+						            cj(this).val( cj('#' + fieldName ).val() );
+						            }
+						            });
+						}                                                                                                                                                                                                                                         
+						{/literal}
+						</script>                                                                                                                                                                                                           
+						
                         <div class="crm-section {$form.billing_first_name.name}-section">	
 							<div class="label">{$form.billing_first_name.label}</div>
                             <div class="content">{$form.billing_first_name.html}</div>
                             <div class="clear"></div> 
                         </div>
+
+						<!--
+						
                         <div class="crm-section {$form.billing_middle_name.name}-section">	
 							<div class="label">{$form.billing_middle_name.label}</div>
                             <div class="content">{$form.billing_middle_name.html}</div>
                             <div class="clear"></div> 
                         </div>
+
+						-->
+						
                         <div class="crm-section {$form.billing_last_name.name}-section">	
 							<div class="label">{$form.billing_last_name.label}</div>
                             <div class="content">{$form.billing_last_name.html}</div>

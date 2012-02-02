@@ -1,5 +1,7 @@
-<h5 style="font-weight:bold;padding:4px;">Joint Member Details</h5>
-
+<fieldset id="jointMemberFieldSet">
+<legend>Joint Member Details</legend>
+<div class="messages help"><p>Please fill in the details of the joint member below.</p></div>
+	
 <div class="crm-section {$form.JointMemberFirstName.name}-section">	
 	<div class="label">{$form.JointMemberFirstName.label}</div>
     <div class="content">
@@ -44,7 +46,9 @@
 	<div class="label">{$form.JointMemberDateOfBirth.label}</div>
     <div class="content">
         {include file="CRM/common/jcalendar.tpl" elementName=JointMemberDateOfBirth}
-	</div>
+	<br /><span class="description">If you are under 30 and would like to receive a free annual magazine and monthly email updates from the Young Greens, you must provide your date of birth.</span></div>
 	<div class="clear"></div> 
 </div>
+
+</fieldset>
 
