@@ -14,10 +14,10 @@ function tsd_ptd_init(){
 function disable_modules() {
   if (module_exists('gpew_local_party_coa')) {
     watchdog("tsd_ptd", "module_disable('gpew_local_party_coa')");
-    module_disable('gpew_local_party_coa');
+    module_disable( array('gpew_local_party_coa') );
   }
   if (module_exists('gpew_new_member_notification')) {
     watchdog("tsd_ptd", "module_disable('gpew_new_member_notification')");
-    module_disable('gpew_new_member_notification');
+    module_disable( array('gpew_new_member_notification') );
   }
 }
