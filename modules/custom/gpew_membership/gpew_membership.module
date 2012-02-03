@@ -30,12 +30,24 @@ function gpew_membership_menu() {
 }
 
 
+
 function gpew_membership_civicrm_buildForm($formName, &$form) {
 	gpew_membership_civicrm_create_relationship(33040,7973);
 	global $user;
+
+ 	$jointMemberFields=array('JointMemberFirstName', 'JointMemberMiddleName', 'JointMemberLastName', 'JointMemberEmailAddress', 'JointMemberEmailAddress', 'JointMemberMobile', 'JointMemberDateOfBirth');
+
+	// Donation forms : confirmation page
+	if ($formName == 'CRM_Contribute_Form_Contribution_Confirm' OR $formName == 'CRM_Contribute_Form_Contribution_ThankYou') {
+		foreach($jointMemberFields as $f){
+			if (isset($form->_params[$f])) {
+				$jointMemberDetails[$f]=$form->_params[$f];
+			}
+		}
+	}
+	$form->assign('jointMember', $jointMemberDetails);
 	
 	if(!($formName == 'CRM_Contribute_Form_Contribution_Main' && $form->_id == 6)){
-	//	gpew_membership_process_young_green(33067, "1990-05-31");
 		return;
 	}
 
@@ -88,34 +100,102 @@ function gpew_membership_civicrm_buildForm($formName, &$form) {
 
 }
 
+function gpew_membership_civicrm_validate( $formName, &$fields, &$files, &$form ) {
 
+    if ( $formName == 'CRM_Contribute_Form_Contribution_Main' AND in_array($fields['selectMembership'], array(10,12,16))) {
+       // ensure that external identifier is present and valid
+       $FirstName = CRM_Utils_Array::value( 'JointMemberFirstName', $fields );
+       if ( ! trim($FirstName) ) {
+          $errors['JointMemberFirstName'] = ts( 'The secondary member first name is a required field for joint memberships' );
+       }
+       $LastName = CRM_Utils_Array::value( 'JointMemberLastName', $fields );
+       if ( ! trim($LastName) ) {
+          $errors['JointMemberLastName'] = ts( 'The secondary member last name is a required field for joint memberships' );
+       }
+    }
+    return empty( $errors ) ? true : $errors;
+
+}
 function gpew_membership_civicrm_postProcess( $formName, &$form ){
 	
 	if(!($formName == 'CRM_Contribute_Form_Contribution_Confirm' )){
 		return;
 	}
-	else{
-		
-	}
-	// Process young green
+
 	gpew_membership_process_young_green($contact_id, $date_of_birth);
+	
+	$results=civicrm_api("Membership","getsingle", array ('version' =>'3', 'membership_id'=>$form->_values['membership_id']));
+	
+	// Process young green
 		
 	//If this is a joint membership application / renewal
-	if ($jointMembership){
-		
-	}
+	if (in_array($results['membership_type_id'], array(10,12,16))){
+		//Do they already have a joint relationship that we pulled into this form)
+		if($form->_params['JointMemberExists']){
 
-	//Do they already have the relationship set up? If not we need to create it
-	
-		//Create contact
-		
-		//Create relationship
-		
-	//Update the joint member contact fields using same details as primary member except for those explicitly collected about the secondary member with any data submitted in this form
-	
-	//When form is submitted if joint memebership continue otherwise break
-	
-	// Process young green for joint member 
+		//if they don't then lets create a new contact
+		}else{
+			$contact_params=array(
+				'first_name'=>$form->_params['JointMemberFirstName'],
+				'middle_name'=>$form->_params['JointMemberMiddleName'],
+				'last_name'=>$form->_params['JointMemberLastName'],
+				'date_of_birth'=>$form->_params['JointMemberDateOfBirth'],
+				'contact_type'=>'Individual',
+				'version'=>3,
+				);
+			$contact_result=civicrm_api("Contact","create", $contact_params);
+			if($form->_params['JointMemberEmailAddress']){
+				$email_params=array(
+					'contact_id'=>$contact_result['id'],
+					'email'=>$form->_params['JointMemberEmailAddress'],
+					'version'=>3,
+					);
+				$email_result=civicrm_api("Email","create", $email_params);
+			}
+			if($form->_params['JointMemberPhone']){
+				$email_params=array(
+					'contact_id'=>$contact_result['id'],
+					'email'=>$form->_params['JointMemberEmailAddress'],
+					'is_primary'=>1,
+					'version'=>3,
+					);
+				$email_result=civicrm_api("Email","create", $email_params);
+			}
+			$phone_params=array(
+				'contact_id'=>$contact_result['id'],
+				'phone'=>$form->_params['JointMemberMobile'],
+				'phone_type_id'=>2,
+				'is_primary'=>1,
+				'version'=>3,
+				);
+			$phone_result=civicrm_api("Phone","create", $phone_params);
+			
+			$address_params=array(
+				'contact_id'=>$contact_result['id'],
+				'street_address'=>$form->_params['street_address-Primary'],
+			    'supplemental_address_1'=>$form->_params['supplemental_address_1-1'],
+			    'supplemental_address_2'=>$form->_params['supplemental_address_2-1'],
+			    'city'=>$form->_params['city-1'],
+			    'postal_code'=>$form->_params['postal_code-1'],
+				'location_type_id'=>1,
+				'is_primary'=>1,
+				'version'=>3,
+			);
+			$address_result=civicrm_api("Address","create", $address_params);
+			//Force postcode lookup?
+			
+			//Create relationship
+			$rel_params=array(
+				'contact_id_a'=>$contact_result['id'],
+				'contact_id_b'=>$form->_params['contactID'],
+				'relationship_type_id'=>22,
+				'version'=>3,
+				);
+			$rel_result=civicrm_api("Relationship","create", $rel_params);	
+			gpew_membership_process_young_green($contact_result['id'], $form->_params['JointMemberDateOfBirth']);
+					
+		}
+	}	
 }
 
 function gpew_membership_civicrm_create_relationship($contactA, $contactB){

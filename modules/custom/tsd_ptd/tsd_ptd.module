@@ -1,0 +1,10 @@
+<?php
+function tsd_ptd_init(){
+	if(TSD_PROD===TRUE){
+		return;
+	}elseif(TSD_TEST===TRUE){
+		drupal_add_css(drupal_get_path('module', 'tsd_ptd').'/tsd_test.css', 'module', 'all', FALSE);		
+	}else{
+		drupal_add_css(drupal_get_path('module', 'tsd_ptd').'/tsd_dev.css', 'module', 'all', FALSE);		
+	}
+}

@@ -73,7 +73,7 @@ function clearAmountOther() {
         </fieldset>
     </div>
 {else}
-        {include file="CRM/Contribute/Form/Contribution/MembershipBlock.tpl" context="makeContribution"}
+	{include file="CRM/Contribute/Form/Contribution/MembershipBlock.tpl" context="makeContribution"}
 
 	{if $form.amount}
 	    <div class="crm-section {$form.amount.name}-section">
@@ -298,6 +298,7 @@ function clearAmountOther() {
     {/if}
 </div>
 
+
 {* Hide Credit Card Block and Billing information if contribution is pay later. *}
 {if $form.is_pay_later and $hidePaymentInformation} 
 {include file="CRM/common/showHideByFieldValue.tpl" 
@@ -326,6 +327,22 @@ if ( {/literal}"{$form.is_recur}"{literal} ) {
 	}
     }
 }
+
+function showHideJointBlock(){
+	var membership_id = cj("#membership-listings input:checked").val();
+	if(membership_id==10 || membership_id==12 || membership_id==16){
+		cj('#jointMemberFieldSet').show();
+	} else{
+		cj('#jointMemberFieldSet').hide();
+	}
+};
+
+showHideJointBlock();
+cj("#membership-listings input").click(function () { 
+	showHideJointBlock();
+});
+
+
 function enablePeriod ( ) {
     var frqInt  = {/literal}"{$form.frequency_interval}"{literal};
     if ( document.getElementsByName("is_recur")[0].checked == true ) { 
