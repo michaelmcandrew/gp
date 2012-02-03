@@ -1,5 +1,5 @@
 name = "Prod Test Dev"
 description = "Lets you know if you are working on a production, test or local version of the site"
-package = "Utils"
+package = "CiviCRM - Green Party extras"
 version = "1"
 core = "6.x"
