@@ -66,7 +66,9 @@ function gpew_membership_civicrm_buildForm($formName, &$form) {
 			cc.last_name,
 			cc.birth_date,
 			ce.email,
+			ce.id AS email_id,
 			cp.phone
+			cp.id AS phone_id,
 		FROM civicrm_contact AS cc
 		JOIN civicrm_relationship AS cr ON cc.id = cr.contact_id_a
 		LEFT JOIN civicrm_email AS ce ON cc.id=ce.contact_id AND ce.is_primary
@@ -95,7 +97,7 @@ function gpew_membership_civicrm_buildForm($formName, &$form) {
 	$form->addRule( "JointMemberEmailAddress", ts('Email is not valid.'), 'email' );
 	$form->addElement('text', 'JointMemberMobile', ts('Mobile'), array('value'=>$result->phone) );
 	$form->addDate('JointMemberDateOfBirth', ts('Date of birth'), false, array( 'value'=>$newDate, 'formatType' => 'birth') );
-	$form->addElement('hidden', 'JointMemberExists', null, array('value'=>1) );
+	$form->addElement('hidden', 'JointMemberId', null, array('value'=>$result->id) );
 
 
 }
@@ -130,9 +132,34 @@ function gpew_membership_civicrm_postProcess( $formName, &$form ){
 		
 	//If this is a joint membership application / renewal
 	if (in_array($results['membership_type_id'], array(10,12,16))){
-		//Do they already have a joint relationship that we pulled into this form)
-		if($form->_params['JointMemberExists']){
+		//If they already have a joint relationship that we pulled into this form...
+		if($form->_params['JointMemberId']){
+			//then update the joint member details
+			
+			//update contact first name, last name, dob
+			
+			//update contact HOME address using primary member fileds
+			
+			//if a email address was pulled into the form (i.e. if the email_id is present)
+			
+				//if the email is blank, delete the email
+				
+				//else update the email
+			
+			//else if the email field is not blank, add an email 
 
+			//if a phone number was pulled into the form (i.e. if the phone_id is present)
+			
+				//if the phone number is blank, delete the phone number
+				
+				//else update the phone number
+			
+			//else if the phone number field is not blank, add an phone number 
+			
+			
+			
+			
+			
 		//if they don't then lets create a new contact
 		}else{
 			$contact_params=array(
