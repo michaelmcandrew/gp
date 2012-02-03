@@ -52,6 +52,17 @@
 
 	<div class="crm-section">
 		<div class="label">
+			Mobile
+		</div>
+		<div class="content">
+			{$jointMember.JointMemberMobile}
+		</div>
+		<div class="clear">
+		</div>
+	</div>
+
+	<div class="crm-section">
+		<div class="label">
 			Date of birth
 		</div>
 		<div class="content">
