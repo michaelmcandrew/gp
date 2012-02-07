@@ -28,6 +28,9 @@ function gpew_membership_menu() {
 function gpew_membership_civicrm_buildForm($formName, &$form) {
 	global $user;
 
+	if(in_array($form->_params['selectMembership'], array(10,12,16))){
+		$form->assign('isJointMembership', TRUE);
+	};
  	$jointMemberFields=array('JointMemberFirstName', 'JointMemberMiddleName', 'JointMemberLastName', 'JointMemberEmailAddress', 'JointMemberEmailAddress', 'JointMemberMobile', 'JointMemberDateOfBirth');
 
 	// Donation forms : confirmation page
@@ -246,23 +249,16 @@ function gpew_membership_civicrm_postProcess( $formName, &$form ){
 					);
 				$email_result=civicrm_api("Email","create", $email_params);
 			}
-			if($form->_params['JointMemberPhone']){
-				$email_params=array(
+			if($form->_params['JointMemberMobile']){
+				$phone_params=array(
 					'contact_id'=>$contact_result['id'],
-					'email'=>$form->_params['JointMemberEmailAddress'],
+					'phone'=>$form->_params['JointMemberMobile'],
+					'phone_type_id'=>2,
 					'is_primary'=>1,
 					'version'=>3,
 					);
-				$email_result=civicrm_api("Email","create", $email_params);
+				$phone_result=civicrm_api("Phone","create", $phone_params);
 			}
-			$phone_params=array(
-				'contact_id'=>$contact_result['id'],
-				'phone'=>$form->_params['JointMemberMobile'],
-				'phone_type_id'=>2,
-				'is_primary'=>1,
-				'version'=>3,
-				);
-			$phone_result=civicrm_api("Phone","create", $phone_params);
 			
 			$address_params=array(
 				'contact_id'=>$contact_result['id'],
