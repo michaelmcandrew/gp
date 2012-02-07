@@ -4,20 +4,20 @@ function tsd_ptd_init(){
 		return;
 	}elseif(TSD_TEST===TRUE){
 		drupal_add_css(drupal_get_path('module', 'tsd_ptd').'/tsd_test.css', 'module', 'all', FALSE);		
-    disable_modules();
+    	disable_modules();
 	}else{
 		drupal_add_css(drupal_get_path('module', 'tsd_ptd').'/tsd_dev.css', 'module', 'all', FALSE);		
-    disable_modules();
+    	disable_modules();
 	}
 }
 
-function disable_modules() {
-  if (module_exists('gpew_local_party_coa')) {
-    watchdog("tsd_ptd", "module_disable('gpew_local_party_coa')");
-    module_disable( array('gpew_local_party_coa') );
-  }
-  if (module_exists('gpew_new_member_notification')) {
-    watchdog("tsd_ptd", "module_disable('gpew_new_member_notification')");
-    module_disable( array('gpew_new_member_notification') );
-  }
-}
+// function disable_modules() {
+//   if (module_exists('gpew_local_party_coa')) {
+//     watchdog("tsd_ptd", "module_disable('gpew_local_party_coa')");
+//     module_disable( array('gpew_local_party_coa') );
+//   }
+//   if (module_exists('gpew_new_member_notification')) {
+//     watchdog("tsd_ptd", "module_disable('gpew_new_member_notification')");
+//     module_disable( array('gpew_new_member_notification') );
+//   }
+// }
