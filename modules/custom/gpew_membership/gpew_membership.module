@@ -28,14 +28,13 @@ function gpew_membership_menu() {
 function gpew_membership_civicrm_buildForm($formName, &$form) {
 	global $user;
 
-	if(in_array($form->_params['selectMembership'], array(10,12,16))){
-		$form->assign('isJointMembership', TRUE);
-	};
  	$jointMemberFields=array('JointMemberFirstName', 'JointMemberMiddleName', 'JointMemberLastName', 'JointMemberEmailAddress', 'JointMemberEmailAddress', 'JointMemberMobile', 'JointMemberDateOfBirth');
 
 	// Donation forms : confirmation page
 	if ($formName == 'CRM_Contribute_Form_Contribution_Confirm' OR $formName == 'CRM_Contribute_Form_Contribution_ThankYou') {
-		
+		if(in_array($form->_params['selectMembership'], array(10,12,16))){
+			$form->assign('isJointMembership', TRUE);
+		};
 		foreach($jointMemberFields as $f){
 			if (isset($form->_params[$f])) {
 				$jointMemberDetails[$f]=$form->_params[$f];
