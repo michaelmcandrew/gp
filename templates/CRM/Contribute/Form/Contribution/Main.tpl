@@ -298,7 +298,6 @@ function clearAmountOther() {
     {/if}
 </div>
 
-
 {* Hide Credit Card Block and Billing information if contribution is pay later. *}
 {if $form.is_pay_later and $hidePaymentInformation} 
 {include file="CRM/common/showHideByFieldValue.tpl" 
@@ -328,6 +327,15 @@ if ( {/literal}"{$form.is_recur}"{literal} ) {
     }
 }
 
+
+showHideJointBlock();
+populateMembershipAmount();
+
+cj("#membership-listings input").click(function () { 
+	showHideJointBlock();
+	populateMembershipAmount();
+});
+
 function showHideJointBlock(){
 	var membership_id = cj("#membership-listings input:checked").val();
 	if(membership_id==10 || membership_id==12 || membership_id==16){
@@ -337,10 +345,20 @@ function showHideJointBlock(){
 	}
 };
 
-showHideJointBlock();
-cj("#membership-listings input").click(function () { 
-	showHideJointBlock();
-});
+
+function populateMembershipAmount(){
+
+	var membershipFees=new Array();
+	{/literal}
+	{foreach from=$membershipTypes item=row}membershipFees[{$row.id}]="{$row.minimum_fee}";
+	{/foreach}
+	{literal}
+	
+	var membership_id = cj("#membership-listings input:checked").val();
+	document.getElementById('amount_other').value=membershipFees[membership_id];
+};
+
+
 
 
 function enablePeriod ( ) {
