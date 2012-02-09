@@ -3,7 +3,7 @@
 <div class="messages help"><p>Please fill in the details of the joint member below.</p></div>
 	
 <div class="crm-section {$form.JointMemberFirstName.name}-section">	
-	<div class="label">{$form.JointMemberFirstName.label}</div>
+	<div class="label">{$form.JointMemberFirstName.label} <span title="This field is required." class="crm-marker">*</span></div>
     <div class="content">
         {$form.JointMemberFirstName.html}
 	</div>
@@ -19,7 +19,7 @@
 </div>
 
 <div class="crm-section {$form.JointMemberLastName.name}-section">	
-	<div class="label">{$form.JointMemberLastName.label}</div>
+	<div class="label">{$form.JointMemberLastName.label} <span title="This field is required." class="crm-marker">*</span></div>
     <div class="content">
         {$form.JointMemberLastName.html}
 	</div>

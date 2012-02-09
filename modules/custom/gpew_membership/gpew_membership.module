@@ -84,9 +84,9 @@ function gpew_membership_civicrm_buildForm($formName, &$form) {
 		}
 	}
 	
-	$form->addElement('text', 'JointMemberFirstName', ts('First Name*'), array('value'=>$result->first_name) );
+	$form->addElement('text', 'JointMemberFirstName', ts('First Name'), array('value'=>$result->first_name) );
 	$form->addElement('text', 'JointMemberMiddleName', ts('Middle Name'), array('value'=>$result->middle_name) );
-	$form->addElement('text', 'JointMemberLastName', ts('Last Name*'), array('value'=>$result->last_name) );
+	$form->addElement('text', 'JointMemberLastName', ts('Last Name'), array('value'=>$result->last_name) );
 	$form->addElement('text',"JointMemberEmailAddress", ts('Email'), array('value'=>$result->email), CRM_Core_DAO::getAttribute('CRM_Core_DAO_Email', 'email') );
 	$form->addRule( "JointMemberEmailAddress", ts('Email is not valid.'), 'email' );
 	$form->addElement('text', 'JointMemberMobile', ts('Mobile'), array('value'=>$result->phone) );
