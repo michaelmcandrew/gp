@@ -32,7 +32,9 @@ function gpew_membership_civicrm_buildForm($formName, &$form) {
 
 	// Donation forms : confirmation page
 	if ($formName == 'CRM_Contribute_Form_Contribution_Confirm' OR $formName == 'CRM_Contribute_Form_Contribution_ThankYou') {
-		
+		if(in_array($form->_params['selectMembership'], array(10,12,16))){
+			$form->assign('isJointMembership', TRUE);
+		};
 		foreach($jointMemberFields as $f){
 			if (isset($form->_params[$f])) {
 				$jointMemberDetails[$f]=$form->_params[$f];
@@ -116,9 +118,8 @@ function gpew_membership_civicrm_postProcess( $formName, &$form ){
 	if(!($formName == 'CRM_Contribute_Form_Contribution_Confirm' )){
 		return;
 	}
-
-
-	gpew_membership_process_young_green($contact_id, $date_of_birth);
+	$form_params=$form->getVar('_params');
+	gpew_membership_process_young_green($form_params['contactID'], $form_params['birth_date']);
 	
 	$results=civicrm_api("Membership","getsingle", array ('version' =>'3', 'membership_id'=>$form->_values['membership_id']));
 	
@@ -126,6 +127,10 @@ function gpew_membership_civicrm_postProcess( $formName, &$form ){
 		
 	//If this is a joint membership application / renewal
 	if (in_array($results['membership_type_id'], array(10,12,16))){
+		
+		$dob = new DateTime($form->_params['JointMemberDateOfBirth']);
+		$dob_ts = $dob->format('Y-m-d');
+		
 		//If they already have a joint relationship that we pulled into this form...
 		if($form->_params['JointMemberId']){
 		//	echo 'ready to update the joint member details';exit;
@@ -136,7 +141,7 @@ function gpew_membership_civicrm_postProcess( $formName, &$form ){
 				'first_name'=>$form->_params['JointMemberFirstName'],
 				'middle_name'=>$form->_params['JointMemberMiddleName'],
 				'last_name'=>$form->_params['JointMemberLastName'],
-				'date_of_birth'=>$form->_params['JointMemberDateOfBirth'],
+				'birth_date'=>$dob_ts,
 				'id'=>$form->_params['JointMemberId'],
 				'contact_type'=>'Individual',
 				'version'=>3,
@@ -222,18 +227,15 @@ function gpew_membership_civicrm_postProcess( $formName, &$form ){
 					$phone_result=civicrm_api("Phone","create", $phone_params);
 				}
 			}
-			
-			
-			
-			
-			
+			//we assign this here so we can do young green processing below
+			$contact_result['id']=$form->_params['JointMemberId'];
 		//if they don't then lets create a new contact
 		}else{
 			$contact_params=array(
 				'first_name'=>$form->_params['JointMemberFirstName'],
 				'middle_name'=>$form->_params['JointMemberMiddleName'],
 				'last_name'=>$form->_params['JointMemberLastName'],
-				'date_of_birth'=>$form->_params['JointMemberDateOfBirth'],
+				'birth_date'=>$dob_ts,
 				'contact_type'=>'Individual',
 				'version'=>3,
 				);
@@ -246,23 +248,16 @@ function gpew_membership_civicrm_postProcess( $formName, &$form ){
 					);
 				$email_result=civicrm_api("Email","create", $email_params);
 			}
-			if($form->_params['JointMemberPhone']){
-				$email_params=array(
+			if($form->_params['JointMemberMobile']){
+				$phone_params=array(
 					'contact_id'=>$contact_result['id'],
-					'email'=>$form->_params['JointMemberEmailAddress'],
+					'phone'=>$form->_params['JointMemberMobile'],
+					'phone_type_id'=>2,
 					'is_primary'=>1,
 					'version'=>3,
 					);
-				$email_result=civicrm_api("Email","create", $email_params);
+				$phone_result=civicrm_api("Phone","create", $phone_params);
 			}
-			$phone_params=array(
-				'contact_id'=>$contact_result['id'],
-				'phone'=>$form->_params['JointMemberMobile'],
-				'phone_type_id'=>2,
-				'is_primary'=>1,
-				'version'=>3,
-				);
-			$phone_result=civicrm_api("Phone","create", $phone_params);
 			
 			$address_params=array(
 				'contact_id'=>$contact_result['id'],
@@ -283,25 +278,33 @@ function gpew_membership_civicrm_postProcess( $formName, &$form ){
 				'contact_id_a'=>$contact_result['id'],
 				'contact_id_b'=>$form->_params['contactID'],
 				'relationship_type_id'=>22,
+				'is_active'=>1,
 				'version'=>3,
 				);
 			$rel_result=civicrm_api("Relationship","create", $rel_params);	
-			gpew_membership_process_young_green($contact_result['id'], $form->_params['JointMemberDateOfBirth']);
 					
 		}
+		gpew_membership_process_young_green($contact_result['id'], $form->_params['JointMemberDateOfBirth']);
+		$membership_params=array('id'=>$form_params['membershipID'], 'version'=>3);
+		
+		//need to update membership to inherit jointness
+		$mem_result=civicrm_api("Membership","getsingle", $membership_params);
+		$mem_result['version']=3;
+		$mem_result=civicrm_api("Membership","update", $mem_result);		
 	}	
 }
 
 
 function gpew_membership_process_young_green($contact_id, $date_of_birth){
-
 	//need to handle blank DOB or CID
 	if($date_of_birth=='' OR $contact_id==''){
 		return;
 	}
-	$age = CRM_Utils_Date::calculateAge($date_of_birth);
-	$age = $age['years'];
-		//if the contact ID field is not blank and they are under 30
+	$dob = new DateTime($date_of_birth);
+	$dob_ts = $dob->getTimestamp();
+	$now = new DateTime();
+	$now_ts = $now->getTimestamp();
+	$age=($now_ts-$dob_ts)/(60*60*24*365.25);
 	if ($age > 30){
 		return;
 	}

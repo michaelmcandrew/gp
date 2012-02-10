@@ -1,4 +1,4 @@
-{if $jointMember OR 1}
+{if $isJointMembership}
 <fieldset class="label-left">
     <div class="crm-group">
 		<div class="header-dark">
@@ -72,5 +72,4 @@
 		</div>
 	</div>
 </fieldset>
-    
 {/if}
