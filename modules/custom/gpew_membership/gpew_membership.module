@@ -127,6 +127,10 @@ function gpew_membership_civicrm_postProcess( $formName, &$form ){
 		
 	//If this is a joint membership application / renewal
 	if (in_array($results['membership_type_id'], array(10,12,16))){
+		
+		$dob = new DateTime($form->_params['JointMemberDateOfBirth']);
+		$dob_ts = $dob->format('Y-m-d');
+		
 		//If they already have a joint relationship that we pulled into this form...
 		if($form->_params['JointMemberId']){
 		//	echo 'ready to update the joint member details';exit;
@@ -137,7 +141,7 @@ function gpew_membership_civicrm_postProcess( $formName, &$form ){
 				'first_name'=>$form->_params['JointMemberFirstName'],
 				'middle_name'=>$form->_params['JointMemberMiddleName'],
 				'last_name'=>$form->_params['JointMemberLastName'],
-				'date_of_birth'=>$form->_params['JointMemberDateOfBirth'],
+				'birth_date'=>$dob_ts,
 				'id'=>$form->_params['JointMemberId'],
 				'contact_type'=>'Individual',
 				'version'=>3,
@@ -231,7 +235,7 @@ function gpew_membership_civicrm_postProcess( $formName, &$form ){
 				'first_name'=>$form->_params['JointMemberFirstName'],
 				'middle_name'=>$form->_params['JointMemberMiddleName'],
 				'last_name'=>$form->_params['JointMemberLastName'],
-				'date_of_birth'=>$form->_params['JointMemberDateOfBirth'],
+				'birth_date'=>$dob_ts,
 				'contact_type'=>'Individual',
 				'version'=>3,
 				);
