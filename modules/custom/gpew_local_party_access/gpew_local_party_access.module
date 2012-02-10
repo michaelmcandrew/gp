@@ -11,7 +11,7 @@ function gpew_local_party_access_civicrm_aclWhereClause( $type, &$tables, &$wher
   //
   // See: http://forum.civicrm.org/index.php/topic,21187.0.html
   //
-  if (($type == CRM_ACL_API::VIEW) || ($type == CRM_ACL_API::EDIT) {
+  if ( ($type == CRM_ACL_API::VIEW) || ($type == CRM_ACL_API::EDIT) ) {
     // 
     // The starting point for this code was:
     // sites/all/modules/civicrm/drupal/civitest.module.sample
