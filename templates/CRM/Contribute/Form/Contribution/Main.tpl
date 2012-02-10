@@ -329,7 +329,6 @@ if ( {/literal}"{$form.is_recur}"{literal} ) {
 
 
 showHideJointBlock();
-populateMembershipAmount();
 
 cj("#membership-listings input").click(function () { 
 	showHideJointBlock();
@@ -345,6 +344,11 @@ function showHideJointBlock(){
 	}
 };
 
+{/literal}
+{if $membershipBlock} 
+{literal}
+
+populateMembershipAmount();
 
 function populateMembershipAmount(){
 
@@ -359,6 +363,9 @@ function populateMembershipAmount(){
 };
 
 
+{/literal}
+{/if} 
+{literal}
 
 
 function enablePeriod ( ) {
