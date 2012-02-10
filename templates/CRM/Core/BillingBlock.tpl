@@ -135,6 +135,7 @@
 								}
 								cj(this).val( cj('#' + fieldName ).val() );
 							});
+							cj('#billing_street_address-5').val( cj('#street_address-Primary' ).val() );
 							cj('#billing_country_id-5').val( document.getElementById('country-1').value );
 							
 						}                                                                                                                                                                                                                                         

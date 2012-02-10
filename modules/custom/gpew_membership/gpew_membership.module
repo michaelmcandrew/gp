@@ -118,9 +118,8 @@ function gpew_membership_civicrm_postProcess( $formName, &$form ){
 	if(!($formName == 'CRM_Contribute_Form_Contribution_Confirm' )){
 		return;
 	}
-
-
-	gpew_membership_process_young_green($contact_id, $date_of_birth);
+	$form_params=$form->getVar('_params');
+	gpew_membership_process_young_green($form_params['contactID'], $form_params['birth_date']);
 	
 	$results=civicrm_api("Membership","getsingle", array ('version' =>'3', 'membership_id'=>$form->_values['membership_id']));
 	
@@ -224,11 +223,8 @@ function gpew_membership_civicrm_postProcess( $formName, &$form ){
 					$phone_result=civicrm_api("Phone","create", $phone_params);
 				}
 			}
-			
-			
-			
-			
-			
+			//we assign this here so we can do young green processing below
+			$contact_result['id']=$form->_params['JointMemberId'];
 		//if they don't then lets create a new contact
 		}else{
 			$contact_params=array(
@@ -278,25 +274,33 @@ function gpew_membership_civicrm_postProcess( $formName, &$form ){
 				'contact_id_a'=>$contact_result['id'],
 				'contact_id_b'=>$form->_params['contactID'],
 				'relationship_type_id'=>22,
+				'is_active'=>1,
 				'version'=>3,
 				);
 			$rel_result=civicrm_api("Relationship","create", $rel_params);	
-			gpew_membership_process_young_green($contact_result['id'], $form->_params['JointMemberDateOfBirth']);
 					
 		}
+		gpew_membership_process_young_green($contact_result['id'], $form->_params['JointMemberDateOfBirth']);
+		$membership_params=array('id'=>$form_params['membershipID'], 'version'=>3);
+		
+		//need to update membership to inherit jointness
+		$mem_result=civicrm_api("Membership","getsingle", $membership_params);
+		$mem_result['version']=3;
+		$mem_result=civicrm_api("Membership","update", $mem_result);		
 	}	
 }
 
 
 function gpew_membership_process_young_green($contact_id, $date_of_birth){
-
 	//need to handle blank DOB or CID
 	if($date_of_birth=='' OR $contact_id==''){
 		return;
 	}
-	$age = CRM_Utils_Date::calculateAge($date_of_birth);
-	$age = $age['years'];
-		//if the contact ID field is not blank and they are under 30
+	$dob = new DateTime($date_of_birth);
+	$dob_ts = $dob->getTimestamp();
+	$now = new DateTime();
+	$now_ts = $now->getTimestamp();
+	$age=($now_ts-$dob_ts)/(60*60*24*365.25);
 	if ($age > 30){
 		return;
 	}
