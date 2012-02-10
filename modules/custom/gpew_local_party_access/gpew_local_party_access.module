@@ -4,10 +4,18 @@
  * Implements hook_civicrm_aclWhereClause().
  */
 function gpew_local_party_access_civicrm_aclWhereClause( $type, &$tables, &$whereTables, &$contactID, &$where ) {
+  //
   // Only run this when view permissions are being requested.
   // Otherwise, edit permission will be given on these contacts as well.
   // The constant CRM_ACL_API::VIEW is set to 2.
-  if ($type == CRM_ACL_API::VIEW) {
+  //
+  // See: http://forum.civicrm.org/index.php/topic,21187.0.html
+  //
+  // ML 2012-02-2012
+  // Commenting out the if statement so that edit rights are 
+  // permitted on the contacts returned by the where clause.
+  //
+  //if ($type == CRM_ACL_API::VIEW) {
     // 
     // The starting point for this code was:
     // sites/all/modules/civicrm/drupal/civitest.module.sample
@@ -50,13 +58,19 @@ function gpew_local_party_access_civicrm_aclWhereClause( $type, &$tables, &$wher
     // 
     // If we get here, then we know that the user should have access to local
     // party reports.
-    // This will need to change if user in relationship with more than one local 
-    // party. 
     //
     if (empty($dao->contact_id_b)) {
       return;
     }
     $local_party_id = $dao->contact_id_b;
+
+    //
+    // deal with the case where the user is membership secretary to more than 
+    // one local party.
+    //
+    while ( $dao->fetch( ) ) {
+      $local_party_id .= " OR partyMembershipTable.local_party_id = " . $dao->contact_id_b;
+    }
 
     $partyMembershipTable = 'civicrm_value_gpew_party_information';
 
@@ -85,5 +99,5 @@ function gpew_local_party_access_civicrm_aclWhereClause( $type, &$tables, &$wher
 
     // This is the where clause which determines what data is accessible.
     $where = "partyMembershipTable.local_party_id = $local_party_id";
-  }
+  //} // if statement commented out - edit rights permitted.
 }
