@@ -41,6 +41,16 @@ function gpew_membership_civicrm_buildForm($formName, &$form) {
 			}
 		}
 	}
+	
+	if ($formName == 'CRM_Contribute_Form_Contribution_ThankYou' and $form->get('membership_id')) {
+		$form->get('membership_id');
+		require_once('CRM/Member/BAO/Membership.php');
+		require_once('CRM/Core/Action.php');
+		$membership_object = new CRM_Member_BAO_Membership;
+		$membership_object->id = $form->get('membership_id');
+		$membership_object_params=array();
+		CRM_Member_BAO_Membership::createRelatedMemberships($membership_object_params, $membership_object);
+	}	
 	$form->assign('jointMember', $jointMemberDetails);
 	
 	if(!($formName == 'CRM_Contribute_Form_Contribution_Main' && $form->_id == 6)){
@@ -292,14 +302,8 @@ function gpew_membership_civicrm_postProcess( $formName, &$form ){
 		}
 		gpew_membership_process_young_green($contact_result['id'], $form->_params['JointMemberDateOfBirth']);
 		$membership_params=array('id'=>$form_params['membershipID'], 'version'=>3);
-		
+		$form->set('membership_id', $form_params['membershipID']);
 		//need to update membership to inherit jointness
-		require_once('CRM/Member/BAO/Membership.php');
-		require_once('CRM/Core/Action.php');
-		$membership_object = new CRM_Member_BAO_Membership;
-		$membership_object->id = $form_params['membershipID'];
-		$membership_object_params=array();
-		CRM_Member_BAO_Membership::createRelatedMemberships($membership_object_params, $membership_object);
 // 		$mem_gs_result=civicrm_api("Membership","getsingle", $membership_params);
 // //		print_r($mem_gs_result);
 // 		$mem_gs_result['version']=3;
