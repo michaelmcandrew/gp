@@ -1,7 +1,22 @@
 <?php
+/*
+ * This module implements access for local party membership secretaries to the
+ * records of contacts (members and supporters) in their own local party area.
+ *
+ * It checks if the logged in user has the relationship of Membership secretary
+ * to any local party, then gives access to those contacts.
+ *
+ * NOTE: The following values are HARD-CODED in 
+ * $reltypeid_membership_secretary = 19;
+ * FOR TESTING WE ARE USING RELATIONSHIP #25
+ * $reltypeid_membership_secretary = 25;
+ */
 
 /*
  * Implements hook_civicrm_aclWhereClause().
+ *
+ * Defines the group of contacts that the local party membership secretary
+ * should have access to.
  */
 function gpew_local_party_access_civicrm_aclWhereClause( $type, &$tables, &$whereTables, &$contactID, &$where ) {
   //
@@ -10,6 +25,8 @@ function gpew_local_party_access_civicrm_aclWhereClause( $type, &$tables, &$wher
   // The constant CRM_ACL_API::VIEW is set to 2.
   //
   // See: http://forum.civicrm.org/index.php/topic,21187.0.html
+  //
+  // In this case, we want the user to have both edit and view permissions.
   //
   if ( ($type == CRM_ACL_API::VIEW) || ($type == CRM_ACL_API::EDIT) ) {
     // 
@@ -21,6 +38,218 @@ function gpew_local_party_access_civicrm_aclWhereClause( $type, &$tables, &$wher
       return;
     }
 
+    // 
+    // This was the tricky bit to work out.
+    // contact_a.id must come as part of the preceding query, which we are now 
+    // appending to.
+    // 
+    // A good strategy here is to work out in advance what sql you think would
+    // work, and execute it against the database using phpmyadmin.
+    //
+    // For example, this seemed like a sensible query:
+    // SELECT * 
+    // FROM `civicrm_contact` contact_a
+    // LEFT JOIN `civicrm_value_gpew_party_information` partyMembershipTable
+    // ON contact_a.id = partyMembershipTable.entity_id
+    // WHERE partyMembershipTable.local_party_id = 22303
+    //
+    // The key thing to remember is that contact_a is part of the query which is
+    // in the process of being created; contact_a is not part of what we are
+    // doing, it's what came already.
+    //
+
+    // _get_local_party_id returns something like this:
+    // 22212
+    // ... when there is one local party id
+    // 22212 OR partyMembershipTable.local_party_id = 22313
+    // ... when there are multiple local party ids.
+    $local_party_id = _get_local_party_id($contactID);
+
+    // We only want to proceed with the aclWhereClause if the logged in contact
+    // is membership secretary to a local party.
+    if (!isset($local_party_id)) {
+      return;
+    }
+
+    // 
+    // in this case, _get_left_join() returns something like this:
+    // LEFT JOIN civicrm_value_gpew_party_information partyMembershipTable 
+    // ON contact_a.id = partyMembershipTable.entity_id
+    //
+    $left_join = _get_left_join();
+
+    // For the aclWhereClause to work, we update &$tables and &$whereTables.
+    $tables[$partyMembershipTable] 
+      = $whereTables[$partyMembershipTable] 
+      = $left_join;
+
+    // This is the where clause which determines what data is accessible.
+    $where = "partyMembershipTable.local_party_id = $local_party_id";
+  }
+}
+
+/*
+ * Implements civicrm_buildForm()
+ */
+function gpew_local_party_access_civicrm_buildForm($formName, &$form) {
+  if ($formName == 'CRM_Contact_Form_Task_Email') {
+    // We expect recipients appended to the query string
+    // e.g. &recipients=all-members
+    $recipients = $GLOBALS['_GET']['recipients'];
+
+    if (!isset($GLOBALS['_GET']['recipients'])) {
+      return;
+    }
+
+    // Determine the logged in user
+    civicrm_initialize();
+    global $user;
+    $uid = $user->uid;
+    $params = array(
+      'version' => '3',
+      'uf_id' => $uid,
+      'return' => 'contact_id',
+    );
+    $contactID = civicrm_api('UFMatch', 'getvalue', $params);
+
+    // _get_local_party_id returns something like this:
+    // 22212
+    // ... when there is one local party id
+    // 22212 OR partyMembershipTable.local_party_id = 22313
+    // ... when there are multiple local party ids.
+    $local_party_id = _get_local_party_id($contactID);
+
+    // We only want to proceed with the aclWhereClause if the logged in contact
+    // is membership secretary to a local party.
+    if (!isset($local_party_id)) {
+      return;
+    }
+
+    $sql = "SELECT contact_a.id FROM `civicrm_contact` contact_a ";
+    $sql .= _get_left_join();
+    $sql .= " WHERE partyMembershipTable.local_party_id = $local_party_id";
+    $dao = CRM_Core_DAO::executeQuery( $sql, CRM_Core_DAO::$_nullArray );
+
+    while ( $dao->fetch( ) ) {
+      $ids[] = $dao->id;
+    }
+
+    $form->_contactIds = $ids;
+
+    // If the user is not in a relationship with the local party, then return.
+    // we expect $sql to be something like this:
+    // SELECT id FROM `civicrm_contact` contact_a 
+    // LEFT JOIN civicrm_value_gpew_party_information partyMembershipTable 
+    // ON contact_a.id = partyMembershipTable.entity_id
+    // WHERE partyMembershipTable.local_party_id = 22212
+
+    switch ($recipients) {
+      case 'all-members':
+        // Do nothing - all-members is the default SQL
+        break;
+
+      case 'current-members':
+        // TODO: filter SQL for current-members
+        break;
+
+      case 'new-members':
+        // TODO: filter SQL for new-members
+        break;
+
+      case 'grace-period-members':
+        // TODO: filter SQL for grace-period-members
+        break;
+
+      case 'expired-members':
+        // TODO: filter SQL for expired-members
+        break;
+
+      case 'supporters':
+        // TODO: Different SQL needed for constituents who aren't members
+        break;
+
+      default:
+        // recipients value on the querystring is not valid
+        return;
+    }
+
+    /*
+     * Here is some pasted code from
+     * CRM/Contact/Form/Task/EmailCommon.php
+     * line 185 onwards on version 3.3.5
+     *
+     * It takes $form->_contactIds and creates the toContact variable
+     * which is used by the template.
+     *
+     * What does this do?
+     * It lets us inject new items into the email To field.
+     * We populate an array form->_contactIds
+     * these contactIds are sent to the template in a way that the template
+     * can populate the facebook-style 'To' field on 
+     * civicrm/activity/email/add
+     *
+     * The line that does this is:
+     * $form->assign('toContact', json_encode( $toArray ) );
+     * ... this assigns a value to a variable in the .tpl file.
+     *
+     * See: civicrm/templates/CRM/Contact/Form/Task/Email.tpl
+     * Search for: toContact
+     */
+
+    	//if ( is_array ( $form->_contactIds ) && $toSetDefault ) {
+    	if ( is_array ( $form->_contactIds ) ) {
+            $returnProperties = array( 'sort_name'             => 1, 
+                                       'email'                 => 1, 
+                                       'do_not_email'          => 1, 
+                                       'is_deceased'           => 1,
+                                       'on_hold'               => 1, 
+                                       'display_name'          => 1, 
+                                       'preferred_mail_format' => 1 );
+        
+            require_once 'CRM/Mailing/BAO/Mailing.php';
+            
+            list( $form->_contactDetails ) = CRM_Mailing_BAO_Mailing::getDetails( $form->_contactIds, $returnProperties, false, false );
+
+            // make a copy of all contact details
+            $form->_allContactDetails = $form->_contactDetails;
+        
+            foreach ( $form->_contactIds as $key => $contactId ) {
+                $value = $form->_contactDetails[$contactId];
+                if ( $value['do_not_email'] || empty( $value['email'] ) || CRM_Utils_Array::value( 'is_deceased', $value ) || $value['on_hold'] ) {
+                    $suppressedEmails++;
+
+                    // unset contact details for contacts that we won't be sending email. This is prevent extra computation 
+                    // during token evaluation etc.
+                    unset( $form->_contactDetails[$contactId] );
+                } else {
+                    if ( empty( $form->_toContactEmails ) ) {
+                        $email = $value['email'];
+                    } else {
+                        $email = $form->_toContactEmails[$key];
+                    }
+                    $toArray[] = array( 'name' => '"'. $value['sort_name'] .'" &lt;' .$email .'&gt;',
+                                        'id'   => "$contactId::{$email}" );
+                }
+            }
+
+    		if ( empty( $toArray ) ) {
+    			CRM_Core_Error::statusBounce( ts('Selected contact(s) do not have a valid email address, or communication preferences specify DO NOT EMAIL, or they are deceased or Primary email address is On Hold.' ));
+    		}
+    	}
+
+		$form->assign('toContact', json_encode( $toArray ) );
+		$form->assign('suppressedEmails', $suppressedEmails);
+        
+        $form->assign('totalSelectedContacts',count($form->_contactIds));
+
+    /*
+     * end pasted code
+     */
+
+  } //$formName == 'CRM_Contact_Form_Task_Email'
+}
+
+function _get_local_party_id($contactID) {
     // These are the relationships which are allowed access to local party reports
     //$reltypeid_membership_secretary = 19;
     // FOR TESTING WE ARE USING RELATIONSHIP #25
@@ -42,7 +271,7 @@ function gpew_local_party_access_civicrm_aclWhereClause( $type, &$tables, &$wher
       SELECT $keys
       FROM {$relationshipTable}
       WHERE contact_id_a = $contactID
-      AND relationship_type_id = %1;
+      AND relationship_type_id = %1
     ";
 
     // This query will result in the key we want, which is the local party id.
@@ -70,32 +299,11 @@ function gpew_local_party_access_civicrm_aclWhereClause( $type, &$tables, &$wher
       $local_party_id .= " OR partyMembershipTable.local_party_id = " . $dao->contact_id_b;
     }
 
-    $partyMembershipTable = 'civicrm_value_gpew_party_information';
-
-    // 
-    // This was the tricky bit to work out.
-    // contact_a.id must come as part of the preceding query, which we are now 
-    // appending to.
-    // 
-    // A good strategy here is to work out in advance what sql you think would
-    // work, and execute it against the database using phpmyadmin.
-    //
-    // For example, this seemed like a sensible query:
-    // SELECT * 
-    // FROM `civicrm_contact` contact_a
-    // LEFT JOIN `civicrm_value_gpew_party_information` partyMembershipTable
-    // ON contact_a.id = partyMembershipTable.entity_id
-    // WHERE partyMembershipTable.local_party_id = 22303
-    //
-    // The key thing to remember is that contact_a is part of the query which is
-    // in the process of being created; contact_a is not part of what we are
-    // doing, it's what came already.
-    //
-
-    $tables[$partyMembershipTable] = $whereTables[$partyMembershipTable] =
-      "LEFT JOIN {$partyMembershipTable} partyMembershipTable ON contact_a.id = partyMembershipTable.entity_id";
-
-    // This is the where clause which determines what data is accessible.
-    $where = "partyMembershipTable.local_party_id = $local_party_id";
-  }
+    return $local_party_id;
 }
+
+function _get_left_join() {
+    $partyMembershipTable = 'civicrm_value_gpew_party_information';
+    return "LEFT JOIN {$partyMembershipTable} partyMembershipTable ON contact_a.id = partyMembershipTable.entity_id";
+}
+
