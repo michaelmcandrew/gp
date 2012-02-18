@@ -41,6 +41,16 @@ function gpew_membership_civicrm_buildForm($formName, &$form) {
 			}
 		}
 	}
+	
+	if ($formName == 'CRM_Contribute_Form_Contribution_ThankYou' and $form->get('membership_id')) {
+		$form->get('membership_id');
+		require_once('CRM/Member/BAO/Membership.php');
+		require_once('CRM/Core/Action.php');
+		$membership_object = new CRM_Member_BAO_Membership;
+		$membership_object->id = $form->get('membership_id');
+		$membership_object_params=array();
+		CRM_Member_BAO_Membership::createRelatedMemberships($membership_object_params, $membership_object);
+	}	
 	$form->assign('jointMember', $jointMemberDetails);
 	
 	if(!($formName == 'CRM_Contribute_Form_Contribution_Main' && $form->_id == 6)){
@@ -115,10 +125,15 @@ function gpew_membership_civicrm_validate( $formName, &$fields, &$files, &$form 
 
 }
 function gpew_membership_civicrm_postProcess( $formName, &$form ){
-	if(!($formName == 'CRM_Contribute_Form_Contribution_Confirm' )){
+		if($formName != 'CRM_Contribute_Form_Contribution_Confirm' ){
 		return;
 	}
-	$form_params=$form->getVar('_params');
+		$form_params=$form->getVar('_params');
+//	print_r($form_params['cms_contactID']);exit;
+	if(!isset($form_params['contactID'])){
+		$form_params['contactID']=$form_params['cms_contactID'];
+		$form->_params['contactID']=$form->_params['cms_contactID'];
+	}
 	gpew_membership_process_young_green($form_params['contactID'], $form_params['birth_date']);
 	
 	$results=civicrm_api("Membership","getsingle", array ('version' =>'3', 'membership_id'=>$form->_values['membership_id']));
@@ -127,13 +142,13 @@ function gpew_membership_civicrm_postProcess( $formName, &$form ){
 		
 	//If this is a joint membership application / renewal
 	if (in_array($results['membership_type_id'], array(10,12,16))){
-		
+				
 		$dob = new DateTime($form->_params['JointMemberDateOfBirth']);
 		$dob_ts = $dob->format('Y-m-d');
 		
 		//If they already have a joint relationship that we pulled into this form...
 		if($form->_params['JointMemberId']){
-		//	echo 'ready to update the joint member details';exit;
+					//	echo 'ready to update the joint member details';exit;
 			//then update the joint member details
 			
 			//update contact first name, last name, dob
@@ -168,7 +183,7 @@ function gpew_membership_civicrm_postProcess( $formName, &$form ){
 			
 			//if a email address was pulled into the form (i.e. if the email_id is present)
 			if($form->_params['JointMemberEmailId']){
-				//if the email is present
+								//if the email is present
 				if(strlen(trim($form->_params['JointMemberEmailAddress']))){
 					//update
 					$email_params=array(
@@ -274,6 +289,7 @@ function gpew_membership_civicrm_postProcess( $formName, &$form ){
 			//Force postcode lookup?
 			
 			//Create relationship
+						
 			$rel_params=array(
 				'contact_id_a'=>$contact_result['id'],
 				'contact_id_b'=>$form->_params['contactID'],
@@ -286,11 +302,14 @@ function gpew_membership_civicrm_postProcess( $formName, &$form ){
 		}
 		gpew_membership_process_young_green($contact_result['id'], $form->_params['JointMemberDateOfBirth']);
 		$membership_params=array('id'=>$form_params['membershipID'], 'version'=>3);
-		
+		$form->set('membership_id', $form_params['membershipID']);
 		//need to update membership to inherit jointness
-		$mem_result=civicrm_api("Membership","getsingle", $membership_params);
-		$mem_result['version']=3;
-		$mem_result=civicrm_api("Membership","update", $mem_result);		
+// 		$mem_gs_result=civicrm_api("Membership","getsingle", $membership_params);
+// //		print_r($mem_gs_result);
+// 		$mem_gs_result['version']=3;
+// 		$mem_gs_result['source']=$mem_gs_result['source'].' PostProcess';
+// 		
+// 		$mem_u_result=civicrm_api("Membership","update", $mem_gs_result);
 	}	
 }
 
