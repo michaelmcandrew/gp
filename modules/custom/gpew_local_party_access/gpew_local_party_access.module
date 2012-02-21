@@ -127,41 +127,56 @@ function gpew_local_party_access_civicrm_buildForm($formName, &$form) {
 
     $sql = "SELECT contact_a.id FROM `civicrm_contact` contact_a ";
     $sql .= _get_left_join();
+
+    // We also want to join on civicrm_membership table here.
+    $sql .= " LEFT JOIN civicrm_membership ";
+    $sql .= " ON contact_a.id = civicrm_membership.contact_id ";
+
+    // This is the same where clause as the aclWhereClause.
     $sql .= " WHERE partyMembershipTable.local_party_id = $local_party_id";
-    $dao = CRM_Core_DAO::executeQuery( $sql, CRM_Core_DAO::$_nullArray );
-
-    while ( $dao->fetch( ) ) {
-      $ids[] = $dao->id;
-    }
-
-    $form->_contactIds = $ids;
 
     // If the user is not in a relationship with the local party, then return.
     // we expect $sql to be something like this:
-    // SELECT id FROM `civicrm_contact` contact_a 
+    // SELECT contact_a.id FROM `civicrm_contact` contact_a 
     // LEFT JOIN civicrm_value_gpew_party_information partyMembershipTable 
     // ON contact_a.id = partyMembershipTable.entity_id
     // WHERE partyMembershipTable.local_party_id = 22212
 
     switch ($recipients) {
-      case 'all-members':
-        // Do nothing - all-members is the default SQL
-        break;
-
       case 'current-members':
-        // TODO: filter SQL for current-members
+        $sql .= " AND ( ";
+        // status_id 1 = New
+        $sql .= "     civicrm_membership.status_id = 1 ";
+        // status_id 2 = Current
+        $sql .= "  OR civicrm_membership.status_id = 2 ";
+        // status_id 3 = Grace
+        $sql .= "  OR civicrm_membership.status_id = 3 ";
+        $sql .= " ) ";
         break;
 
       case 'new-members':
-        // TODO: filter SQL for new-members
+        $sql .= " AND ( ";
+        // status_id 1 = New
+        $sql .= "     civicrm_membership.status_id = 1 ";
+        $sql .= " ) ";
         break;
 
       case 'grace-period-members':
-        // TODO: filter SQL for grace-period-members
+        $sql .= " AND ( ";
+        // status_id 3 = Grace
+        $sql .= "     civicrm_membership.status_id = 3 ";
+        $sql .= " ) ";
         break;
 
       case 'expired-members':
-        // TODO: filter SQL for expired-members
+        $sql .= " AND ( ";
+        // status_id 4 = Expired
+        $sql .= "     civicrm_membership.status_id = 4 ";
+        $sql .= " ) ";
+        break;
+
+      case 'all-members':
+        // Do nothing - all-members is the default SQL
         break;
 
       case 'supporters':
@@ -172,6 +187,16 @@ function gpew_local_party_access_civicrm_buildForm($formName, &$form) {
         // recipients value on the querystring is not valid
         return;
     }
+
+    $sql .= " ORDER BY contact_a.sort_name ";
+
+    $dao = CRM_Core_DAO::executeQuery( $sql, CRM_Core_DAO::$_nullArray );
+
+    while ( $dao->fetch( ) ) {
+      $ids[] = $dao->id;
+    }
+
+    $form->_contactIds = $ids;
 
     /*
      * Here is some pasted code from
@@ -245,6 +270,18 @@ function gpew_local_party_access_civicrm_buildForm($formName, &$form) {
     /*
      * end pasted code
      */
+
+
+    // ensure that only one email is displayed in the from-email box
+    if ($form->elementExists('fromEmailAddress')) {
+      $fromEmailAddressElement =& $form->getElement('fromEmailAddress');
+      $options =& $fromEmailAddressElement->_options;
+      // retain $options[0], unset the rest
+      $options_count = count($options);
+      for ($i = 1; $i < $options_count; $i++) {
+        unset($options[$i]);
+      }
+    }
 
   } //$formName == 'CRM_Contact_Form_Task_Email'
 }
