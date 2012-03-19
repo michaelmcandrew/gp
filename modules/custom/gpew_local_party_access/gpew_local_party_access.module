@@ -61,8 +61,12 @@ function gpew_local_party_access_civicrm_aclWhereClause( $type, &$tables, &$wher
     // _get_local_party_id returns something like this:
     // 22212
     // ... when there is one local party id
-    // 22212 OR partyMembershipTable.local_party_id = 22313
+    // 22212,22313
     // ... when there are multiple local party ids.
+    // This enables us to use an IN statement in the WHERE clause
+    // e.g.:
+    // WHERE partyMembershipTable.local_party_id IN (22212)
+    // WHERE partyMembershipTable.local_party_id IN (22212,22213)
     $local_party_id = _get_local_party_id($contactID);
 
     // We only want to proceed with the aclWhereClause if the logged in contact
@@ -84,7 +88,8 @@ function gpew_local_party_access_civicrm_aclWhereClause( $type, &$tables, &$wher
       = $left_join;
 
     // This is the where clause which determines what data is accessible.
-    $where = "partyMembershipTable.local_party_id = $local_party_id";
+    #$where = "partyMembershipTable.local_party_id = $local_party_id";
+    $where = "partyMembershipTable.local_party_id IN ($local_party_id)";
   }
 }
 
@@ -112,11 +117,7 @@ function gpew_local_party_access_civicrm_buildForm($formName, &$form) {
     );
     $contactID = civicrm_api('UFMatch', 'getvalue', $params);
 
-    // _get_local_party_id returns something like this:
-    // 22212
-    // ... when there is one local party id
-    // 22212 OR partyMembershipTable.local_party_id = 22313
-    // ... when there are multiple local party ids.
+    // see comments above for _get_local_party_id
     $local_party_id = _get_local_party_id($contactID);
 
     // We only want to proceed with the aclWhereClause if the logged in contact
@@ -133,14 +134,14 @@ function gpew_local_party_access_civicrm_buildForm($formName, &$form) {
     $sql .= " ON contact_a.id = civicrm_membership.contact_id ";
 
     // This is the same where clause as the aclWhereClause.
-    $sql .= " WHERE partyMembershipTable.local_party_id = $local_party_id";
+    $sql .= " WHERE partyMembershipTable.local_party_id IN ($local_party_id)";
 
     // If the user is not in a relationship with the local party, then return.
     // we expect $sql to be something like this:
     // SELECT contact_a.id FROM `civicrm_contact` contact_a 
     // LEFT JOIN civicrm_value_gpew_party_information partyMembershipTable 
     // ON contact_a.id = partyMembershipTable.entity_id
-    // WHERE partyMembershipTable.local_party_id = 22212
+    // WHERE partyMembershipTable.local_party_id IN (22212,22213)
 
     switch ($recipients) {
       case 'current-members':
@@ -282,7 +283,6 @@ function gpew_local_party_access_civicrm_buildForm($formName, &$form) {
         unset($options[$i]);
       }
     }
-
   } //$formName == 'CRM_Contact_Form_Task_Email'
 }
 
@@ -333,7 +333,8 @@ function _get_local_party_id($contactID) {
     // one local party.
     //
     while ( $dao->fetch( ) ) {
-      $local_party_id .= " OR partyMembershipTable.local_party_id = " . $dao->contact_id_b;
+      #$local_party_id .= " OR partyMembershipTable.local_party_id = " . $dao->contact_id_b;
+      $local_party_id .= "," . $dao->contact_id_b;
     }
 
     return $local_party_id;
