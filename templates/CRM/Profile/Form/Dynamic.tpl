@@ -239,7 +239,14 @@ cj(document).ready(function(){
   //
   // Custom template:
   // 2012-03-12 don't display mailing groups
-  // on profile id = 22
+  // on profile gid = 22
+  //
+  // civicrm/mailing/subscribe
+  // redirects to:
+  // civicrm/profile/create/?gid=22&reset=1
+  //
+  // when we are at gid=22 we want group[9] to be checked
+  // and all the other mailing groups to be hidden
   //
   // Check if the URL contains gid=22
   if (window.location.search.toLowerCase().indexOf("gid=22") >= 0) {
