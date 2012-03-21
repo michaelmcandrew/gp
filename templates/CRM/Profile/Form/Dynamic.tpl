@@ -251,6 +251,18 @@ cj(document).ready(function(){
     // hide the row which contains all of the groups.
     cj("#editrow-group").hide();
   }
+  // If we submit the form without filling all required fields,
+  // then we will come to civicrm/profile/create
+  // and the Green Party News and Updates checkbox will be checked.
+  else { 
+    if (window.location.search.toLowerCase().indexOf("civicrm/profile/create")) {
+      if (cj("#group\\[9\\]").attr('checked') == true) {
+        //cj(alert("group[9] is checked"));
+        // hide the row which contains all of the groups.
+        cj("#editrow-group").hide();
+      }
+    }
+  }
 });
 {/literal}
 {if $context eq 'dialog'}
