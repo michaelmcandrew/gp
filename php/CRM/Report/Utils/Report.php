@@ -213,12 +213,12 @@ WHERE  inst.report_id = %1";
                     } else if ( CRM_Utils_Array::value( 'type', $form->_columnHeaders[$v] ) == 1024 ) {
                         /*
                          * Custom PHP:
-                         * csv export should not add currency symbols to money 
+                         * csv export should not add currency symbols to money
                          * fields
                          *
-                         * $value =  CRM_Utils_Money::format( $value );
+                         * $value = CRM_Utils_Money::format( $value );
                          */
-						            $value = round( $value, 2 );
+                        $value =  round( $value, 2);
                     }
                     $displayRows[$v] = '"'. $value .'"'; 
                 } else {
