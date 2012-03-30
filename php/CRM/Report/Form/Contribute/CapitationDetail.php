@@ -212,12 +212,14 @@ class CRM_Report_Form_Contribute_CapitationDetail extends CRM_Report_Form {
 						'local_party_10' => array(
 							'title' => ts( 'Local party' ),
 							'operatorType' => CRM_Report_Form::OP_SELECT,
-							'options' => $lps,
-						),
+              'options' => $lps,
+              'type'        => CRM_Utils_Type::T_INT,
+            ),
 						'region_9' => array(
 							'title' => ts( 'Regional party' ),
 							'operatorType' => CRM_Report_Form::OP_SELECT,
-							'options' => $rps,
+              'options' => $rps,
+              'type'        => CRM_Utils_Type::T_INT,
 						)
 					)
 		        );
