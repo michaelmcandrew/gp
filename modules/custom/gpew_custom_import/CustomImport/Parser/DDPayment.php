@@ -26,7 +26,7 @@
  +--------------------------------------------------------------------+
 */
 
-/**
+  /**
  *
  * @package CRM
  * @copyright CiviCRM LLC (c) 2004-2010
@@ -83,8 +83,9 @@ class CustomImport_Parser_DDPayment extends CustomImport_Parser_DD
 		
 	
 		function parseCandidate(){
-			
-			//find out if the TGP is matched to exactly one contact.  If it doesn't, report and exit
+		
+			//find out if the TGP is matched to exactly one contact.  If it doesn't, report and exit 
+           
 			if($this->searchForTGP() != 'one'){
 				if($this->searchForTGP() == 'none'){
 					$this->addReportLine('warning', "Not able to import payment for {$this->getCurrent('tgp')} (no matching payment integration reference).");
@@ -92,7 +93,7 @@ class CustomImport_Parser_DDPayment extends CustomImport_Parser_DD
 				if($this->searchForTGP() == 'multiple'){
 					$this->addReportLine('warning', "Not able to import payment for {$this->getCurrent('tgp')} (multiple matching payment integration references).");
 				}
-				return;
+               	return;
 			}
 			
 			$this->current['contact_id'] = $this->currentContactArray['contact_id'];
@@ -109,7 +110,7 @@ class CustomImport_Parser_DDPayment extends CustomImport_Parser_DD
 			$this->currentContributionArray['contribution_status_id']=1;
 			$this->currentContributionArray['payment_instrument_id'] = 7;
 			
-			
+   
 			//record the contribution
 			if(!$this->test){
 				$contResult=civicrm_contribution_add($this->currentContributionArray);
@@ -127,37 +128,39 @@ class CustomImport_Parser_DDPayment extends CustomImport_Parser_DD
 
 			// if this is not a membership contribution, nothing else to do - return
 			if(!$this->current['is_membership_contribution']){
-				return;
+                return;
 			}
 			
 			//edit the membership record the membership (potentially extend membership)
 
 			
-			$MembershipParams=array('contact_id'=>$this->current['contact_id']);
-			$memberships=civicrm_membership_contact_get($MembershipParams);
-			$memResult=$membership=current(current($memberships));
+            $MembershipParams=array('contact_id'=>$this->current['contact_id']);
+            $memberships=civicrm_membership_contact_get($MembershipParams);
+            $memResult=$membership=current(current($memberships));
 
 			
 
 			$this->addReportLine('info', "End date of membership for {$this->getContactLink()} is {$membership['end_date']}");
-			$currentMembershipEndDate = new DateTime($membership['end_date']);
-
+            $currentMembershipEndDate = new DateTime($membership['end_date']);
 			$freqTrans=array(
-				'Annually'=>'+1 YEAR',
-				'Half Yearly'=>'+6 MONTH',
-				'Monthly'=>'+1 MONTH',
-				'Quarterly'=>'+3 MONTH'					
-			);
+                             'Annually'=>'+1 YEAR +2 MONTH',
+                             'Half Yearly'=>'+6 MONTH +2 MONTH',
+                             'Monthly'=>'+1 MONTH +2 MONTH',
+                             'Quarterly'=>'+3 MONTH +2 MONTH'					
+                             );
 
 
 			$potentialEndDate = clone $this->current['date'];
-			$potentialEndDate->modify($freqTrans[$this->current['frequency']]);
+          
+          
+            $potentialEndDate->modify($freqTrans[$this->current['frequency']]);
+           
 
 			if($potentialEndDate>$currentMembershipEndDate) {
 				$report[]=array('info', "End date according to DD payment ({$potentialEndDate->format('Y-m-d')}) for {$this->getContactLink()} AFTER membership end date ({$currentMembershipEndDate->format('Y-m-d')})");
 				if(!$this->test){
-					$membership['end_date']=$potentialEndDate->format('Y-m-d');
-					$memResult=civicrm_membership_contact_create($membership);
+                     $membership['end_date']=$potentialEndDate->format('Y-m-d');
+            $memResult=civicrm_membership_contact_create($membership);
 					if(!$memResult['is_error']) {
 						$this->addReportLine('note', "Extended membership for contact {$this->getContactLink()} by {$freqTrans[$this->current['frequency']]} to {$potentialEndDate->format('Y-m-d')}.");
 					} else {
@@ -171,11 +174,10 @@ class CustomImport_Parser_DDPayment extends CustomImport_Parser_DD
 			}
 			//Link it up!
 			if(!$this->test){
-				CRM_Core_DAO::executeQuery("INSERT INTO civicrm_membership_payment (SELECT NULL, {$memResult['id']}, {$contResult['id']})");
+               	CRM_Core_DAO::executeQuery("INSERT INTO civicrm_membership_payment (SELECT NULL, {$memResult['id']}, {$contResult['id']})");
 			}
 		}
 }
-
 
 
 

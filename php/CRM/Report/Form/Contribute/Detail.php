@@ -79,7 +79,18 @@ class CRM_Report_Form_Contribute_Detail extends CRM_Report_Form {
                           'grouping'      => 'contact-fields',
                           ),
 
-                   'civicrm_phone'   =>
+	'civicrm_contact'      =>
+    		array( 'dao'     => 'CRM_Contact_DAO_Contact',
+		           'fields'  =>
+        		   array( 'addressee_display' => 
+                		  array( 'title' => ts( 'Addressee' ),
+        	                 'default'    => true,
+	                         'no_repeat'  => true
+                         	), ),
+           'grouping'      => 'contact-fields',
+           ),
+            
+       		'civicrm_phone'   =>
                    array( 'dao'       => 'CRM_Core_DAO_Phone',
                           'fields'    =>
                           array( 'phone' => 
