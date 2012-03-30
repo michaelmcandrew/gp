@@ -61,7 +61,8 @@ class CustomImport_Parser_DDPayment extends CustomImport_Parser_DD
 
 	    public $test = FALSE;
 	
-		function import(){
+	    function import(){
+		    set_time_limit(0);
 			$this->getCanditates();
 			while($this->candidate->fetch()){
 				$this->initCurrent();
