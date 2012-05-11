@@ -385,7 +385,7 @@ class CustomImport_Parser_DDMandate extends CustomImport_Parser_DD
 			$params['membership_type_id']=1;
 			$params['status_id']=9;
 			$params['is_override']=1;
-			$params['start_date']=$this->getCurrent('start_date')->format('Y-m-d');
+			$params['join_date']=$params['start_date']=$this->getCurrent('start_date')->format('Y-m-d');
 			$freqTrans=array(
 				'Annually'=>'+1 YEAR',
 				'Half Yearly'=>'+6 MONTH',
