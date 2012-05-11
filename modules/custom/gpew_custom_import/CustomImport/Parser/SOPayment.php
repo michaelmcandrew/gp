@@ -154,7 +154,7 @@ class CustomImport_Parser_SOPayment extends CustomImport_Parser_DD
 			$potentialEndDate->modify($freqTrans[$this->current['frequency']]);
 
 			if($potentialEndDate>$currentMembershipEndDate) {
-				$report[]=array('info', "End date according to DD payment ({$potentialEndDate->format('Y-m-d')}) for {$this->getContactLink()} AFTER membership end date ({$currentMembershipEndDate->format('Y-m-d')})");
+				$report[]=array('info', "End date according to SO payment ({$potentialEndDate->format('Y-m-d')}) for {$this->getContactLink()} AFTER membership end date ({$currentMembershipEndDate->format('Y-m-d')})");
 				if(!$this->test){
                    	$membership['end_date']=$potentialEndDate->format('Y-m-d');
 					$memResult=civicrm_membership_contact_create($membership);
@@ -167,7 +167,7 @@ class CustomImport_Parser_SOPayment extends CustomImport_Parser_DD
 					$this->addReportLine('note', "Ready to extend membership for {$this->getContactLink()} by {$freqTrans[$this->current['frequency']]} {$potentialEndDate->format('Y-m-d')}.");
 				}					
 			} else {
-				$this->addReportLine('info', "End date according to DD payment ({$potentialEndDate->format('Y-m-d')}) for {$this->getContactLink()} BEFORE membership end date ({$currentMembershipEndDate->format('Y-m-d')}) so will not extend membership.");	
+				$this->addReportLine('info', "End date according to SO payment ({$potentialEndDate->format('Y-m-d')}) for {$this->getContactLink()} BEFORE membership end date ({$currentMembershipEndDate->format('Y-m-d')}) so will not extend membership.");	
 			}
 			//Link it up!
 			$mcl=array(
