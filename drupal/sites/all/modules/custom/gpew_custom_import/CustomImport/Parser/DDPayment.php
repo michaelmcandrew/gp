@@ -151,17 +151,18 @@ class CustomImport_Parser_DDPayment extends CustomImport_Parser_DD
                              );
 
 
-			$potentialEndDate = clone $this->current['date'];
+		$potentialEndDate = clone $this->current['date'];
           
           
             $potentialEndDate->modify($freqTrans[$this->current['frequency']]);
            
 
-			if($potentialEndDate>$currentMembershipEndDate) {
-				$report[]=array('info', "End date according to DD payment ({$potentialEndDate->format('Y-m-d')}) for {$this->getContactLink()} AFTER membership end date ({$currentMembershipEndDate->format('Y-m-d')})");
-				if(!$this->test){
-                     $membership['end_date']=$potentialEndDate->format('Y-m-d');
-            $memResult=civicrm_membership_contact_create($membership);
+	if($potentialEndDate>$currentMembershipEndDate) {
+		$report[]=array('info', "End date according to DD payment ({$potentialEndDate->format('Y-m-d')}) for {$this->getContactLink()} AFTER membership end date ({$currentMembershipEndDate->format('Y-m-d')})");
+		if(!$this->test){
+ 			$membership['end_date']=$potentialEndDate->format('Y-m-d');
+			$membership['is_override']=0;
+			$memResult=civicrm_membership_contact_create($membership);
 					if(!$memResult['is_error']) {
 						$this->addReportLine('note', "Extended membership for contact {$this->getContactLink()} by {$freqTrans[$this->current['frequency']]} to {$potentialEndDate->format('Y-m-d')}.");
 					} else {
@@ -175,7 +176,7 @@ class CustomImport_Parser_DDPayment extends CustomImport_Parser_DD
 			}
 			//Link it up!
 			if(!$this->test){
-               	CRM_Core_DAO::executeQuery("INSERT INTO civicrm_membership_payment (SELECT NULL, {$memResult['id']}, {$contResult['id']})");
+				CRM_Core_DAO::executeQuery("INSERT INTO civicrm_membership_payment (SELECT NULL, {$memResult['id']}, {$contResult['id']})");
 			}
 		}
 }
