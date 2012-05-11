@@ -143,10 +143,10 @@ class CustomImport_Parser_DDPaymentPaper extends CustomImport_Parser_DD
 			$currentMembershipEndDate = new DateTime($membership['end_date']);
 
 			$freqTrans=array(
-				'Annually'=>'+1 YEAR',
-				'Half Yearly'=>'+6 MONTH',
-				'Monthly'=>'+1 MONTH',
-				'Quarterly'=>'+3 MONTH'					
+				'Annually'=>'+1 YEAR +2 MONTH',
+				'Half Yearly'=>'+6 MONTH +2 MONTH',
+				'Monthly'=>'+1 MONTH +2 MONTH',
+				'Quarterly'=>'+3 MONTH +2 MONTH'					
 			);
 
 			
@@ -157,6 +157,7 @@ class CustomImport_Parser_DDPaymentPaper extends CustomImport_Parser_DD
 				$report[]=array('info', "End date according to DD payment ({$potentialEndDate->format('Y-m-d')}) for {$this->getContactLink()} AFTER membership end date ({$currentMembershipEndDate->format('Y-m-d')})");
 				if(!$this->test){
 					$membership['end_date']=$potentialEndDate->format('Y-m-d');
+					$membership['is_override']=0;
 					$memResult=civicrm_membership_contact_create($membership);
 					if(!$memResult['is_error']) {
 						$this->addReportLine('note', "Extended membership for contact {$this->getContactLink()} by {$freqTrans[$this->current['frequency']]} to {$potentialEndDate->format('Y-m-d')}.");

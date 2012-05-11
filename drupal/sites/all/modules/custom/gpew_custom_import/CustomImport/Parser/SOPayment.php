@@ -157,6 +157,7 @@ class CustomImport_Parser_SOPayment extends CustomImport_Parser_DD
 				$report[]=array('info', "End date according to SO payment ({$potentialEndDate->format('Y-m-d')}) for {$this->getContactLink()} AFTER membership end date ({$currentMembershipEndDate->format('Y-m-d')})");
 				if(!$this->test){
                    	$membership['end_date']=$potentialEndDate->format('Y-m-d');
+			$membership['is_override']=0;
 					$memResult=civicrm_membership_contact_create($membership);
 					if(!$memResult['is_error']) {
 						$this->addReportLine('note', "Extended membership for contact {$this->getContactLink()} by {$freqTrans[$this->current['frequency']]} to {$potentialEndDate->format('Y-m-d')}.");
