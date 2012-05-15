@@ -242,8 +242,8 @@ WHERE      civicrm_membership.is_test = 0";
                 }
                 if ( $renewalMsgId ) {
                     $toEmail  = CRM_Contact_BAO_Contact::getPrimaryEmail( $dao->contact_id );
-                                        
-                    if ( $toEmail ) {
+                    // MM added '0 AND' here to stop people getting membership renewal reminders                      
+                    if ( 0 AND $toEmail ) {
                         $result = CRM_Core_BAO_MessageTemplates::sendReminder( $dao->contact_id,
                                                                                $toEmail,
                                                                                $renewalMsgId,
