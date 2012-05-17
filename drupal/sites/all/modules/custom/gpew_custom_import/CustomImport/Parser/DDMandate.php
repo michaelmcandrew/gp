@@ -38,6 +38,7 @@ require_once 'CRM/Import/Parser.php';
 require_once 'api/v2/utils.php';
 require_once 'api/v2/Location.php';
 require_once "api/v2/Contact.php";
+require_once "api/v2/GroupContact.php";
 require_once "api/v2/Membership.php";
 require_once "api/v2/MembershipContact.php";
 require_once 'DD.php';
