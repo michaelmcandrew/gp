@@ -1,0 +1,7 @@
+name = Can view own contact
+description = Allows someone to view (and edit) their own contact
+dependencies[] = civicrm
+package = CiviCRM - Green Party extras
+core = 6.x
+version = 1
+

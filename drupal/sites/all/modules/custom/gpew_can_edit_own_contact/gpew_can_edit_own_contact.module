@@ -1,0 +1,35 @@
+<?php
+function gpew_can_edit_own_contact_perm(){
+  return array('View and edit own contact');
+}
+
+function gpew_can_edit_own_contact_civicrm_buildForm( $formName, &$form ){
+  // if the form is the edit form
+  if($formName=='CRM_Contact_Form_Contact'){
+    gpew_can_edit_own_contact_check($form->_ContactId);
+  }
+}
+
+function gpew_can_edit_own_contact_civicrm_pageRun( &$page ) {
+  if(get_class($page)=='CRM_Contact_Page_View_Summary'){
+    gpew_can_edit_own_contact_check($page->getVar('_contactId'));
+  }
+}
+
+function gpew_can_edit_own_contact_check($contact_id){// and the contact is the logged in users contact
+  if(user_access('View and edit own contact')){
+    return;
+  }
+
+  $session = CRM_Core_Session::singleton();
+  $userID = $session->get( 'userID' );
+  if($userID!=$contact_id){
+    return;
+  }
+  
+  //TODO
+  // if the logged in person is a local party secretary of the same local party as the contact (himself), then let him view the contact
+
+  $session->pushUserContext( CRM_Utils_System::url('civicrm', 'reset=1' ) );
+  CRM_Core_Error::statusBounce( ts('You do not have the necessary permission to view this contact.') );
+}
