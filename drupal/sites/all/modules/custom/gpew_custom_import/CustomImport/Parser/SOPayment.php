@@ -105,7 +105,7 @@ class CustomImport_Parser_SOPayment extends CustomImport_Parser_DD
 			$this->currentContributionArray['source'] = 'Standing order: '.$this->current['frequency'];
 			$this->currentContributionArray['receive_date'] = $this->current['date']->format('Y-m-d');
 			$this->currentContributionArray['contribution_status_id']=1;
-			$this->currentContributionArray['payment_instrument_id'] = 7;
+			$this->currentContributionArray['payment_instrument_id'] = 6;
 			
 			
 			//record the contribution
