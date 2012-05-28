@@ -42,7 +42,6 @@ function gpew_local_party_access_civicrm_aclWhereClause($type, &$tables, &$where
     if ( ! $contactID ) {
       return;
     }
-
     // 
     // This was the tricky bit to work out.
     // contact_a.id comes as part of the preceding query, which we are now 
@@ -71,16 +70,14 @@ function gpew_local_party_access_civicrm_aclWhereClause($type, &$tables, &$where
 
     // _get_local_party_ids returns an array of local party ids.
     // $type is either CRM_ACL_API::EDIT or CRM_ACL_API::VIEW
-    $local_party_ids = _get_local_party_ids($contactID, $type);
-
-    // We only want to proceed with the aclWhereClause if the logged in contact
-    // has access to at least one local party.
-    if (empty($local_party_ids)) {
+    $party_ids = _get_local_party_ids($contactID, $type);
+    if(empty($party_ids['local']) AND empty($party_ids['regional'])){
       return;
     }
+      // We only want to proceed with the aclWhereClause if the logged in contact
+    // has access to at least one local party.
 
-    $contact_ids = _get_contact_ids($local_party_ids);
-
+    $contact_ids = _get_contact_ids($party_ids['local'], $party_ids['regional']);
     // implode $contact_ids into a comma separated string
     $contact_ids_csv = implode(',', $contact_ids);
 
@@ -342,31 +339,6 @@ function _get_local_party_ids($contactID, $permission_type) {
     }
   }
 
-  if (!empty($regional_party_ids)) {
-
-    // OK. Now we know the regional party ids, let's collect the local party ids
-    // which are below those regions.
-    $regional_party_ids_csv = implode(',', $regional_party_ids);
-
-    // Note: in the database:
-    // contact_id_a is the local party
-    // contact_id_b is the regional party
-    $sql_local_party_region  = "SELECT contact_id_a";
-    $sql_local_party_region .= " FROM civicrm_relationship";
-    $sql_local_party_region .= " WHERE contact_id_b IN ($regional_party_ids_csv)";
-    $sql_local_party_region .= " AND relationship_type_id = $LOCAL_PARTY_REGION";
-    $sql_local_party_region .= " AND is_active = 1";
-
-    $dao_local_party_region = CRM_Core_DAO::executeQuery($sql_local_party_region);
-
-    while ($dao_local_party_region->fetch()) {
-      // Remember: contact_id_a is the local party
-      if (!in_array($dao_local_party_region->contact_id_a, $local_party_ids)) {
-        $local_party_ids[] = $dao_local_party_region->contact_id_a;
-      }
-    }
-  } // if (!empty($regional_party_ids))
-
   // So far, we know $local_party_ids for those with regional party access.
   // Now, let's check for local party access.
 
@@ -404,28 +376,39 @@ function _get_local_party_ids($contactID, $permission_type) {
     }
   }
 
-  return $local_party_ids;
+  return array('local'=>$local_party_ids, 'regional'=>$regional_party_ids);
 }
 
-function _get_contact_ids($local_party_ids) {
+function _get_contact_ids($local_party_ids=array(), $regional_party_ids=array()) {
   // Returns all contacts for a particular party.
   // Currently, this means members.
   // In future, we also want to return supporters as well.
+  if(empty($local_party_ids) AND empty($regional_party_ids)){
+    return array();
+  }
+  $where=$join='';
   $member_ids = array();
+  if(count($regional_party_ids)){
+    $join.=" LEFT JOIN civicrm_value_gpew_party_information AS regional_party ON civicrm_contact.id=regional_party.entity_id";
+    $where.= " OR regional_party.regional_party_id IN (".implode(',', $regional_party_ids).') ';
+  }
+  if(count($local_party_ids)){
+    $join.=" LEFT JOIN civicrm_value_gpew_party_information AS local_party ON civicrm_contact.id=local_party.entity_id";
+    $where.= " OR local_party.local_party_id IN (".implode(',', $local_party_ids).') ';
+  }
   $local_party_ids_csv = implode(',', $local_party_ids);
   $sql_members = "
     SELECT civicrm_contact.id 
     FROM civicrm_contact
-    LEFT JOIN civicrm_value_gpew_party_information partyMembershipTable
-    ON civicrm_contact.id = partyMembershipTable.entity_id
-    WHERE partyMembershipTable.local_party_id IN ($local_party_ids_csv)
-  ";
+    {$join}
+    WHERE 0 {$where}";
+    //echo $sql_members;exit;
   $dao_members = CRM_Core_DAO::executeQuery($sql_members);
   while ($dao_members->fetch()) {
     $member_ids[] = $dao_members->id;
   }
   // We also return the local party ids, because we allow access to view/edit
   // the local party also
-  $contact_ids = array_merge($member_ids, $local_party_ids);
+  $contact_ids = array_merge($member_ids, $local_party_ids, $regional_party_ids);
   return $contact_ids;
 }
