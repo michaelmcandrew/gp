@@ -74,7 +74,7 @@ function gpew_membership_block_contents() {
   //íf there is no membership
   if (!$membership)
   {	
-    return "You have no membership on record, please <a href='nfp'>click here to join</a>.  </br>If you think this is an error please contact the Green Party office</br>".$more_info; 
+    return "You have no membership on record, please <a href='/membership/form'>click here to join</a>.  </br>If you think this is an error please contact the Green Party office</br>".$more_info; 
   }
 
   return theme('gpew_membership_page', $membership, $relationship, $renew_link, $is_primary, $more_info);
