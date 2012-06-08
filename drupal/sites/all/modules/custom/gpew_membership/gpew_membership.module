@@ -5,15 +5,11 @@
 //  * Licensed to CiviCRM under the Academic Free License version 3.0.
 //  *
 //  */
+$gpew_membership_multiple_membership = NULL;
 
 
 function gpew_membership_menu() {
-	$items['renew'] = array(
-		'title' => 'Membership renewal',
-		'page callback' => 'gpew_renew_page',
-		'access callback' => TRUE,
-		'menu_name' => 'menu-tertiary-links',
-	);
+
 	$items['membership/form'] = array(
 	    'title' => "Membership sign-up | Green Party members' website",
 	    'page callback' => 'gp_membership_form_redirect',
@@ -23,7 +19,138 @@ function gpew_membership_menu() {
 	return $items;
 }
 
+function gpew_membership_theme() {
+  return array(
+        'gpew_membership_page' => array(
+                            'template' => 'gpew-membership-page',
+                            'arguments' => array('membership' => NULL,
+                                          'relationship' => NULL,
+                                          'renew_link' => NULL,
+                                          'is_primary' => NULL,
+                                          'more_info' => NULL
+                                          ),
+                            )
+      );
+}
 
+function gpew_membership_block($op = 'list', $delta = '', $edit = array()) {
+  // The $op parameter determines what piece of information is being requested.
+  switch ($op) {
+    case 'list':
+      $blocks['0'] = array(
+        'info' => t('Membership status block'), 
+      );
+      return $blocks;
+    case 'view':
+      switch ($delta) {
+        case '0':
+          $block['subject'] = t('Your membership');
+          $block['content'] = gpew_membership_block_contents();
+          break;
+      }
+      return $block;
+  }
+}
+function gpew_membership_block_contents() {
+  $membership = gpew_membership_get_membership();
+  $relationship = gpew_membership_get_relationship();
+  $renew_link = gpew_membership_renew_link();
+  $is_primary = gpew_membership_is_primary();
+  $more_info = "<a href='membership-info'>More information about membership types</a>";
+  //format the date nicely
+  if($membership['start_date']){
+    $startdate= new DateTime($membership['start_date']);
+    $membership['start_date']=$startdate->format('d/m/Y');
+  }
+  if($membership['end_date']){
+    $enddate= new DateTime($membership['end_date']);
+    $membership['end_date']=$enddate->format('d/m/Y');
+  }
+  //íf there are multiple memberships
+  if ($GLOBALS['gpew_membership_multiple_membership'])
+  {	
+    return "You have more than one membership on record so we cannot display any information here, please contact the Green Party office</br>".$more_info; 
+  }
+  //íf there is no membership
+  if (!$membership)
+  {	
+    return "You have no membership on record, please <a href='nfp'>click here to join</a>.  </br>If you think this is an error please contact the Green Party office</br>".$more_info; 
+  }
+
+  return theme('gpew_membership_page', $membership, $relationship, $renew_link, $is_primary, $more_info);
+}
+
+function gpew_membership_get_membership() {
+	civicrm_initialize();
+	$params = array( 
+		'contact_id' => gpew_membership_getCiviId(),
+		'version' => 3 );
+	$results=civicrm_api("Membership","get", $params);
+	if ($results['count'] >1) {$GLOBALS['gpew_membership_multiple_membership'] = TRUE;}
+	$array_id = $results['id'];
+	$membership=$results['values'][$array_id];
+	//print_r($membership['membership_name']);exit;
+	return $membership;
+}
+
+function gpew_membership_getCiviId()
+{
+  civicrm_initialize();
+  $params = array ('version' =>'3',
+    'uf_id' => gpew_membership_getDrupalId(),
+    'return' => 'contact_id' );
+  $results=civicrm_api("UFMatch","getvalue",$params );
+  return $results;
+  //return "20206";
+}
+function gpew_membership_getDrupalId()
+{
+  global $user;
+  return $user->uid;
+}
+function gpew_membership_get_relationship()
+{
+  civicrm_initialize();
+  $params = array( 
+    'contact_id' => gpew_membership_getCiviId(),
+    'return' => 'relation',
+    'version' => 3,
+    );
+  $results=civicrm_api("Relationship","getvalue", $params);
+  //print_r($results);exit;
+  return $results;
+}
+function gpew_membership_is_joint()
+{
+  $membership = gpew_membership_get_membership();
+  $membership_name = $membership['membership_name'];	
+  if (strpos($membership_name,"Joint")!== false) 
+  {
+    return '7';
+  }
+  else {
+    return '6';
+  }
+}
+function gpew_membership_is_primary()
+{
+  if (gpew_membership_get_relationship()=='receives membership from')
+  {
+    return FALSE;
+  }
+  else 
+  {
+    return TRUE;
+  }
+}
+
+function gpew_membership_renew_link()
+{
+  //this function is a little redundant since we're not redirecting people to different contribution pages (joint or individual).  I'm leaving it here incase we need to distinguish at a later point.  
+  $link = '/civicrm/contribute/transact?reset=1&id=6';
+  //$link = '/civicrm/contribute/transact?reset=1&id='.gpew_membership_is_joint();
+  return $link;
+}
 
 function gpew_membership_civicrm_buildForm($formName, &$form) {
 	global $user;

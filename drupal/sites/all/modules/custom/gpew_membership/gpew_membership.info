@@ -1,5 +1,5 @@
 name = Membership customisations for Green Party
-description = This allows people to join and renew as joint members by customising the CiviCRM contribution page with the extra fields.  Including various helper functions.  It also adds a redirect from membership/form to the contribution page.  
+description = This allows people to join and renew as joint members by customising the CiviCRM contribution page with the extra fields.  Including various helper functions.  It also adds a redirect from membership/form to the contribution page.  This also adds a membership status block.
 dependencies[] = civicrm
 package = CiviCRM - Green Party extras
 core = 6.x
