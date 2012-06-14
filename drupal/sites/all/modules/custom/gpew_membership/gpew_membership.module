@@ -44,7 +44,7 @@ function gpew_membership_block($op = 'list', $delta = '', $edit = array()) {
     case 'view':
       switch ($delta) {
         case '0':
-          $block['subject'] = t('Your membership');
+          $block['subject'] = t('My membership');
           $block['content'] = gpew_membership_block_contents();
           break;
       }
