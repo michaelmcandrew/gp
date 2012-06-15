@@ -1,8 +1,9 @@
 <p>Your membership is:</br><b><?php echo $membership['membership_name']; ?></b></br>
 	Start date:  <b><?php echo $membership['start_date']; ?></b></br>
+	<!--  TEMP REMOVED UNTIL 1950 ERROR IS FIXED WITH MEMBERSHIPS
 	<?php if ($membership['end_date']){ ?>
 	End date:  <b><?php echo $membership['end_date']; ?></b></br>
-	<?php } ?>
+	<?php } ?>-->
 
 	<?php if ($is_primary) : ?>
 	<p><a href='<?php echo $renew_link; ?>'>To renew your <?php echo $membership['membership_name']; ?> membership click here.</a></p>
