@@ -27,6 +27,8 @@ function gpew_membership_theme() {
                                           'relationship' => NULL,
                                           'renew_link' => NULL,
                                           'is_primary' => NULL,
+                                          'is_joint' => NULL,
+                                          'membership_payment_frequency' => NULL,
                                           'more_info' => NULL
                                           ),
                             )
@@ -53,10 +55,12 @@ function gpew_membership_block($op = 'list', $delta = '', $edit = array()) {
 }
 function gpew_membership_block_contents() {
   $membership = gpew_membership_get_membership();
+  $is_joint = gpew_membership_is_joint();
   $relationship = gpew_membership_get_relationship();
   $renew_link = gpew_membership_renew_link();
   $is_primary = gpew_membership_is_primary();
   $more_info = "<a href='membership-info'>More information about membership types</a>";
+  $membership_payment_frequency = $membership['custom_63'];
   //format the date nicely
   if($membership['start_date']){
     $startdate= new DateTime($membership['start_date']);
@@ -77,7 +81,7 @@ function gpew_membership_block_contents() {
     return "You have no membership on record, please <a href='/membership/form'>click here to join</a>.  </br>If you think this is an error please contact the Green Party office</br>".$more_info; 
   }
 
-  return theme('gpew_membership_page', $membership, $relationship, $renew_link, $is_primary, $more_info);
+  return theme('gpew_membership_page', $membership, $relationship, $renew_link, $is_primary, $is_joint, $membership_payment_frequency, $more_info);
 }
 
 function gpew_membership_get_membership() {
@@ -126,10 +130,10 @@ function gpew_membership_is_joint()
   $membership_name = $membership['membership_name'];	
   if (strpos($membership_name,"Joint")!== false) 
   {
-    return '7';
+    return '7';//true
   }
   else {
-    return '6';
+    return '6';//false
   }
 }
 function gpew_membership_is_primary()
