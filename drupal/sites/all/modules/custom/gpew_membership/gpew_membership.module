@@ -59,7 +59,7 @@ function gpew_membership_block_contents() {
   $relationship = gpew_membership_get_relationship();
   $renew_link = gpew_membership_renew_link();
   $is_primary = gpew_membership_is_primary();
-  $more_info = "<a href='membership-info'>More information about membership types</a>";
+  $more_info = "<a href='/membership-info'>More information about membership types</a>";
   $membership_payment_frequency = $membership['custom_63'];
   //format the date nicely
   if($membership['start_date']){
