@@ -29,6 +29,9 @@ function gpew_membership_theme() {
                                           'is_primary' => NULL,
                                           'is_joint' => NULL,
                                           'membership_payment_frequency' => NULL,
+                                          'membership_payment_is_recurring' => NULL,
+                                          'membership_status_name' => NULL,
+                                          'membership_status_id' => NULL,
                                           'more_info' => NULL
                                           ),
                             )
@@ -61,6 +64,9 @@ function gpew_membership_block_contents() {
   $is_primary = gpew_membership_is_primary();
   $more_info = "<a href='/membership-info'>More information about membership types</a>";
   $membership_payment_frequency = $membership['custom_63'];
+  $membership_payment_is_recurring = $membership['custom_54'];
+  $membership_status_id = $membership['status_id'];
+  $membership_status_name = gpew_membership_get_membership_status($membership_status_id);
   //format the date nicely
   if($membership['start_date']){
     $startdate= new DateTime($membership['start_date']);
@@ -81,7 +87,8 @@ function gpew_membership_block_contents() {
     return "You have no membership on record, please <a href='/membership/form'>click here to join</a>.  </br>If you think this is an error please contact the Green Party office</br>".$more_info; 
   }
 
-  return theme('gpew_membership_page', $membership, $relationship, $renew_link, $is_primary, $is_joint, $membership_payment_frequency, $more_info);
+  return theme('gpew_membership_page', $membership, $relationship, $renew_link, $is_primary, $is_joint, $membership_payment_frequency, $membership_payment_is_recurring, $membership_status_name,
+$membership_status_id, $more_info);
 }
 
 function gpew_membership_get_membership() {
@@ -95,6 +102,24 @@ function gpew_membership_get_membership() {
 	$membership=$results['values'][$array_id];
 	//print_r($membership['membership_name']);exit;
 	return $membership;
+}
+
+function gpew_membership_get_membership_status($status_id) {
+	
+	$id2membership=array(
+  '1' => 'New',
+  '2' => 'Current',
+  '3' => 'Grace',
+  '4' => 'Expired',
+  '5' => 'Pending',
+  '6' => 'Cancelled',
+  '7' => 'Deceased',
+  '9' => 'DD pending',
+  '10' => 'Unknown',
+  '11' => 'Not yet started',
+  '12' => 'renewal rejoining'
+  );
+  return $id2membership[$status_id];
 }
 
 function gpew_membership_getCiviId()
