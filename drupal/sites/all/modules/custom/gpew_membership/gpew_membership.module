@@ -34,8 +34,8 @@ function gpew_membership_theme() {
                                           'membership_status_id' => NULL,
                                           'more_info' => NULL
                                           ),
-                            )
-      );
+                            
+      ));
 }
 
 function gpew_membership_block($op = 'list', $delta = '', $edit = array()) {
@@ -66,15 +66,23 @@ function gpew_membership_block_contents() {
   $membership_payment_frequency = $membership['custom_63'];
   $membership_payment_is_recurring = $membership['custom_54'];
   $membership_status_id = $membership['status_id'];
-  $membership_status_name = gpew_membership_get_membership_status($membership_status_id);
+  include 'CRM/Member/PseudoConstant.php';
+
+  $membership_status_name = CRM_Member_PseudoConstant::membershipStatus($membership_status_id);
   //format the date nicely
   if($membership['start_date']){
-    $startdate= new DateTime($membership['start_date']);
-    $membership['start_date']=$startdate->format('d/m/Y');
+    $start_date= new DateTime($membership['start_date']);
+    $membership['start_date']=$start_date->format('d/m/Y');
   }
   if($membership['end_date']){
-    $enddate= new DateTime($membership['end_date']);
-    $membership['end_date']=$enddate->format('d/m/Y');
+    $end_date = new DateTime($membership['end_date']);
+    $membership['end_date']=$end_date->format('d/m/Y');
+    //make a new date object (with default date of now) to compare against the end date
+    if($end_date > new DateTime()){
+      $membership['end_date_text'] = 'ends on';
+    }else{
+      $membership['end_date_text'] = 'ended on';
+    }
   }
   //íf there are multiple memberships
   if ($GLOBALS['gpew_membership_multiple_membership'])
@@ -102,24 +110,6 @@ function gpew_membership_get_membership() {
 	$membership=$results['values'][$array_id];
 	//print_r($membership['membership_name']);exit;
 	return $membership;
-}
-
-function gpew_membership_get_membership_status($status_id) {
-	
-	$id2membership=array(
-  '1' => 'New',
-  '2' => 'Current',
-  '3' => 'Grace',
-  '4' => 'Expired',
-  '5' => 'Pending',
-  '6' => 'Cancelled',
-  '7' => 'Deceased',
-  '9' => 'DD pending',
-  '10' => 'Unknown',
-  '11' => 'Not yet started',
-  '12' => 'renewal rejoining'
-  );
-  return $id2membership[$status_id];
 }
 
 function gpew_membership_getCiviId()
