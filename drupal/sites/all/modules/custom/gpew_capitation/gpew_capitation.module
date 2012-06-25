@@ -31,10 +31,6 @@ function gpew_capitation_civicrm_post( $op, $objectName, $objectId, &$objectRef 
 		return;
 	}
 	
-	if(!gpew_capitation_is_current_member($objectRef->contact_id)){
-		return;
-	}
-	
 	// if we got this far, we are editing or creating a contribution of type membership_fee for a current member, therefore, we should perform the capitation
 	gpew_capitation_capitate($objectRef->id);
 }
