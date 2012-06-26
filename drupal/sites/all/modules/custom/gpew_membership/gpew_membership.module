@@ -166,7 +166,7 @@ function gpew_membership_is_primary()
 function gpew_membership_renew_link()
 {
   //this function is a little redundant since we're not redirecting people to different contribution pages (joint or individual).  I'm leaving it here incase we need to distinguish at a later point.  
-  $link = '/civicrm/contribute/transact?reset=1&id=6';
+  $link = 'http://renew.greenparty.org.uk';
   //$link = '/civicrm/contribute/transact?reset=1&id='.gpew_membership_is_joint();
   return $link;
 }
