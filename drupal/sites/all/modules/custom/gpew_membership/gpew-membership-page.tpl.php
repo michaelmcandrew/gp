@@ -13,7 +13,7 @@
 	
 	<?php
 	if ($is_primary){
-	  $renew_text="<a href='<?php echo $renew_link; ?>'>to renew click here.</a>";
+	  $renew_text="<a href='$renew_link'>to renew click here.</a>";
 	}
 	else{
 	  "The primary member must be logged in to renew this membership.";
@@ -29,4 +29,3 @@
     } ?>
   </p>
   <p><?php echo $more_info; ?></p>
-
