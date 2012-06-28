@@ -179,7 +179,9 @@ function civicrm_member_roles_manual_sync()
                                                        '#type' => 'submit',
                                                        '#value' => t('Synchronize CiviMember Membership Types to Drupal Roles now'),
                                                        );
-    
+    if(isset($_GET['limit']) && isset($_GET['offset'])){
+      _civicrm_member_roles_sync(); 
+    }
     return $form;
 }
 
@@ -188,6 +190,7 @@ function civicrm_member_roles_manual_sync()
  */
 function civicrm_member_roles_manual_sync_submit($form, &$form_state) 
 {
+
     if ( ! civicrm_initialize( ) ) {
         return;
     } 
@@ -443,6 +446,9 @@ function _civicrm_member_roles_sync( $ext_uid = NULL, $cid = NULL )
         $memTypes = implode( ",", $all_rule_membership_types );
         // OPTIMIZATION: "SELECT DISTINCT contact_id" would be better if field were indexed
         $sql ="SELECT DISTINCT contact_id FROM civicrm_uf_match";
+        if(isset($_GET['limit']) && isset($_GET['offset'])){
+          $sql.=" LIMIT {$_GET['limit']} OFFSET {$_GET['offset']}";
+        }
         $contacts = CRM_Core_DAO::executeQuery ( $sql,CRM_Core_DAO::$_nullArray );
         if ( $contacts->N == 0 ) {
             return FALSE;
@@ -484,6 +490,7 @@ function _civicrm_member_roles_sync( $ext_uid = NULL, $cid = NULL )
         
     }
     $allRoles = user_roles( TRUE ); 
+
     while ( $contacts->fetch() ) {
         $cid = $contacts->contact_id;
         $uid = CRM_Core_BAO_UFMatch::getUFId( $cid );
@@ -541,6 +548,8 @@ function _civicrm_member_roles_sync( $ext_uid = NULL, $cid = NULL )
             
         }
     }
+    
+
     return TRUE;    
 }
 
