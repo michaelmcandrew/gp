@@ -16,6 +16,8 @@ function gpew_can_edit_own_contact_civicrm_pageRun( &$page ) {
   }
 }
 
+//add hook to check if the page being loaded is the user page then call gpew_can_edit_own_contact_check if access is denied then hide the view contact record link.
+
 function gpew_can_edit_own_contact_check($contact_id){// and the contact is the logged in users contact
   if(user_access('View and edit own contact')){
     return;
@@ -29,6 +31,11 @@ function gpew_can_edit_own_contact_check($contact_id){// and the contact is the 
   
   //TODO
   // if the logged in person is a local party secretary of the same local party as the contact (himself), then let him view the contact
+  
+  
+  
+  
+  //run a query to check to see if the person is a local party secretary of his party.  If so then return.
 
   $session->pushUserContext( CRM_Utils_System::url('civicrm', 'reset=1' ) );
   CRM_Core_Error::statusBounce( ts('You do not have the necessary permission to view this contact.') );
