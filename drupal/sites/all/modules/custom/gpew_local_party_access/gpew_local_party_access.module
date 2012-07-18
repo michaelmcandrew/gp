@@ -15,7 +15,6 @@
  * Defines the group of contacts that the local party membership secretary
  * should have access to.
  */
-
  
 function gpew_local_party_access_civicrm_aclWhereClause($type, &$tables, &$whereTables, &$contactID, &$where) {
   // 
@@ -198,7 +197,7 @@ function gpew_local_party_access_civicrm_buildForm($formName, &$form) {
     $dao_members = CRM_Core_DAO::executeQuery( $sql_members, CRM_Core_DAO::$_nullArray );
     
     if ($dao_members->N > CRM_Contact_Form_Task_EmailCommon::MAX_EMAILS_KILL_SWITCH) {
-      CRM_Core_Error::fatal( ts( 'Please do not use this task to send a lot of emails (greater than %1). We recommend using CiviMail instead.', array( 1 => CRM_Contact_Form_Task_EmailCommon::MAX_EMAILS_KILL_SWITCH ) ) );
+      CRM_Core_Error::fatal( ts( 'You can use this functionality to send emails to more than %1 people.  Please contact GP office to ask about other options for sending emails to lots of contacts.', array( 1 => CRM_Contact_Form_Task_EmailCommon::MAX_EMAILS_KILL_SWITCH ) ) );
     }
 
     while ( $dao_members->fetch( ) ) {
@@ -393,6 +392,14 @@ function _get_contact_ids($local_party_ids=array(), $regional_party_ids=array())
   if(count($regional_party_ids)){
     $join.=" LEFT JOIN civicrm_value_gpew_party_information AS regional_party ON civicrm_contact.id=regional_party.entity_id";
     $where.= " OR regional_party.regional_party_id IN (".implode(',', $regional_party_ids).') ';
+    
+    foreach($regional_party_ids as $region){
+        $params_local_partys_in_regions[1]=array($region, 'Integer');
+        $dao_local_partys_in_regions = CRM_Core_DAO::executeQuery('SELECT contact_id_a FROM civicrm_relationship WHERE relationship_type_id=23 AND contact_id_b = %1 AND is_active', $params_local_partys_in_regions);
+        while ($dao_local_partys_in_regions->fetch()) {
+            $local_partys_in_regions[] = $dao_local_partys_in_regions->contact_id_a;
+        }
+    }
   }
   if(count($local_party_ids)){
     $join.=" LEFT JOIN civicrm_value_gpew_party_information AS local_party ON civicrm_contact.id=local_party.entity_id";
@@ -411,6 +418,6 @@ function _get_contact_ids($local_party_ids=array(), $regional_party_ids=array())
   }
   // We also return the local party ids, because we allow access to view/edit
   // the local party also
-  $contact_ids = array_merge($member_ids, $local_party_ids, $regional_party_ids);
+  $contact_ids = array_merge($member_ids, $local_party_ids, $regional_party_ids, $local_partys_in_regions);
   return $contact_ids;
 }
