@@ -15,6 +15,8 @@
  * Defines the group of contacts that the local party membership secretary
  * should have access to.
  */
+
+ 
 function gpew_local_party_access_civicrm_aclWhereClause($type, &$tables, &$whereTables, &$contactID, &$where) {
   // 
   // Note that CiviCRM checks the database table civicrm_acl_contact_cache
@@ -126,8 +128,8 @@ function gpew_local_party_access_civicrm_buildForm($formName, &$form) {
     if (empty($local_party_ids)) {
       return;
     }
-
-    $local_party_ids_csv = implode(',', $local_party_ids);
+    
+    $local_party_ids_csv = implode(',', array_merge($local_party_ids['local'],$local_party_ids['regional']));
 
     $sql_members = "
       SELECT civicrm_contact.id 
@@ -138,7 +140,6 @@ function gpew_local_party_access_civicrm_buildForm($formName, &$form) {
       ON civicrm_membership.contact_id = civicrm_contact.id
       WHERE partyMembershipTable.local_party_id IN ($local_party_ids_csv)
     ";
-
     // If the user is not in a relationship with the local party, then return.
     // we expect $sql to be something like this:
     // SELECT contact_a.id FROM `civicrm_contact` contact_a 
@@ -191,11 +192,11 @@ function gpew_local_party_access_civicrm_buildForm($formName, &$form) {
         // recipients value on the querystring is not valid
         return;
     }
-
+    
     $sql_members .= " ORDER BY civicrm_contact.sort_name ";
 
     $dao_members = CRM_Core_DAO::executeQuery( $sql_members, CRM_Core_DAO::$_nullArray );
-
+    
     if ($dao_members->N > CRM_Contact_Form_Task_EmailCommon::MAX_EMAILS_KILL_SWITCH) {
       CRM_Core_Error::fatal( ts( 'Please do not use this task to send a lot of emails (greater than %1). We recommend using CiviMail instead.', array( 1 => CRM_Contact_Form_Task_EmailCommon::MAX_EMAILS_KILL_SWITCH ) ) );
     }
@@ -294,6 +295,7 @@ function gpew_local_party_access_civicrm_buildForm($formName, &$form) {
 }
 
 function _get_local_party_ids($contactID, $permission_type) {
+  require_once('CRM/ACL/API.php');  
   // These are the relationships which are allowed access to local party 
   // reports
   $LOCAL_PARTY_VIEW = 25;
