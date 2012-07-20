@@ -401,6 +401,7 @@ function _get_contact_ids($local_party_ids=array(), $regional_party_ids=array())
         }
     }
   }
+  
   if(count($local_party_ids)){
     $join.=" LEFT JOIN civicrm_value_gpew_party_information AS local_party ON civicrm_contact.id=local_party.entity_id";
     $where.= " OR local_party.local_party_id IN (".implode(',', $local_party_ids).') ';
@@ -416,8 +417,22 @@ function _get_contact_ids($local_party_ids=array(), $regional_party_ids=array())
   while ($dao_members->fetch()) {
     $member_ids[] = $dao_members->id;
   }
+  
   // We also return the local party ids, because we allow access to view/edit
   // the local party also
-  $contact_ids = array_merge($member_ids, $local_party_ids, $regional_party_ids, $local_partys_in_regions);
+  $contact_ids[]=1000000000; // we make the billionth green party member visible to all local and regional party secretaries  
+
+  foreach($member_ids as $id){
+    $contact_ids[]=$id;  
+  }
+  foreach($local_party_ids as $id){
+    $contact_ids[]=$id;  
+  }
+  foreach($regional_party_ids as $id){
+    $contact_ids[]=$id;  
+  }
+  foreach($local_partys_in_regions as $id){
+    $contact_ids[]=$id;  
+  }
   return $contact_ids;
 }
